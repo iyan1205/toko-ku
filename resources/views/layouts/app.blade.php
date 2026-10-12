@@ -17,7 +17,7 @@
          class="fixed inset-0 z-30 bg-stone-900/60 lg:hidden"></div>
 
     <aside :class="sidebar ? 'translate-x-0' : '-translate-x-full'"
-           class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-stone-900 text-stone-300 transition-transform duration-200 lg:translate-x-0">
+           class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-stone-900 text-stone-300 transition-transform duration-200 lg:translate-x-0 print:hidden">
         <div class="flex h-16 items-center gap-2 border-b border-stone-800 px-5">
             <span class="text-xl">🏪</span>
             <span class="truncate text-base font-semibold text-white">{{ config('app.name') }}</span>
@@ -53,7 +53,7 @@
     </aside>
 
     <div class="lg:pl-64">
-        <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-stone-200 bg-white px-4 sm:px-6">
+        <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-stone-200 bg-white px-4 sm:px-6 print:hidden">
             <button type="button" @click="sidebar = true"
                     class="rounded-md p-2 text-stone-600 hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-teal-500 lg:hidden"
                     aria-label="Buka menu">

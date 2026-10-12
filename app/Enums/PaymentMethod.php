@@ -25,6 +25,12 @@ enum PaymentMethod: string
         };
     }
 
+    /** Seluruh metode tersedia di kasir. */
+    public static function untukPenjualan(): array
+    {
+        return self::cases();
+    }
+
     /** Metode yang masuk akal untuk membayar supplier (piutang hanya untuk pelanggan). */
     public static function untukPembelian(): array
     {

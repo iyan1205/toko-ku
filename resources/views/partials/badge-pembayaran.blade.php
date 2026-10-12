@@ -5,4 +5,4 @@
         default => 'bg-red-50 text-red-800',
     };
 @endphp
-<span class="whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium {{ $warna }}">{{ $status->label() }}</span>
+<span class="whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium {{ $warna }}">{{ ($penjualan ?? false) ? $status->labelPenjualan() : $status->label() }}</span>

@@ -17,6 +17,12 @@ enum PaymentStatus: string
         };
     }
 
+    /** Di penjualan, belum dibayar disebut PIUTANG (di pembelian: HUTANG). */
+    public function labelPenjualan(): string
+    {
+        return $this === self::Unpaid ? 'PIUTANG' : $this->label();
+    }
+
     public static function dari(int $dibayarSen, int $sisaSen): self
     {
         return match (true) {

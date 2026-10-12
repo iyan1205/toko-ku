@@ -3,6 +3,9 @@
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HeldSaleController;
+use App\Http\Controllers\PosController;
+use App\Http\Controllers\SaleController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\StockController;
@@ -62,6 +65,28 @@ Route::middleware('auth')->group(function () {
             ->names('stock-opnames')
             ->only(['index', 'create', 'store', 'show']);
     });
+
+    // ---- Penjualan / Kasir (Tahap 5) ----
+    Route::middleware('can:create-sale')->group(function () {
+        Route::get('kasir', [PosController::class, 'index'])->name('pos.index');
+        Route::get('kasir/cari-produk', [PosController::class, 'searchProducts'])->name('pos.products');
+        Route::get('kasir/cari-pelanggan', [PosController::class, 'searchCustomers'])->name('pos.customers');
+
+        Route::get('kasir/tahan', [HeldSaleController::class, 'index'])->name('pos.hold.index');
+        Route::post('kasir/tahan', [HeldSaleController::class, 'store'])->name('pos.hold.store');
+        Route::get('kasir/tahan/{heldSale}', [HeldSaleController::class, 'show'])->name('pos.hold.show');
+        Route::delete('kasir/tahan/{heldSale}', [HeldSaleController::class, 'destroy'])->name('pos.hold.destroy');
+
+        Route::post('penjualan', [SaleController::class, 'store'])->name('sales.store');
+    });
+
+    // Lihat daftar/detail: dicek via SalePolicy (view-sales = semua, view-own-sales = milik sendiri) di controller,
+    // bukan middleware 'can:', karena ini OR dua izin dan middleware can: tidak mendukung itu.
+    Route::get('penjualan', [SaleController::class, 'index'])->name('sales.index');
+    Route::get('penjualan/{sale}', [SaleController::class, 'show'])->whereNumber('sale')->name('sales.show');
+
+    Route::post('penjualan/{sale}/batal', [SaleController::class, 'void'])
+        ->whereNumber('sale')->middleware('can:void-sale')->name('sales.void');
 
     // ---- Pembelian (Tahap 4). Route statis di atas {purchase}. Pembelian tidak punya edit/hapus: dibatalkan (void). ----
     Route::middleware('can:create-purchase')->group(function () {

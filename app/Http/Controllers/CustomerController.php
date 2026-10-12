@@ -39,7 +39,17 @@ class CustomerController extends Controller
 
     public function show(Customer $customer): View
     {
-        return view('customers.show', ['customer' => $customer]);
+        $selesai = $customer->sales()->selesai();
+
+        return view('customers.show', [
+            'customer' => $customer,
+            'ringkasan' => [
+                'jumlah' => (clone $selesai)->count(),
+                'total' => (float) (clone $selesai)->sum('grand_total'),
+                'piutang' => (float) (clone $selesai)->sum('balance'),
+            ],
+            'penjualan' => $customer->sales()->orderByDesc('sold_at')->orderByDesc('id')->limit(10)->get(),
+        ]);
     }
 
     public function edit(Customer $customer): View

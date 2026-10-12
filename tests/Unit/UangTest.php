@@ -66,6 +66,15 @@ class UangTest extends TestCase
         $this->assertIsInt(Uang::kali(99999999, 9999999999));
     }
 
+    public function test_perkalian_yang_meluap_ditolak_bukan_diam_diam_menjadi_float(): void
+    {
+        // Rp 9.999.999.999 per unit (batas harga produk) x 99.999,999 unit melewati batas 64-bit.
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('terlalu besar');
+
+        Uang::kali(99999999, 999999999900);
+    }
+
     public function test_harga_per_unit_dibulatkan_setengah_ke_atas(): void
     {
         $this->assertSame(290000, Uang::perUnit(1450000, 5000)); // 14.500 / 5 = 2.900
@@ -78,6 +87,27 @@ class UangTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
         Uang::perUnit(100, 0);
+    }
+
+    public function test_kurangi_persen_membulatkan_setengah_ke_atas(): void
+    {
+        $this->assertSame(1000, Uang::kurangiPersen(1000, 0));
+        $this->assertSame(500, Uang::kurangiPersen(999, '50')); // 9,99 x 0,5 = 4,995 -> 5,00
+        $this->assertSame(1, Uang::kurangiPersen(1, '49.99'));  // 0,01 x 0,5001 -> tetap 1 sen
+        $this->assertSame(0, Uang::kurangiPersen(10000, '100'));
+        $this->assertSame(845000, Uang::kurangiPersen(1000000, '15.5')); // Rp10.000 - 15,5% = Rp8.450
+    }
+
+    public function test_kurangi_persen_menolak_di_luar_0_sampai_100(): void
+    {
+        foreach (['101', '-5'] as $buruk) {
+            try {
+                Uang::kurangiPersen(100, $buruk);
+                $this->fail("Seharusnya menolak persen: {$buruk}");
+            } catch (InvalidArgumentException) {
+                $this->addToAssertionCount(1);
+            }
+        }
     }
 
     public function test_kali_negatif_ditolak(): void

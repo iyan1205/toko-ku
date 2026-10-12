@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Purchase;
+use App\Models\Sale;
 use App\Models\StockOpname;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -26,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
         Relation::morphMap([
             'stock_opname' => StockOpname::class,
             'purchase' => Purchase::class,
+            'sale' => Sale::class,
         ]);
 
         // @rupiah($nilai) dan @tanggal($tanggal) di Blade.

@@ -42,7 +42,36 @@ final class Uang
     {
         self::pastikanTakNegatif($milli, $sen);
 
+        // Tanpa pengaman ini PHP diam-diam mengubah bilangan bulat yang meluap menjadi float (hasil tidak eksak lagi).
+        if ($sen > 0 && $milli > intdiv(intdiv(PHP_INT_MAX - 1000, 2), $sen)) {
+            throw new InvalidArgumentException('Hasil perkalian terlalu besar.');
+        }
+
         return intdiv($milli * $sen * 2 + 1000, 2000);
+    }
+
+    /**
+     * harga(sen) dikurangi persen(0..100, hingga 2 desimal) -> harga bersih (sen), dibulatkan setengah ke atas.
+     * Dipakai untuk diskon tetap produk (Product::discount_percent), dihitung dengan bilangan bulat
+     * supaya hasilnya sama persis dengan pratinjau di layar kasir, bukan sekadar mendekati.
+     */
+    public static function kurangiPersen(int $sen, mixed $persen): int
+    {
+        self::pastikanTakNegatif($sen);
+
+        $bp = self::parse($persen, 2); // basis poin: "15.50" -> 1550 (dari 10000 = 100%)
+
+        if ($bp < 0 || $bp > 10000) {
+            throw new InvalidArgumentException('Persentase harus antara 0 dan 100.');
+        }
+
+        $sisaBp = 10000 - $bp;
+
+        if ($sen > 0 && $sisaBp > intdiv(PHP_INT_MAX - 10000, $sen * 2)) {
+            throw new InvalidArgumentException('Hasil perkalian terlalu besar.');
+        }
+
+        return intdiv($sen * $sisaBp * 2 + 10000, 20000);
     }
 
     /** total(sen) / jumlah(milli) -> harga per unit (sen), dibulatkan setengah ke atas. */

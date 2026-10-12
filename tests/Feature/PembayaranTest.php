@@ -6,13 +6,16 @@ use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\RoleName;
 use App\Exceptions\AturanBisnisException;
+use App\Models\Customer;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Purchase;
+use App\Models\Sale;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Services\PaymentService;
 use App\Services\PurchaseService;
+use App\Services\SaleService;
 use App\Support\Uang;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use LogicException;
@@ -102,6 +105,77 @@ class PembayaranTest extends TestCase
         $this->expectExceptionMessage('dibatalkan');
 
         $this->bayar->bayarPembelian($this->pembelian, Uang::sen('1000'), PaymentMethod::Cash, null, $this->admin);
+    }
+
+    // ================= terimaPenjualan() =================
+
+    private function buatPenjualanPiutang(Customer $pelanggan, array $ubah = []): Sale
+    {
+        $produk = Product::factory()->stok(50)->create(['selling_price' => 10000]);
+
+        return app(SaleService::class)->buat(array_merge([
+            'customer_id' => $pelanggan->id,
+            'items' => [['product_id' => $produk->id, 'quantity' => '10', 'discount' => '0']],
+            'discount' => '0', 'payment_method' => 'receivable', 'paid_amount' => '0',
+        ], $ubah), $this->admin);
+    }
+
+    public function test_pelunasan_piutang_mengurangi_saldo_penjualan_dan_pelanggan_sekaligus(): void
+    {
+        $pelanggan = Customer::factory()->create();
+        $jual = $this->buatPenjualanPiutang($pelanggan); // total 100.000, saldo pelanggan 100.000
+
+        $bayar = $this->bayar->terimaPenjualan($jual, Uang::sen('40000'), PaymentMethod::Cash, 'Cicilan 1', $this->admin);
+
+        $this->assertSame('RCV-' . now()->format('Ymd') . '-0001', $bayar->number);
+        $this->assertSame('sale', $bayar->payable_type);
+        $this->assertSame('40000.00', $jual->paid_amount);
+        $this->assertSame('60000.00', $jual->balance);
+        $this->assertSame(PaymentStatus::Partial, $jual->payment_status);
+        $this->assertSame('60000.00', $pelanggan->fresh()->receivable_balance);
+
+        $this->bayar->terimaPenjualan($jual, Uang::sen('60000'), PaymentMethod::Transfer, null, $this->admin);
+
+        $this->assertSame('0.00', $jual->fresh()->balance);
+        $this->assertSame(PaymentStatus::Paid, $jual->fresh()->payment_status);
+        $this->assertSame('0.00', $pelanggan->fresh()->receivable_balance);
+    }
+
+    public function test_pelunasan_melebihi_sisa_piutang_ditolak(): void
+    {
+        $pelanggan = Customer::factory()->create();
+        $jual = $this->buatPenjualanPiutang($pelanggan);
+
+        try {
+            $this->bayar->terimaPenjualan($jual, Uang::sen('100000.01'), PaymentMethod::Cash, null, $this->admin);
+            $this->fail('Seharusnya ditolak.');
+        } catch (AturanBisnisException $e) {
+            $this->assertStringContainsString('sisa piutang', $e->getMessage());
+        }
+
+        $this->assertSame('100000.00', $pelanggan->fresh()->receivable_balance);
+        $this->assertSame(0, Payment::count());
+    }
+
+    public function test_piutang_bukan_metode_pembayaran_yang_sah_untuk_pelunasan(): void
+    {
+        $pelanggan = Customer::factory()->create();
+        $jual = $this->buatPenjualanPiutang($pelanggan);
+
+        $this->expectException(AturanBisnisException::class);
+        $this->bayar->terimaPenjualan($jual, Uang::sen('10000'), PaymentMethod::Receivable, null, $this->admin);
+    }
+
+    public function test_penjualan_yang_dibatalkan_tidak_dapat_dibayar(): void
+    {
+        $pelanggan = Customer::factory()->create();
+        $jual = $this->buatPenjualanPiutang($pelanggan);
+        app(SaleService::class)->batalkan($jual, 'Salah input', $this->admin);
+
+        $this->expectException(AturanBisnisException::class);
+        $this->expectExceptionMessage('dibatalkan');
+
+        $this->bayar->terimaPenjualan($jual, Uang::sen('10000'), PaymentMethod::Cash, null, $this->admin);
     }
 
     public function test_catatan_pembayaran_tidak_dapat_diubah_atau_dihapus(): void
