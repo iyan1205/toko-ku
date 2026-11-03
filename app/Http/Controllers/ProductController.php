@@ -33,6 +33,7 @@ class ProductController extends Controller
     {
         Gate::authorize('viewAny', Product::class);
 
+        // Produk jual saja; bahan baku tidak tampil di daftar produk.
         $produk = Product::query()
             ->with(['category', 'unit'])
             ->filter($this->filter($request))

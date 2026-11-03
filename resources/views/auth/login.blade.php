@@ -1,34 +1,34 @@
 <x-guest-layout>
     <h1 class="text-lg font-semibold text-stone-900">Masuk ke akun Anda</h1>
+    <p class="mt-1 text-sm text-stone-500">Gunakan email dan kata sandi yang diberikan admin.</p>
 
     <form method="POST" action="{{ route('login') }}" class="mt-5 space-y-4">
         @csrf
 
         <div>
-            <label for="email" class="block text-sm font-medium text-stone-700">Email</label>
+            <label for="email" class="label-isian">Email</label>
             <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus autocomplete="username"
-                   class="mt-1 block w-full rounded-md border-stone-300 text-sm shadow-sm focus:border-teal-600 focus:ring-teal-600">
+                   @class(['isian mt-1', 'isian-salah' => $errors->has('email')])>
             @error('email')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                <p class="mt-1 text-sm text-brand-600">{{ $message }}</p>
             @enderror
         </div>
 
         <div>
-            <label for="password" class="block text-sm font-medium text-stone-700">Kata sandi</label>
+            <label for="password" class="label-isian">Kata sandi</label>
             <input id="password" name="password" type="password" required autocomplete="current-password"
-                   class="mt-1 block w-full rounded-md border-stone-300 text-sm shadow-sm focus:border-teal-600 focus:ring-teal-600">
+                   @class(['isian mt-1', 'isian-salah' => $errors->has('password')])>
             @error('password')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                <p class="mt-1 text-sm text-brand-600">{{ $message }}</p>
             @enderror
         </div>
 
         <label for="remember" class="flex items-center gap-2 text-sm text-stone-600">
-            <input id="remember" name="remember" type="checkbox" class="rounded border-stone-300 text-teal-700 focus:ring-teal-600">
+            <input id="remember" name="remember" type="checkbox" class="rounded border-stone-300 text-brand-700 focus:ring-brand-600">
             Ingat saya di perangkat ini
         </label>
 
-        <button type="submit"
-                class="w-full rounded-md bg-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2">
+        <button type="submit" class="tombol-utama w-full py-2.5">
             Masuk
         </button>
     </form>

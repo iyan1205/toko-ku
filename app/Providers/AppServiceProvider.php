@@ -23,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
         // Super Admin melewati semua pengecekan izin.
         Gate::before(fn (User $user) => $user->isSuperAdmin() ? true : null);
 
+        Gate::policy(\App\Models\Product::class, \App\Policies\ProductPolicy::class);
+
         // reference_type di stock_movements memakai nama pendek. Modul berikutnya menambah 'sale', 'purchase', dst.
         Relation::morphMap([
             'stock_opname' => StockOpname::class,

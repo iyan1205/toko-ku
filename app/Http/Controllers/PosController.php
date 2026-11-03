@@ -37,7 +37,7 @@ class PosController extends Controller
             return response()->json([]);
         }
 
-        $hasil = Product::aktif()->with('unit:id,name')->cari($kata)
+        $hasil = Product::aktif()->jual()->with('unit:id,name')->cari($kata)
             ->orderByRaw('CASE WHEN barcode = ? THEN 0 WHEN sku = ? THEN 1 ELSE 2 END', [$kata, $kata])
             ->orderBy('name')
             ->limit(15)
@@ -51,6 +51,7 @@ class PosController extends Controller
                 'stock' => (float) $p->stock,
                 'selling_price' => (float) $p->selling_price,
                 'discount_percent' => (float) $p->discount_percent,
+                'photo' => $p->photoUrl(),
             ]);
 
         return response()->json($hasil);

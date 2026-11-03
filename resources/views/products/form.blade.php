@@ -3,7 +3,7 @@
     $kategoriDipilih = old('category_id', $produk->category_id);
     $satuanDipilih = old('unit_id', $produk->unit_id);
     $aktif = old('is_active', $edit ? $produk->is_active : true);
-    $selectClass = 'mt-1 block w-full rounded-md border-stone-300 text-sm shadow-sm focus:border-teal-600 focus:ring-teal-600';
+    $selectClass = 'mt-1 block w-full rounded-md border-stone-300 text-sm shadow-sm focus:border-brand-600 focus:ring-brand-600';
 @endphp
 
 <x-app-layout>
@@ -39,9 +39,9 @@
                         <option value="{{ $k->id }}" @selected((string) $kategoriDipilih === (string) $k->id)>{{ $k->name }}</option>
                     @endforeach
                 </select>
-                @error('category_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                @error('category_id') <p class="mt-1 text-sm text-brand-600">{{ $message }}</p> @enderror
                 @if ($kategori->isEmpty())
-                    <p class="mt-1 text-xs text-amber-700">Belum ada kategori. Buat dulu di menu Kategori.</p>
+                    <p class="mt-1 text-xs text-accent-700">Belum ada kategori. Buat dulu di menu Kategori.</p>
                 @endif
             </div>
             <div>
@@ -52,9 +52,9 @@
                         <option value="{{ $s->id }}" @selected((string) $satuanDipilih === (string) $s->id)>{{ $s->name }}</option>
                     @endforeach
                 </select>
-                @error('unit_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                @error('unit_id') <p class="mt-1 text-sm text-brand-600">{{ $message }}</p> @enderror
                 @if ($satuan->isEmpty())
-                    <p class="mt-1 text-xs text-amber-700">Belum ada satuan. Buat dulu di menu Satuan.</p>
+                    <p class="mt-1 text-xs text-accent-700">Belum ada satuan. Buat dulu di menu Satuan.</p>
                 @endif
             </div>
         </div>
@@ -72,7 +72,7 @@
             </div>
         </div>
 
-        <p x-show="jual > 0 && jual < beli" x-cloak class="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <p x-show="jual > 0 && jual < beli" x-cloak class="rounded-md bg-accent-50 px-3 py-2 text-sm text-accent-800">
             Harga jual lebih rendah dari harga beli. Produk ini akan dijual rugi.
         </p>
 
@@ -98,7 +98,7 @@
                 <div class="mt-2 flex items-center gap-4">
                     <img src="{{ $produk->photoUrl() }}" alt="Foto {{ $produk->name }}" class="h-20 w-20 rounded-md object-cover">
                     <label class="flex items-center gap-2 text-sm text-stone-600">
-                        <input type="checkbox" name="remove_photo" value="1" class="rounded border-stone-300 text-teal-700 focus:ring-teal-600">
+                        <input type="checkbox" name="remove_photo" value="1" class="rounded border-stone-300 text-brand-700 focus:ring-brand-600">
                         Hapus foto ini
                     </label>
                 </div>
@@ -106,26 +106,26 @@
             <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp"
                    class="mt-2 block w-full text-sm text-stone-600 file:mr-3 file:rounded-md file:border-0 file:bg-stone-100 file:px-4 file:py-2 file:text-sm file:font-medium file:text-stone-700 hover:file:bg-stone-200">
             <p class="mt-1 text-xs text-stone-500">JPG, PNG, atau WEBP, maksimal 2 MB.</p>
-            @error('photo') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+            @error('photo') <p class="mt-1 text-sm text-brand-600">{{ $message }}</p> @enderror
         </div>
 
         <div>
             <label for="description" class="block text-sm font-medium text-stone-700">Deskripsi <span class="font-normal text-stone-400">(opsional)</span></label>
             <textarea id="description" name="description" rows="3" maxlength="2000" class="{{ $selectClass }}">{{ old('description', $produk->description) }}</textarea>
-            @error('description') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+            @error('description') <p class="mt-1 text-sm text-brand-600">{{ $message }}</p> @enderror
         </div>
 
         <label for="is_active" class="flex items-center gap-2 text-sm text-stone-700">
             <input id="is_active" name="is_active" type="checkbox" value="1" @checked($aktif)
-                   class="rounded border-stone-300 text-teal-700 focus:ring-teal-600">
+                   class="rounded border-stone-300 text-brand-700 focus:ring-brand-600">
             Produk aktif dan dijual
         </label>
 
         <div class="flex justify-end gap-2 border-t border-stone-100 pt-5">
             <a href="{{ $edit ? route('products.show', $produk) : route('products.index') }}"
-               class="rounded-md border border-stone-300 px-4 py-2 text-sm text-stone-700 hover:bg-stone-50">Batal</a>
+               class="tombol-kedua">Batal</a>
             <button type="submit"
-                    class="rounded-md bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2">
+                    class="tombol-utama">
                 {{ $edit ? 'Simpan perubahan' : 'Simpan produk' }}
             </button>
         </div>

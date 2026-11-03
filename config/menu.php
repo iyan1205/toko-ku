@@ -18,6 +18,7 @@ return [
     ['label' => 'Pelanggan',    'route' => 'customers.index',    'active' => 'customers.*',        'icon' => '👥', 'permission' => 'manage-customers'],
     ['label' => 'Hutang',       'route' => 'payables.index',     'active' => 'payables.*',         'icon' => '💸', 'permission' => 'manage-payables'],
     ['label' => 'Piutang',      'route' => 'receivables.index',  'active' => 'receivables.*',      'icon' => '💰', 'permission' => 'manage-receivables'],
+    ['label' => 'Resep (BOM)',  'route' => 'recipes.index',     'active' => 'recipes.*',         'icon' => '📋', 'permission' => 'manage-products'],
     ['label' => 'Laporan',      'route' => 'reports.index',      'active' => 'reports.*',          'icon' => '📈', 'permission' => 'view-reports'],
     ['label' => 'Pengguna',     'route' => 'users.index',        'active' => 'users.*',            'icon' => '👤', 'permission' => 'manage-users'],
     ['label' => 'Pengaturan',   'route' => 'settings.edit',      'active' => 'settings.*',         'icon' => '⚙️', 'permission' => 'manage-settings'],

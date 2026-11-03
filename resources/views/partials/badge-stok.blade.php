@@ -1,8 +1,9 @@
 @php
+    // Netral untuk aman, kuning untuk menipis (perlu perhatian), merah untuk habis.
     $warna = match ($status->value) {
-        'AMAN' => 'bg-teal-50 text-teal-800',
-        'MENIPIS' => 'bg-amber-50 text-amber-800',
-        default => 'bg-red-50 text-red-800',
+        'AMAN' => 'bg-stone-100 text-stone-700',
+        'MENIPIS' => 'bg-accent-100 text-accent-800',
+        default => 'bg-brand-100 text-brand-800',
     };
 @endphp
-<span class="rounded-full px-2.5 py-0.5 text-xs font-medium {{ $warna }}">{{ $status->value }}</span>
+<span class="badge {{ $warna }}">{{ $status->value }}</span>

@@ -29,22 +29,22 @@
         <div>
             <label for="address" class="block text-sm font-medium text-stone-700">Alamat <span class="font-normal text-stone-400">(opsional)</span></label>
             <textarea id="address" name="address" rows="2" maxlength="1000"
-                      class="mt-1 block w-full rounded-md border-stone-300 text-sm shadow-sm focus:border-teal-600 focus:ring-teal-600">{{ old('address', $supplier->address) }}</textarea>
-            @error('address') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                      class="mt-1 block w-full rounded-md border-stone-300 text-sm shadow-sm focus:border-brand-600 focus:ring-brand-600">{{ old('address', $supplier->address) }}</textarea>
+            @error('address') <p class="mt-1 text-sm text-brand-600">{{ $message }}</p> @enderror
         </div>
 
         <div>
             <label for="note" class="block text-sm font-medium text-stone-700">Catatan <span class="font-normal text-stone-400">(opsional)</span></label>
             <textarea id="note" name="note" rows="2" maxlength="1000"
-                      class="mt-1 block w-full rounded-md border-stone-300 text-sm shadow-sm focus:border-teal-600 focus:ring-teal-600">{{ old('note', $supplier->note) }}</textarea>
-            @error('note') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                      class="mt-1 block w-full rounded-md border-stone-300 text-sm shadow-sm focus:border-brand-600 focus:ring-brand-600">{{ old('note', $supplier->note) }}</textarea>
+            @error('note') <p class="mt-1 text-sm text-brand-600">{{ $message }}</p> @enderror
         </div>
 
         <div class="flex justify-end gap-2 border-t border-stone-100 pt-5">
             <a href="{{ $edit ? route('suppliers.show', $supplier) : route('suppliers.index') }}"
-               class="rounded-md border border-stone-300 px-4 py-2 text-sm text-stone-700 hover:bg-stone-50">Batal</a>
+               class="tombol-kedua">Batal</a>
             <button type="submit"
-                    class="rounded-md bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2">
+                    class="tombol-utama">
                 {{ $edit ? 'Simpan perubahan' : 'Simpan supplier' }}
             </button>
         </div>

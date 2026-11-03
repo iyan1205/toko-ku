@@ -1,3 +1,171 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+|| Komponen bersama.
+||
+|| Tujuannya supaya tombol, kartu, input, dan tabel terlihat sama di SEMUA halaman.
+|| Sebelumnya setiap halaman menulis ulang kelasnya sendiri, sehingga sering ada
+|| tombol yang mirip tapi beda ukuran/warna. Halaman baru cukup memakai kelas di sini.
+|*/
+@layer components {
+    /* ---------------- Kartu ---------------- */
+    .kartu {
+        @apply rounded-xl border border-slate-200 bg-white shadow-card;
+    }
+
+    .kartu-kepala {
+        @apply border-b border-slate-200 px-5 py-4;
+    }
+
+    .kartu-judul {
+        @apply text-sm font-semibold text-slate-700;
+    }
+
+    /* ---------------- Tombol ---------------- */
+    .tombol {
+        @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2
+               text-sm font-medium transition-all duration-200
+               focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+               disabled:cursor-not-allowed disabled:opacity-50;
+    }
+
+    /* Aksi utama: biruabu profesional. */
+    .tombol-utama {
+        @apply tombol bg-slate-600 text-white shadow-sm
+               hover:bg-slate-700 focus-visible:ring-slate-500;
+    }
+
+    /* Aksi kedua: netral, tidak bersaing dengan aksi utama. */
+    .tombol-kedua {
+        @apply tombol border border-slate-300 bg-white text-slate-700
+               hover:bg-slate-50 focus-visible:ring-slate-400;
+    }
+
+    /* Aksi destruktif: oranye lembut untuk menandai aksi penting/bahaya. */
+    .tombol-bahaya {
+        @apply tombol bg-amber-600 text-white shadow-sm
+               hover:bg-amber-700 focus-visible:ring-amber-500;
+    }
+
+    /* Tautan yang berperan seperti tombol. */
+    .tombol-tautan {
+        @apply text-sm font-medium text-slate-600 hover:text-slate-800 hover:underline;
+    }
+
+    /* ---------------- Formulir ---------------- */
+    .isian {
+        @apply block w-full rounded-lg border-slate-300 text-sm shadow-sm
+               placeholder:text-slate-400
+               focus:border-slate-500 focus:ring-slate-500;
+    }
+
+    .isian-salah {
+        @apply border-amber-500 focus:border-slate-500 focus:ring-slate-500;
+    }
+
+    .label-isian {
+        @apply block text-sm font-medium text-slate-700;
+    }
+
+    /* ---------------- Tabel ---------------- */
+    .tabel {
+        @apply min-w-full divide-y divide-slate-200 text-sm;
+    }
+
+    .tabel thead {
+        @apply bg-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-slate-600;
+    }
+
+    .tabel th {
+        @apply whitespace-nowrap px-4 py-3 font-medium;
+    }
+
+    .tabel td {
+        @apply px-4 py-3 align-middle;
+        /* Angka (uang, jumlah) sejajar rapi di kolom tabel. */
+        font-variant-numeric: tabular-nums;
+    }
+
+    .tabel tbody {
+        @apply divide-y divide-slate-100;
+    }
+
+    .tabel tbody tr {
+        @apply transition-colors hover:bg-slate-50;
+    }
+
+    /* ---------------- Badge ---------------- */
+    .badge {
+        @apply inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium;
+    }
+
+    .badge-utilitas {
+        @apply badge bg-slate-100 text-slate-800;
+    }
+
+    .badge-berhasil {
+        @apply badge bg-emerald-100 text-emerald-800;
+    }
+
+    .badge-peringatan {
+        @apply badge bg-amber-100 text-amber-800;
+    }
+
+    /* ---------------- Judul bagian ---------------- */
+    .judul-bagian {
+        @apply text-sm font-semibold text-slate-800;
+    }
+
+    .teks-bantu {
+        @apply text-sm text-slate-500;
+    }
+
+    /* ---------------- Sidebar ------------------ */
+    .sidebar {
+        @apply h-screen w-64 bg-slate-100 border-r border-slate-200;
+    }
+
+    .sidebar-item {
+        @apply flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-slate-200 transition-colors duration-200;
+    }
+
+    .sidebar-item-aktif {
+        @apply bg-slate-200 text-slate-900 font-medium;
+    }
+
+    .sidebar-icon {
+        @apply text-xl;
+    }
+
+    /* ---------------- Card utama ---------------- */
+    .kartu-utama {
+        @apply kartu;
+    }
+
+    .kartu-utama-header {
+        @apply kartu-kepala flex justify-between items-center;
+    }
+
+    .kartu-utama-body {
+        @apply p-5;
+    }
+}
+
+@layer utilities {
+    /* Angka uang sejajar rapi di kolom tabel. */
+    .angka-rata {
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Overlay latar gelap untuk modal */
+    .overlay-gelap {
+        @apply fixed inset-0 bg-black bg-opacity-50 z-40;
+    }
+
+    /* Loading spinner */
+    .spinner {
+        @apply animate-spin rounded-full border-2 border-slate-300 border-t-slate-600;
+    }
+}

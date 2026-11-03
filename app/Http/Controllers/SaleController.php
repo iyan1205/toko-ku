@@ -74,6 +74,8 @@ class SaleController extends Controller
             $pesan .= ' Kembalian ' . \App\Support\Format::rupiah($penjualan->change_amount) . '.';
         }
 
+        // Kasir diarahkan langsung ke struk: itu langkah berikutnya setelah pembayaran.
+        // Halaman struk punya tautan ke detail penjualan bila perlu.
         return redirect()->route('sales.show', $penjualan)->with('success', $pesan);
     }
 

@@ -37,6 +37,7 @@ class RolePermissionSeeder extends Seeder
         'manage-payables',
         'manage-receivables',
         'view-reports',
+        'view-recipes',
         'manage-users',
         'manage-settings',
     ];
@@ -61,7 +62,7 @@ class RolePermissionSeeder extends Seeder
             'create-purchase', 'view-purchases', 'void-purchase',
             'manage-stock', 'view-stock', 'stock-opname',
             'manage-payables', 'manage-receivables',
-            'view-reports',
+            'view-reports', 'view-recipes',
         ]);
 
         // Kasir tidak punya izin mengubah produk/harga beli dan tidak bisa void transaksi.
@@ -72,6 +73,7 @@ class RolePermissionSeeder extends Seeder
             'print-receipt',
             'view-own-sales',
             'process-returns',
+            'view-recipes',
         ]);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

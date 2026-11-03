@@ -2,7 +2,7 @@
     <x-slot name="header">Detail produk</x-slot>
 
     <div class="max-w-4xl space-y-6">
-        <div class="rounded-lg border border-stone-200 bg-white p-6">
+        <div class="kartu p-6">
             <div class="flex flex-col gap-5 sm:flex-row">
                 @if ($produk->photoUrl())
                     <img src="{{ $produk->photoUrl() }}" alt="Foto {{ $produk->name }}" class="h-40 w-40 rounded-lg object-cover">
@@ -19,9 +19,9 @@
                         <div class="flex gap-2">
                             @can('update', $produk)
                                 <a href="{{ route('products.edit', $produk) }}"
-                                   class="rounded-md bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800">Ubah</a>
+                                   class="tombol-utama">Ubah</a>
                             @endcan
-                            <a href="{{ route('products.index') }}" class="rounded-md border border-stone-300 px-4 py-2 text-sm text-stone-700 hover:bg-stone-50">Kembali</a>
+                            <a href="{{ route('products.index') }}" class="tombol-kedua">Kembali</a>
                         </div>
                     </div>
 
@@ -61,7 +61,7 @@
             </div>
         </div>
 
-        <div class="rounded-lg border border-stone-200 bg-white p-6">
+        <div class="kartu p-6">
             <h3 class="text-sm font-medium text-stone-600">Stok</h3>
             <div class="mt-3 flex flex-wrap items-end gap-x-8 gap-y-3">
                 <p class="text-3xl font-semibold text-stone-900">
@@ -77,7 +77,7 @@
                         <h4 class="text-sm font-medium text-stone-600">Mutasi terakhir</h4>
                         <div class="flex gap-3 text-sm">
                             <a href="{{ route('stock.movements', ['produk' => $produk->id]) }}" class="text-stone-600 hover:underline">Semua riwayat</a>
-                            <a href="{{ route('stock.adjust.create', ['produk' => $produk->id]) }}" class="text-teal-700 hover:underline">Sesuaikan stok</a>
+                            <a href="{{ route('stock.adjust.create', ['produk' => $produk->id]) }}" class="text-brand-700 hover:underline">Sesuaikan stok</a>
                         </div>
                     </div>
                     @forelse ($riwayat as $m)
@@ -87,7 +87,7 @@
                                 <span class="ml-2 text-stone-500">@tanggal($m->created_at, true)</span>
                             </div>
                             <div class="text-right">
-                                <span class="font-medium {{ (float) $m->quantity > 0 ? 'text-teal-700' : 'text-red-700' }}">{{ (float) $m->quantity > 0 ? '+' : '' }}{{ \App\Support\Format::jumlah($m->quantity) }}</span>
+                                <span class="font-medium {{ (float) $m->quantity > 0 ? 'text-emerald-700' : 'text-brand-700' }}">{{ (float) $m->quantity > 0 ? '+' : '' }}{{ \App\Support\Format::jumlah($m->quantity) }}</span>
                                 <span class="text-stone-500">→ {{ \App\Support\Format::jumlah($m->stock_after) }}</span>
                             </div>
                         </div>
@@ -100,7 +100,7 @@
 
         @can('delete', $produk)
             <div class="flex justify-end">
-                <button type="button" class="text-sm text-red-600 hover:underline"
+                <button type="button" class="text-sm text-brand-600 hover:underline"
                         @click="$dispatch('konfirmasi-hapus', { action: @js(route('products.destroy', $produk)), nama: @js($produk->name) })">
                     Hapus produk ini
                 </button>

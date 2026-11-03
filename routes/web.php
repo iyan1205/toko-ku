@@ -4,8 +4,13 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HeldSaleController;
+use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\PosController;
+use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\RecipeController;
+use App\Http\Controllers\SettingController;
+use App\Http\Controllers\StrukController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\StockController;
@@ -85,6 +90,15 @@ Route::middleware('auth')->group(function () {
     Route::get('penjualan', [SaleController::class, 'index'])->name('sales.index');
     Route::get('penjualan/{sale}', [SaleController::class, 'show'])->whereNumber('sale')->name('sales.show');
 
+    // Struk thermal: halaman berdiri sendiri berukuran roll, dicetak dari komputer kasir.
+    // Izin dicek di controller: SalePolicy (milik sendiri untuk kasir) + print-receipt.
+    Route::get('penjualan/{sale}/struk', [ReceiptController::class, 'show'])
+        ->whereNumber('sale')->name('sales.receipt');
+
+    // Teks struk untuk printer Bluetooth lewat HP (RawBT). Dipakai halaman struk.
+    Route::get('penjualan/{sale}/struk-teks', [StrukController::class, 'teks'])
+        ->whereNumber('sale')->name('sales.receipt.text');
+
     Route::post('penjualan/{sale}/batal', [SaleController::class, 'void'])
         ->whereNumber('sale')->middleware('can:void-sale')->name('sales.void');
 
@@ -102,6 +116,23 @@ Route::middleware('auth')->group(function () {
 
     Route::post('pembelian/{purchase}/batal', [PurchaseController::class, 'void'])
         ->whereNumber('purchase')->middleware('can:void-purchase')->name('purchases.void');
+
+    // ---- Bill of Materials (resep) ----
+    Route::middleware('can:manage-products')->group(function () {
+        Route::resource('recipe', RecipeController::class)->names('recipes');
+    });
+
+    // ---- Laporan (Tahap 6): izin view-reports. Ekspor Excel memakai filter periode yang sama. ----
+    Route::middleware('can:view-reports')->group(function () {
+        Route::get('laporan', [LaporanController::class, 'index'])->name('reports.index');
+        Route::get('laporan/penjualan/ekspor', [LaporanController::class, 'export'])->name('reports.sales.export');
+    });
+
+    // ---- Pengaturan (profil toko): identitas di struk + lebar kertas printer ----
+    Route::middleware('can:manage-settings')->group(function () {
+        Route::get('pengaturan', [SettingController::class, 'edit'])->name('settings.edit');
+        Route::put('pengaturan', [SettingController::class, 'update'])->name('settings.update');
+    });
 
     // ---- Pengguna (Tahap 1) ----
     Route::middleware('can:manage-users')->group(function () {

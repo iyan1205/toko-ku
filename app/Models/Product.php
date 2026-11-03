@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
@@ -46,6 +47,12 @@ class Product extends Model
         ];
     }
 
+    /** Satu produk jual punya satu BOM aktif. */
+    public function recipe(): HasOne
+    {
+        return $this->hasOne(\App\Models\Recipe::class);
+    }
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
@@ -81,6 +88,18 @@ class Product extends Model
     public function hargaSetelahDiskon(): float
     {
         return round((float) $this->selling_price * (1 - (float) $this->discount_percent / 100), 2);
+    }
+
+    /** Produk jual (tampil di kasir & daftar produk). Bahan baku tidak tampil. */
+    public function scopeJual(Builder $query): Builder
+    {
+        return $query->where('type', 'jual');
+    }
+
+    /** Bahan baku / operasional (untuk BOM, tidak tampil di kasir). */
+    public function scopeBahanBaku(Builder $query): Builder
+    {
+        return $query->where('type', 'bahan_baku');
     }
 
     public function scopeAktif(Builder $query): Builder

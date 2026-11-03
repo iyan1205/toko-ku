@@ -8,14 +8,14 @@
         'metode' => old('payment_method', 'cash'),
         'urlCari' => route('purchases.products'),
     ];
-    $inputClass = 'mt-1 block w-full rounded-md border-stone-300 text-sm shadow-sm focus:border-teal-600 focus:ring-teal-600';
+    $inputClass = 'mt-1 block w-full rounded-md border-stone-300 text-sm shadow-sm focus:border-brand-600 focus:ring-brand-600';
 @endphp
 
 <x-app-layout>
     <x-slot name="header">Pembelian baru</x-slot>
 
     @if ($errors->any())
-        <div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900" role="alert">
+        <div class="mb-4 rounded-lg border border-brand-200 bg-brand-50 p-4 text-sm text-brand-900" role="alert">
             <p class="font-semibold">Pembelian belum bisa disimpan:</p>
             <ul class="mt-2 list-disc space-y-1 pl-5">
                 @foreach ($errors->all() as $pesan)
@@ -40,7 +40,7 @@
                     @endforeach
                 </select>
                 @if ($suppliers->isEmpty())
-                    <p class="mt-1 text-xs text-amber-700">Belum ada supplier. Tambahkan dulu di menu Supplier.</p>
+                    <p class="mt-1 text-xs text-accent-700">Belum ada supplier. Tambahkan dulu di menu Supplier.</p>
                 @endif
             </div>
             <x-isian label="Nomor faktur supplier" name="supplier_invoice_number" maxlength="50" />
@@ -48,7 +48,7 @@
         </div>
 
         {{-- 2. Pilih produk --}}
-        <div class="rounded-lg border border-stone-200 bg-white">
+        <div class="kartu">
             <div class="relative border-b border-stone-200 p-5" @click.outside="buka = false">
                 <label for="cari-produk" class="block text-sm font-medium text-stone-700">Tambah produk</label>
                 <input id="cari-produk" type="text" x-model="q" autocomplete="off" placeholder="Ketik nama atau SKU, atau scan barcode lalu Enter"
@@ -57,7 +57,7 @@
                 <ul x-show="buka" x-cloak class="absolute left-5 right-5 z-20 mt-1 max-h-72 overflow-auto rounded-md border border-stone-200 bg-white shadow-lg">
                     <template x-for="p in hasil" :key="p.id">
                         <li>
-                            <button type="button" @click="tambah(p)" class="flex w-full items-center justify-between gap-3 px-4 py-2 text-left text-sm hover:bg-teal-50 focus:bg-teal-50 focus:outline-none">
+                            <button type="button" @click="tambah(p)" class="flex w-full items-center justify-between gap-3 px-4 py-2 text-left text-sm hover:bg-brand-50 focus:bg-brand-50 focus:outline-none">
                                 <span><span class="font-medium text-stone-900" x-text="p.name"></span> <span class="text-xs text-stone-500" x-text="p.sku"></span></span>
                                 <span class="whitespace-nowrap text-xs text-stone-500">stok <span x-text="p.stock"></span> <span x-text="p.unit"></span></span>
                             </button>
@@ -69,29 +69,29 @@
 
             <div class="overflow-x-auto">
                 <table class="min-w-full text-sm">
-                    <thead class="bg-stone-50 text-left text-stone-600">
+                    <thead>
                         <tr>
-                            <th class="px-4 py-3 font-medium">Produk</th>
-                            <th class="w-28 px-4 py-3 font-medium">Jumlah</th>
-                            <th class="w-40 px-4 py-3 font-medium">Harga beli (Rp)</th>
-                            <th class="w-36 px-4 py-3 font-medium">Diskon baris (Rp)</th>
-                            <th class="px-4 py-3 text-right font-medium">Subtotal</th>
+                            <th class="font-medium">Produk</th>
+                            <th class="w-28 font-medium">Jumlah</th>
+                            <th class="w-40 font-medium">Harga beli (Rp)</th>
+                            <th class="w-36 font-medium">Diskon baris (Rp)</th>
+                            <th class="text-right font-medium">Subtotal</th>
                             <th class="w-10 px-2 py-3"><span class="sr-only">Hapus</span></th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-stone-100">
+                    <tbody>
                         <template x-for="(it, i) in items" :key="it.product_id">
                             <tr>
-                                <td class="px-4 py-3">
+                                <td >
                                     <p class="font-medium text-stone-900" x-text="it.name"></p>
                                     <p class="text-xs text-stone-500"><span x-text="it.sku"></span> · <span x-text="it.unit"></span></p>
                                     <input type="hidden" :name="'items[' + i + '][product_id]'" :value="it.product_id">
                                 </td>
-                                <td class="px-4 py-3"><input type="number" min="0.001" step="0.001" required x-model="it.quantity" :name="'items[' + i + '][quantity]'" :aria-label="'Jumlah ' + it.name" class="w-full rounded-md border-stone-300 text-sm focus:border-teal-600 focus:ring-teal-600"></td>
-                                <td class="px-4 py-3"><input type="number" min="0" step="0.01" required x-model="it.unit_price" :name="'items[' + i + '][unit_price]'" :aria-label="'Harga beli ' + it.name" class="w-full rounded-md border-stone-300 text-sm focus:border-teal-600 focus:ring-teal-600"></td>
-                                <td class="px-4 py-3"><input type="number" min="0" step="0.01" x-model="it.discount" :name="'items[' + i + '][discount]'" :aria-label="'Diskon ' + it.name" class="w-full rounded-md border-stone-300 text-sm focus:border-teal-600 focus:ring-teal-600"></td>
-                                <td class="whitespace-nowrap px-4 py-3 text-right font-medium text-stone-900" x-text="rp(baris(it))"></td>
-                                <td class="px-2 py-3 text-center"><button type="button" @click="hapus(i)" class="text-lg leading-none text-red-600 hover:text-red-800" :aria-label="'Hapus ' + it.name">&times;</button></td>
+                                <td ><input type="number" min="0.001" step="0.001" required x-model="it.quantity" :name="'items[' + i + '][quantity]'" :aria-label="'Jumlah ' + it.name" class="w-full rounded-md border-stone-300 text-sm focus:border-brand-600 focus:ring-brand-600"></td>
+                                <td ><input type="number" min="0" step="0.01" required x-model="it.unit_price" :name="'items[' + i + '][unit_price]'" :aria-label="'Harga beli ' + it.name" class="w-full rounded-md border-stone-300 text-sm focus:border-brand-600 focus:ring-brand-600"></td>
+                                <td ><input type="number" min="0" step="0.01" x-model="it.discount" :name="'items[' + i + '][discount]'" :aria-label="'Diskon ' + it.name" class="w-full rounded-md border-stone-300 text-sm focus:border-brand-600 focus:ring-brand-600"></td>
+                                <td class="whitespace-nowrap text-right font-medium text-stone-900" x-text="rp(baris(it))"></td>
+                                <td class="px-2 py-3 text-center"><button type="button" @click="hapus(i)" class="text-lg leading-none text-brand-600 hover:text-brand-800" :aria-label="'Hapus ' + it.name">&times;</button></td>
                             </tr>
                         </template>
                         <tr x-show="items.length === 0">
@@ -124,7 +124,7 @@
                     <textarea id="note" name="note" rows="2" maxlength="1000" class="{{ $inputClass }}">{{ old('note') }}</textarea>
                 </div>
                 <label class="flex items-start gap-2 text-sm text-stone-700">
-                    <input type="checkbox" name="update_cost" value="1" @checked(old('update_cost', true)) class="mt-0.5 rounded border-stone-300 text-teal-700 focus:ring-teal-600">
+                    <input type="checkbox" name="update_cost" value="1" @checked(old('update_cost', true)) class="mt-0.5 rounded border-stone-300 text-brand-700 focus:ring-brand-600">
                     <span>Perbarui harga beli produk dengan harga pembelian ini
                         <span class="block text-xs text-stone-500">Memakai harga bersih per unit (setelah diskon baris). Menjadi dasar harga modal penjualan berikutnya; riwayat lama tidak berubah.</span></span>
                 </label>
@@ -133,7 +133,7 @@
             <div class="space-y-4 rounded-lg border border-stone-200 bg-white p-5">
                 <dl class="space-y-2 text-sm">
                     <div class="flex justify-between"><dt class="text-stone-600">Subtotal</dt><dd class="font-medium" x-text="rp(subtotal)"></dd></div>
-                    <div class="flex justify-between"><dt class="text-stone-600">Diskon</dt><dd class="font-medium text-red-700" x-text="'- ' + rp(diskon)"></dd></div>
+                    <div class="flex justify-between"><dt class="text-stone-600">Diskon</dt><dd class="font-medium text-brand-700" x-text="'- ' + rp(diskon)"></dd></div>
                     <div class="flex justify-between"><dt class="text-stone-600">Pajak</dt><dd class="font-medium" x-text="rp(pajak)"></dd></div>
                     <div class="flex justify-between"><dt class="text-stone-600">Biaya lain</dt><dd class="font-medium" x-text="rp(biaya)"></dd></div>
                     <div class="flex justify-between border-t border-stone-200 pt-2 text-base"><dt class="font-semibold text-stone-900">Grand total</dt><dd class="font-semibold text-stone-900" x-text="rp(total)"></dd></div>
@@ -159,7 +159,7 @@
 
                     <div class="mt-3">
                         <label for="due_date" class="block text-sm font-medium text-stone-700">
-                            Jatuh tempo <span class="font-normal text-stone-400" x-show="sisa <= 0">(opsional)</span><span class="font-normal text-red-600" x-show="sisa > 0" x-cloak>(wajib, masih ada hutang)</span>
+                            Jatuh tempo <span class="font-normal text-stone-400" x-show="sisa <= 0">(opsional)</span><span class="font-normal text-brand-600" x-show="sisa > 0" x-cloak>(wajib, masih ada hutang)</span>
                         </label>
                         <input id="due_date" name="due_date" type="date" value="{{ old('due_date') }}" class="{{ $inputClass }}">
                     </div>
@@ -167,18 +167,18 @@
                     <div class="mt-4 flex items-center justify-between rounded-md bg-stone-50 px-4 py-3 text-sm">
                         <span class="text-stone-600">Sisa hutang <strong class="text-stone-900" x-text="rp(Math.max(sisa, 0))"></strong></span>
                         <span class="rounded-full px-2.5 py-0.5 text-xs font-medium"
-                              :class="status === 'LUNAS' ? 'bg-teal-50 text-teal-800' : (status === 'SEBAGIAN' ? 'bg-amber-50 text-amber-800' : 'bg-red-50 text-red-800')"
+                              :class="status === 'LUNAS' ? 'bg-stone-100 text-stone-700' : (status === 'SEBAGIAN' ? 'bg-accent-50 text-accent-800' : 'bg-brand-50 text-brand-800')"
                               x-text="status"></span>
                     </div>
-                    <p x-show="sisa < 0" x-cloak class="mt-2 text-sm text-red-600">Pembayaran melebihi grand total.</p>
+                    <p x-show="sisa < 0" x-cloak class="mt-2 text-sm text-brand-600">Pembayaran melebihi grand total.</p>
                 </div>
             </div>
         </div>
 
         <div class="flex justify-end gap-2">
-            <a href="{{ route('purchases.index') }}" class="rounded-md border border-stone-300 px-4 py-2 text-sm text-stone-700 hover:bg-stone-50">Batal</a>
+            <a href="{{ route('purchases.index') }}" class="tombol-kedua">Batal</a>
             <button type="submit" :disabled="kirim || items.length === 0 || sisa < 0"
-                    class="rounded-md bg-teal-700 px-5 py-2 text-sm font-medium text-white hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                    class="rounded-md bg-brand-700 px-5 py-2 text-sm font-medium text-white hover:bg-brand-800 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                 Simpan pembelian
             </button>
         </div>
