@@ -5,6 +5,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CutiController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Dev\UiKitController;
 use App\Http\Controllers\HeldSaleController;
 use App\Http\Controllers\JadwalController;
 use App\Http\Controllers\JenisCutiController;
@@ -29,6 +30,9 @@ Route::redirect('/', '/dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+
+    // ---- Katalog komponen UI untuk pengembang. Hanya environment local + Super Admin (dicek di controller). ----
+    Route::get('dev/ui-kit', UiKitController::class)->name('dev.ui-kit');
 
     // ---- Produk: hak akses dicek lewat ProductPolicy (Kasir boleh melihat, Admin mengelola) ----
     // Route statis harus di atas resource agar "export"/"impor" tidak ditangkap sebagai {product}.

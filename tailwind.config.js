@@ -1,4 +1,5 @@
 import defaultTheme from 'tailwindcss/defaultTheme';
+import colors from 'tailwindcss/colors';
 import forms from '@tailwindcss/forms';
 
 /** @type {import('tailwindcss').Config} */
@@ -9,13 +10,32 @@ export default {
         './resources/views/**/*.blade.php',
     ],
 
+    // Dark mode disiapkan lewat kelas `dark` di <html>; belum dipakai di halaman mana pun.
+    darkMode: 'class',
+
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                sans: ['Inter', ...defaultTheme.fontFamily.sans],
             },
 
             /*
+            | Token warna redesign (docs/REDESIGN-TOKOKU.md). Komponen baru di
+            | resources/views/components/ui hanya memakai token ini + netral `slate`.
+            |
+            | `primary` = aksi utama (dipakai hemat), `success`/`warning`/`danger`/`info` = status.
+            */
+            colors: {
+                primary: colors.indigo,
+                success: colors.emerald,
+                warning: colors.amber,
+                danger: colors.red,
+                info: colors.sky,
+
+            /*
+            | WARNA LAMA, masih dipakai halaman yang belum dipindah ke komponen baru.
+            | Dihapus setelah semua halaman memakai token di atas (Fase 2).
+            |
             | Warna merek mengikuti identitas Dkriuk (dkriuk.com):
             | biruabu-abu (slate) sebagai warna utama, oranye lembut sebagai aksen.
             |
@@ -24,7 +44,6 @@ export default {
             |
             | Palette yang lebih profesional dan tidak terlalu mencolok.
             */
-            colors: {
                 brand: {
                     50: '#f8fafc',
                     100: '#f1f5f9',
@@ -71,7 +90,7 @@ export default {
                         maxWidth: 'none',
                         color: '#374151',
                         fontSize: '1rem',
-                        fontFamily: ['Figtree', 'system-ui', 'sans-serif'],
+                        fontFamily: ['Inter', 'system-ui', 'sans-serif'],
                     },
                 },
             },
