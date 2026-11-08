@@ -26,4 +26,18 @@ return [
     'struk' => [
         'cetak_otomatis' => (bool) env('POS_STRUK_AUTO_PRINT', false),
     ],
+
+    /*
+    | ---------------------------------------------------------------------------
+    | Absensi pegawai
+    | ---------------------------------------------------------------------------
+    | 'jam_masuk'       : jam mulai kerja "HH:MM", contoh "08:00". Pegawai yang absen
+    |                     masuk lewat jam ini + toleransi tercatat Terlambat.
+    |                     Kosong (bawaan) = tidak ada penanda terlambat, semua Hadir.
+    | 'toleransi_menit' : kelonggaran sebelum dianggap terlambat.
+    */
+    'absensi' => [
+        'jam_masuk' => env('POS_ABSENSI_JAM_MASUK'),
+        'toleransi_menit' => (int) env('POS_ABSENSI_TOLERANSI_MENIT', 0),
+    ],
 ];
