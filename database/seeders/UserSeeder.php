@@ -10,7 +10,7 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->buat('Super Admin', 'admin@example.com', RoleName::SuperAdmin);
+        $this->buat('Super Admin', 'admin@dkriukjabong.com', RoleName::SuperAdmin);
 
         // Akun contoh untuk mencoba hak akses; tidak dibuat di production.
         if (! app()->isProduction()) {

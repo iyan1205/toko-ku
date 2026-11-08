@@ -25,7 +25,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('recipe_id')->constrained()->cascadeOnDelete();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('unit_id')->constrained()->nullOnDelete();
+            // Harus nullable: MySQL menolak ON DELETE SET NULL pada kolom NOT NULL (error 1830).
+            $table->foreignId('unit_id')->nullable()->constrained()->nullOnDelete();
             $table->decimal('quantity', 15, 4)->default(0);
             $table->text('notes')->nullable();
             $table->timestamps();
