@@ -6,6 +6,7 @@ use App\Enums\PaymentMethod;
 use App\Enums\PurchaseStatus;
 use App\Enums\RoleName;
 use App\Enums\StockMovementType;
+use App\Exceptions\AturanBisnisException;
 use App\Models\Customer;
 use App\Models\Payment;
 use App\Models\Product;
@@ -24,7 +25,9 @@ class PembatalanPenjualanTest extends TestCase
     use RefreshDatabase, SiapkanPeran;
 
     private User $kasir;
+
     private User $admin;
+
     private Product $produk;
 
     protected function setUp(): void
@@ -68,7 +71,8 @@ class PembatalanPenjualanTest extends TestCase
         $this->assertSame('sale', $balik->first()->reference_type);
         $this->assertSame($jual->id, $balik->first()->reference_id);
         $this->assertStringContainsString('Pembatalan penjualan', $balik->first()->note);
-        $this->assertDatabaseCount('stock_movements', 2, 'Mutasi keluar awal + mutasi pembalik; tidak ada yang dihapus.');
+        // Mutasi keluar awal + mutasi pembalik; tidak ada yang dihapus.
+        $this->assertDatabaseCount('stock_movements', 2);
 
         $bayar = Payment::firstOrFail();
         $this->assertNotNull($bayar->voided_at);
@@ -148,7 +152,7 @@ class PembatalanPenjualanTest extends TestCase
         try {
             app(SaleService::class)->batalkan($jual, 'Coba batalkan setelah dicicil', $this->admin);
             $this->fail('Seharusnya ditolak.');
-        } catch (\App\Exceptions\AturanBisnisException $e) {
+        } catch (AturanBisnisException $e) {
             $this->assertStringContainsString('pelunasan piutang susulan', $e->getMessage());
             $this->assertStringContainsString('Retur Penjualan', $e->getMessage());
         }

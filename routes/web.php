@@ -1,20 +1,26 @@
 <?php
 
+use App\Http\Controllers\AbsensiController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CutiController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Dev\UiKitController;
 use App\Http\Controllers\HeldSaleController;
+use App\Http\Controllers\JadwalController;
+use App\Http\Controllers\JenisCutiController;
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\PosController;
-use App\Http\Controllers\ReceiptController;
-use App\Http\Controllers\SaleController;
-use App\Http\Controllers\RecipeController;
-use App\Http\Controllers\SettingController;
-use App\Http\Controllers\StrukController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\ReceiptController;
+use App\Http\Controllers\RecipeController;
+use App\Http\Controllers\SaleController;
+use App\Http\Controllers\SettingController;
+use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\StockOpnameController;
+use App\Http\Controllers\StrukController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
@@ -24,6 +30,9 @@ Route::redirect('/', '/dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+
+    // ---- Katalog komponen UI untuk pengembang. Hanya environment local + Super Admin (dicek di controller). ----
+    Route::get('dev/ui-kit', UiKitController::class)->name('dev.ui-kit');
 
     // ---- Produk: hak akses dicek lewat ProductPolicy (Kasir boleh melihat, Admin mengelola) ----
     // Route statis harus di atas resource agar "export"/"impor" tidak ditangkap sebagai {product}.
@@ -128,6 +137,52 @@ Route::middleware('auth')->group(function () {
         Route::get('laporan/penjualan/ekspor', [LaporanController::class, 'export'])->name('reports.sales.export');
     });
 
+    // ---- Absensi pegawai ----
+    // Daftar: dicek via AbsensiPolicy (manage-attendance = semua pegawai, record-attendance = milik sendiri).
+    Route::get('absensi', [AbsensiController::class, 'index'])->name('attendances.index');
+
+    Route::middleware('can:record-attendance')->group(function () {
+        Route::post('absensi/masuk', [AbsensiController::class, 'clockIn'])->name('attendances.clock-in');
+        Route::post('absensi/pulang', [AbsensiController::class, 'clockOut'])->name('attendances.clock-out');
+    });
+
+    // Catatan manual admin: izin/sakit/alpa dan koreksi jam (mis. lupa absen pulang).
+    Route::middleware('can:manage-attendance')->group(function () {
+        Route::resource('absensi', AbsensiController::class)
+            ->parameters(['absensi' => 'absensi'])
+            ->names('attendances')
+            ->only(['create', 'store', 'edit', 'update', 'destroy']);
+    });
+
+    // ---- Jadwal kerja: semua pegawai melihat (JadwalPolicy), manage-schedules mengisi jadwal dan shift ----
+    Route::get('jadwal', [JadwalController::class, 'index'])->name('schedules.index');
+
+    Route::middleware('can:manage-schedules')->group(function () {
+        Route::put('jadwal', [JadwalController::class, 'update'])->name('schedules.update');
+        Route::post('jadwal/salin', [JadwalController::class, 'copy'])->name('schedules.copy');
+
+        Route::resource('shift', ShiftController::class)
+            ->names('shifts')
+            ->only(['index', 'store', 'update', 'destroy']);
+    });
+
+    // ---- Cuti: pengajuan dan persetujuan bertingkat (CutiPolicy) ----
+    Route::resource('cuti', CutiController::class)
+        ->parameters(['cuti' => 'cuti'])
+        ->names('leaves')
+        ->only(['index', 'create', 'store', 'show']);
+    Route::post('cuti/{cuti}/setujui', [CutiController::class, 'approve'])->name('leaves.approve');
+    Route::post('cuti/{cuti}/tolak', [CutiController::class, 'reject'])->name('leaves.reject');
+    Route::post('cuti/{cuti}/batal', [CutiController::class, 'cancel'])->name('leaves.cancel');
+
+    // Jenis cuti, kuota, dan alur persetujuannya. Hanya Super Admin (manage-leave-types).
+    Route::middleware('can:manage-leave-types')->group(function () {
+        Route::resource('jenis-cuti', JenisCutiController::class)
+            ->parameters(['jenis-cuti' => 'jenis_cuti'])
+            ->names('leave-types')
+            ->except('show');
+    });
+
     // ---- Pengaturan (profil toko): identitas di struk + lebar kertas printer ----
     Route::middleware('can:manage-settings')->group(function () {
         Route::get('pengaturan', [SettingController::class, 'edit'])->name('settings.edit');
@@ -145,4 +200,4 @@ Route::middleware('auth')->group(function () {
     });
 });
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

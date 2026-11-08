@@ -16,6 +16,7 @@
         'Transaksi' => ['pos.index', 'sales.index', 'purchases.index', 'payables.index', 'receivables.index'],
         'Katalog' => ['products.index', 'categories.index', 'units.index', 'stock.index', 'stock-opnames.index', 'recipes.index'],
         'Relasi' => ['suppliers.index', 'customers.index'],
+        'Pegawai' => ['attendances.index', 'schedules.index', 'leaves.index', 'shifts.index', 'leave-types.index'],
         'Lainnya' => ['reports.index', 'users.index', 'settings.edit'],
     ];
 @endphp

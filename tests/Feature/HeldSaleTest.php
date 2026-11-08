@@ -16,7 +16,9 @@ class HeldSaleTest extends TestCase
     use RefreshDatabase, SiapkanPeran;
 
     private User $kasir;
+
     private Product $ayam;
+
     private Product $nasi;
 
     protected function setUp(): void
@@ -60,7 +62,7 @@ class HeldSaleTest extends TestCase
         $this->assertEquals(1000, $hasil['discount']);
         $baris = collect($hasil['items'])->firstWhere('product_id', $this->ayam->id);
         $this->assertSame('Ayam Geprek', $baris['name']);
-        $this->assertSame(10000.0, $baris['unit_price']);
+        $this->assertSame(10000, $baris['unit_price']);
     }
 
     public function test_daftar_tahan_berisi_ringkasan_untuk_kasir_yang_bersangkutan(): void

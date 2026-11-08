@@ -4,16 +4,13 @@ namespace Tests\Feature;
 
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
-use App\Enums\PurchaseStatus;
 use App\Enums\RoleName;
 use App\Enums\StockMovementType;
 use App\Models\Customer;
-use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\StockMovement;
 use App\Models\User;
-use App\Services\SaleService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\SiapkanPeran;
 use Tests\TestCase;
@@ -23,8 +20,11 @@ class PenjualanTest extends TestCase
     use RefreshDatabase, SiapkanPeran;
 
     private User $kasir;
+
     private User $admin;
+
     private Product $ayam; // 10.000, stok 20
+
     private Product $nasi; // 5.000, stok 20
 
     protected function setUp(): void
@@ -62,7 +62,7 @@ class PenjualanTest extends TestCase
 
         $jual = Sale::with(['items', 'payments'])->firstOrFail();
 
-        $this->assertSame('POS-' . now()->format('Ymd') . '-0001', $jual->number);
+        $this->assertSame('POS-'.now()->format('Ymd').'-0001', $jual->number);
         $this->assertSame('30000.00', $jual->subtotal);
         $this->assertSame('0.00', $jual->item_discount);
         $this->assertSame('2000.00', $jual->discount);
@@ -121,7 +121,7 @@ class PenjualanTest extends TestCase
         ]));
 
         $jual = Sale::with('items')->firstOrFail();
-        $this->assertSame('8500.00', $jual->subtotal); // 10.000 - 1.500 diskon baris
+        $this->assertSame('10000.00', $jual->subtotal); // subtotal = harga kotor, sebelum diskon per item
         $this->assertSame('1500.00', $jual->item_discount);
         $this->assertSame('8500.00', $jual->grand_total);
         $this->assertSame('1500.00', $jual->items->first()->discount);
@@ -239,7 +239,7 @@ class PenjualanTest extends TestCase
         $bayar = $jual->payments->firstOrFail();
         $this->assertSame('10000.00', $bayar->amount);
         $this->assertSame(PaymentMethod::Cash, $bayar->method);
-        $this->assertSame('RCV-' . now()->format('Ymd') . '-0001', $bayar->number);
+        $this->assertSame('RCV-'.now()->format('Ymd').'-0001', $bayar->number);
     }
 
     public function test_piutang_membutuhkan_pelanggan_terdaftar_bukan_umum(): void
@@ -276,6 +276,8 @@ class PenjualanTest extends TestCase
         $this->actingAs($kasirLain)->post(route('sales.store'), $this->payload(['paid_amount' => '30000']));
         $milikLain = Sale::where('user_id', $kasirLain->id)->firstOrFail();
 
+        // Kasir lain memakai sesi login sendiri: pesan "Penjualan ... tersimpan" miliknya tidak terbawa.
+        $this->flushSession();
         $this->actingAs($this->kasir);
         $this->get(route('sales.index'))->assertOk()->assertSee($milikKasir->number)->assertDontSee($milikLain->number);
         $this->get(route('sales.show', $milikKasir))->assertOk();
@@ -307,8 +309,7 @@ class PenjualanTest extends TestCase
 
     public function test_hanya_pemegang_izin_create_sale_dapat_mengakses_kasir_dan_menjual(): void
     {
-        $tanpaIzin = $this->buatPengguna(RoleName::Admin);
-        // Admin tidak memiliki create-sale pada matriks default (lihat RolePermissionSeeder).
+        $tanpaIzin = User::factory()->create();
         $this->actingAs($tanpaIzin);
         $this->get(route('pos.index'))->assertForbidden();
         $this->post(route('sales.store'), $this->payload())->assertForbidden();
@@ -323,7 +324,7 @@ class PenjualanTest extends TestCase
         $this->post(route('sales.store'), $this->payload(['paid_amount' => '30000']));
 
         $this->assertEqualsCanonicalizing(
-            ['POS-' . now()->format('Ymd') . '-0001', 'POS-' . now()->format('Ymd') . '-0002'],
+            ['POS-'.now()->format('Ymd').'-0001', 'POS-'.now()->format('Ymd').'-0002'],
             Sale::pluck('number')->all()
         );
     }
@@ -332,18 +333,19 @@ class PenjualanTest extends TestCase
     {
         // Regresi: properti ini sempat tidak diteruskan ke Alpine sama sekali, sehingga tombol tambah
         // produk stok habis selalu terkunci walau stok minus diizinkan di pengaturan.
+        // @js() menulis tanda kutip sebagai \u0022 di dalam JSON.parse('...').
         config(['pos.allow_negative_stock' => true]);
 
         $this->actingAs($this->kasir)
             ->get(route('pos.index'))
             ->assertOk()
-            ->assertSee('"stokMinus":true', false);
+            ->assertSee('\u0022stokMinus\u0022:true', false);
 
         config(['pos.allow_negative_stock' => false]);
 
         $this->get(route('pos.index'))
             ->assertOk()
-            ->assertSee('"stokMinus":false', false);
+            ->assertSee('\u0022stokMinus\u0022:false', false);
     }
 
     public function test_pencarian_produk_dan_pelanggan_untuk_layar_kasir(): void
