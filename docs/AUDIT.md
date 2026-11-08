@@ -258,7 +258,7 @@ Integrasi antar modul: **belum ada Event/Listener sama sekali**. Satu-satunya `e
 | # | Risiko | Dampak | Mitigasi |
 |---|---|---|---|
 | 1 | **Sekitar 60 file modul HR belum di-commit** (plus perubahan di `routes/web.php`, `config/menu.php`, seeder, migration recipes) | Tinggi: bila redesign gagal, pekerjaan HR ikut sulit dikembalikan | **Selesai 08 Nov 2026**: di-commit sebagai `02c4c97` di branch `redesign-tokoku` |
-| 2 | **11 test sudah gagal sebelum redesign** (lihat rincian di bawah) | Tinggi: kerusakan akibat redesign tidak bisa dibedakan dari kerusakan lama | Perbaiki atau putuskan dulu (bug kode atau test usang) sampai suite hijau |
+| 2 | **11 test sudah gagal sebelum redesign** (lihat rincian di bawah) | Tinggi: kerusakan akibat redesign tidak bisa dibedakan dari kerusakan lama | **Selesai 08 Nov 2026**: 9 test diperbaiki, 372/374 lulus. Tidak ada bug di kode aplikasi; semuanya test usang atau data test yang salah. 2 sisanya menunggu izin folder (risiko #20) |
 | 3 | **Bentrok nama "Shift"**: tabel `shifts` dan route `shifts.*` sudah dipakai shift kerja HR | Sedang: migration atau route baru untuk sesi kasir bisa bentrok | Sesi kasir memakai nama `cash_sessions` dan route `pos.sessions.*` |
 | 4 | **Bentrok nama "Mutasi"**: `stok/mutasi` = log pergerakan stok, sedangkan spesifikasi memakai "Mutasi/Transfer" untuk pindah antar gudang | Rendah–sedang: membingungkan pengguna | Ganti label menu lama menjadi "Kartu Stok". Transfer memakai `inventory.transfers.*` |
 | 5 | **Ganti format izin** (`manage-products` menjadi `inventory.products.update`) menyentuh middleware route, Policy, `@can` di view, seeder, dan test (sekitar 87 titik + 6 Policy) | Tinggi: satu nama salah berarti user terkunci (403) atau justru bisa mengakses yang tidak boleh | Siapkan tabel pemetaan lama → baru, migration data yang *mengganti nama* baris di `permissions` (id tetap, jadi relasi ke peran aman), dan konstanta/enum izin agar tidak typo. Tambah test per peran |
@@ -273,11 +273,11 @@ Integrasi antar modul: **belum ada Event/Listener sama sekali**. Satu-satunya `e
 | 14 | **Struk thermal** (`sales/receipt`) punya CSS cetak sendiri | Sedang: bila ikut dibungkus layout baru, struk rusak | Jangan bungkus dengan layout app atau pos. Halaman struk tetap mandiri |
 | 15 | **Shortcut kasir berubah**: sekarang F8 = fokus diskon dan F9 = tahan, spesifikasi minta F8 = bayar | Rendah: kasir yang sudah hafal bisa salah tekan | Tetapkan peta shortcut baru, tampilkan legenda di layar, dan beri tahu kasir |
 | 16 | **Halaman `/dev/ui-kit` "hanya local"**: `.env` server ini `APP_ENV=local` dan `APP_DEBUG=true` dengan `APP_URL` domain publik | Tinggi bila server ini bisa diakses publik: UI kit dan stack trace error ikut terbuka | Lindungi UI kit dengan `auth` + izin Super Admin, bukan hanya cek environment. Anda perlu meninjau `APP_ENV`/`APP_DEBUG` di server (saya tidak mengubah `.env`) |
-| 17 | **Bahasa antarmuka**: `APP_LOCALE=en`, jadi pesan validasi tampil dalam bahasa Inggris (menyebabkan 1 test gagal) | Rendah | Ubah `APP_LOCALE=id` di `.env` (oleh Anda), atau ubah default di `config/app.php` |
+| 17 | **Bahasa antarmuka**: `APP_LOCALE=en`, jadi pesan validasi tampil dalam bahasa Inggris (menyebabkan 1 test gagal) | Rendah | **Selesai 08 Nov 2026**: `.env` diubah pemilik ke `id`. `phpunit.xml` dan `.env.example` ikut memakai `id` agar test tidak bergantung pada `.env` |
 | 18 | **Penamaan campur** (tabel HR berbahasa Indonesia, nama method seperti `catat()`/`buat()`, `LaporanController`) vs aturan "kode berbahasa Inggris" | Rendah–sedang: rename tabel berisi data berisiko | Jangan rename tabel atau kolom yang ada. Terapkan bahasa Inggris untuk kode **baru** saja |
 | 19 | **Kecocokan paket dengan PHP 8.3** (semua paket sudah disetujui) | Sedang: `composer require` bisa gagal atau memilih versi lama | `spatie/laravel-activitylog` 5.x butuh PHP 8.4, jadi pakai **4.12** (mendukung Laravel 13). `spatie/laravel-backup` versi yang mendukung Laravel 13 (10.x) **butuh PHP 8.4**, versi 9.x hanya sampai Laravel 12, jadi **tidak bisa dipasang** di server ini (PHP 8.3). Penggantinya: perintah backup sendiri memakai `mysqldump` (sudah ada di server), atau upgrade PHP ke 8.4 |
 | 22 | **Arti `subtotal` beda antara penjualan dan pembelian**: penjualan = sebelum diskon per item (sesuai keputusan), pembelian = sesudah diskon per baris | Rendah–sedang: laporan dan jurnal bisa salah tafsir | Samakan di Fase 5b: tambah kolom `item_discount` di `purchases`, `subtotal` = sebelum diskon. Data pembelian masih 0 baris |
-| 20 | **Izin folder `storage/`** dimiliki `www-data`, sehingga 2 test upload foto gagal saat dijalankan user `hamori` | Rendah (lingkungan dev) | Perbaiki kepemilikan atau izin folder `storage/framework/testing` |
+| 20 | **Izin folder `storage/`** dimiliki `www-data`, sehingga 2 test upload foto gagal saat dijalankan user `hamori` | Rendah (lingkungan dev) | Folder sudah bisa ditulis grup (`rwxrwxr-x www-data`), tetapi user `hamori` bukan anggota grup `www-data`. Jalankan `sudo usermod -aG www-data hamori`, lalu login ulang. Kedua test sudah terbukti lulus dengan folder storage yang bisa ditulis |
 | 21 | **Dokumen proyek belum di tempat yang diharapkan**: spesifikasi ada di root (`REDESIGN-TOKOKU.md`), bukan `docs/`, dan `CLAUDE.md` belum memuat bagian "Aturan Proyek" Toko-ku | Rendah: sesi berikutnya bisa tidak membaca aturan proyek | Spesifikasi **sudah dipindah** ke `docs/REDESIGN-TOKOKU.md` (08 Nov 2026). Aturan Proyek **belum** disalin ke `CLAUDE.md` |
 
 **Rincian 11 test yang gagal sebelum redesign** (`vendor/bin/phpunit`: 374 test, 363 lulus, 7 gagal, 4 error)
@@ -296,7 +296,16 @@ Integrasi antar modul: **belum ada Event/Listener sama sekali**. Satu-satunya `e
 | `ProdukTest::test_foto_dapat_diunggah_diganti_dan_dihapus` | Tidak bisa membuat folder `storage/framework/testing` | Izin folder (risiko #20) |
 | `ProdukTest::test_berkas_bukan_gambar_ditolak` | Sama | Sama |
 
-`PenjualanTest::test_kasir_hanya_melihat_transaksi_miliknya_sendiri` perlu diprioritaskan karena bisa berarti kasir melihat transaksi kasir lain.
+**Hasil perbaikan (08 Nov 2026):** tidak ada bug di kode aplikasi. Semua kegagalan berasal dari test yang usang atau data test yang salah:
+- *Kasir melihat transaksi kasir lain*: **bukan kebocoran data**. Nomor transaksi kasir lain hanya muncul di pesan toast "Penjualan ... tersimpan" sisa POST sebelumnya, karena test memakai satu sesi untuk dua kasir dan tidak mengikuti redirect. Filter "milik sendiri" di `SaleController@index` bekerja benar. Test kini memakai `flushSession()` saat berganti kasir.
+- *Stok minus ke JavaScript*: `@js()` menulis tanda kutip sebagai `\u0022`, sehingga teks yang dicari diperbarui.
+- *Hold*: JSON mengirim `10000` sebagai bilangan bulat, sehingga harapan test diperbarui.
+- *Produk tidak ada (pembelian)*: data test diperbaiki (pembayaran disesuaikan dengan total).
+- *Produk dobel (pembelian)*: memakai `assertSessionHasErrors` dengan pesan yang diharapkan.
+- *Pembatalan penjualan*: pesan dipindah dari posisi parameter koneksi ke komentar.
+- *Izin Kasir untuk Admin* dan *`subtotal`*: disesuaikan dengan keputusan bagian 7. `HakAksesTest` sekarang juga memastikan Admin memegang `create-sale`.
+- *Login*: lulus setelah `APP_LOCALE=id`.
+- *Upload foto (2 test)*: lulus bila folder storage bisa ditulis; tinggal izin folder di server (risiko #20).
 
 ---
 
@@ -348,10 +357,10 @@ Ukuran: **S** = kecil, **M** = sedang, **L** = besar, **XL** = sangat besar. Set
 ### Fase 0.5 — Persiapan (wajib sebelum Fase 1) · S
 - ~~Commit pekerjaan HR yang belum di-commit sebagai commit sendiri.~~ Selesai (`02c4c97`, branch `redesign-tokoku`).
 - ~~Pindahkan spesifikasi ke `docs/`.~~ Selesai.
-- Bereskan 11 test yang gagal sampai suite hijau, mulai dari `test_kasir_hanya_melihat_transaksi_miliknya_sendiri`. Dua test (izin Kasir untuk Admin dan `subtotal`) cukup diperbaiki sesuai keputusan bagian 7.
-- Perbarui tabel hak akses di `README-TAHAP5.md` (Admin boleh membuka Kasir).
-- Salin "Aturan Proyek" dari `docs/REDESIGN-TOKOKU.md` ke `CLAUDE.md`, dan tambahkan ringkasan keputusan bagian 7 ke `CLAUDE.md` (izin Admin, arti `subtotal`, paket yang disetujui, multi-gudang, nama modul SDM).
-- (Oleh Anda) set `APP_LOCALE=id`, tinjau `APP_ENV`/`APP_DEBUG` di server, perbaiki izin `storage/`.
+- ~~Bereskan 11 test yang gagal.~~ Selesai: 372/374 lulus, 2 sisanya menunggu izin folder `storage/`.
+- ~~Perbarui tabel hak akses di `README-TAHAP5.md`.~~ Selesai.
+- ~~Salin "Aturan Proyek" dan ringkasan keputusan ke `CLAUDE.md`.~~ Selesai.
+- (Oleh Anda) ~~set `APP_LOCALE=id`~~ (selesai), tinjau `APP_ENV`/`APP_DEBUG` di server, jalankan `sudo usermod -aG www-data hamori` untuk izin `storage/`.
 
 ### Fase 1 — Fondasi desain & komponen · M
 - **Tetap Tailwind v3.4 + PostCSS.** Tambah token di `tailwind.config.js`: `primary` (indigo `#4F46E5`), `success`, `warning`, `danger`, `info`, netral slate. Token `brand`/`accent` lama **dibiarkan dulu** agar halaman lama tidak berubah.

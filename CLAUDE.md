@@ -1,3 +1,41 @@
+# Toko-ku — Aturan Proyek
+
+## Konteks
+Toko-ku adalah aplikasi manajemen toko (POS + back office) berbasis Laravel.
+Modul: Dashboard, Kasir, Inventori, Pembelian, Laporan, Akuntansi, SDM, Pengguna & Hak Akses, Pengaturan.
+Akuntansi dan SDM dibangun bertahap; strukturnya harus disiapkan sejak sekarang.
+Spesifikasi lengkap: docs/REDESIGN-TOKOKU.md. Hasil audit, keputusan, dan rencana fase: docs/AUDIT.md.
+
+## Aturan kerja
+- Jangan merusak fitur yang sudah berjalan. Sebelum mengubah, baca dulu kode yang ada.
+- Migration bersifat aditif: jangan drop tabel/kolom berisi data tanpa persetujuan pemilik.
+- Jangan ubah file .env, kredensial, atau konfigurasi produksi.
+- Kerjakan per fase, ringkas perubahan di akhir, lalu tunggu konfirmasi pemilik.
+- Jalankan `php artisan test` dan `npm run build` setelah perubahan besar.
+- Bahasa antarmuka: Bahasa Indonesia. Nama kode (class, variabel, tabel): Bahasa Inggris.
+- Format uang: Rupiah, "Rp 1.250.000". Tanggal: "08 Nov 2026". Zona waktu: Asia/Jakarta.
+
+## Konvensi
+- Controller per modul: app/Http/Controllers/{Modul}/... (contoh: Inventory/ProductController)
+- View per modul: resources/views/{modul}/... (contoh: inventory/products/index.blade.php)
+- Route per modul: routes/modules/{modul}.php, di-include dari routes/web.php, prefix & name sesuai modul.
+- Komponen UI reusable: resources/views/components/ui/* (Blade components).
+- Permission format: `{modul}.{fitur}.{aksi}` contoh `inventory.products.view`, `pos.transactions.create`.
+- Menu sidebar didefinisikan di config/menu.php, bukan hardcode di Blade.
+- Validasi pakai Form Request. Logika bisnis berat di Service class (app/Services/{Modul}).
+
+## Keputusan pemilik (08 Nov 2026, rincian di docs/AUDIT.md bagian 7)
+- Admin boleh membuka Kasir (izin `create-sale`, nanti `pos.transactions.create`).
+- `sales.subtotal` = harga kotor sebelum diskon per item: `grand_total = subtotal - item_discount - discount`. Pembelian disamakan di Fase 5b.
+- Paket yang sudah disetujui: `@fontsource/inter`, `blade-ui-kit/blade-heroicons`, `spatie/laravel-activitylog` 4.12 (versi 5 butuh PHP 8.4), `chart.js`, `barryvdh/laravel-dompdf`, serta penghapusan `@tailwindcss/vite`. `spatie/laravel-backup` tidak dipakai karena versi untuk Laravel 13 butuh PHP 8.4; backup memakai perintah `mysqldump` sendiri.
+- Tetap di Tailwind CSS v3.4 selama redesign.
+- Multi-gudang wajib. Semua perubahan stok lewat `StockService` per gudang, dan `products.stock` tetap total semua gudang. Transfer stok langsung selesai dalam satu langkah.
+- Pembelian tanpa PO tetap tersedia. Halaman profil pengguna dihidupkan lagi.
+- Modul HR bernama **SDM** di tampilan dan kode: `routes/modules/sdm.php`, `App\Http\Controllers\Sdm\*`, `App\Services\Sdm\*`, izin berawalan `sdm.`. Ini pengecualian dari aturan nama kode berbahasa Inggris. Nama tabel, URL, dan nama route SDM yang sudah ada tidak diubah.
+- Nama tabel dan kolom lama yang berbahasa Indonesia tidak di-rename; kode baru memakai bahasa Inggris.
+- Sesi kasir memakai tabel `cash_sessions`, karena tabel `shifts` sudah dipakai untuk shift kerja SDM.
+- Pekerjaan redesign dilakukan di branch `redesign-tokoku`.
+
 <laravel-boost-guidelines>
 === foundation rules ===
 

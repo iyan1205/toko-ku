@@ -62,13 +62,13 @@ dibuat tidak menghalangi pembatalan, karena itu koreksi langsung, bukan interaks
 
 | Aksi | Super Admin | Admin | Kasir |
 |---|:-:|:-:|:-:|
-| Buka Kasir, catat penjualan (`create-sale`) | ✓ | – | ✓ |
+| Buka Kasir, catat penjualan (`create-sale`) | ✓ | ✓ | ✓ |
 | Lihat semua penjualan (`view-sales`), lihat kolom laba | ✓ | ✓ | – |
 | Lihat penjualan **miliknya sendiri** (`view-own-sales`) | — | — | ✓ |
 | Batalkan penjualan (`void-sale`) | ✓ | ✓ | – |
 
-Sesuai spesifikasi, Admin pada matriks bawaan memang **tidak** memegang `create-sale` (tugasnya mengawasi, bukan melayani kasir);
-ubah di `RolePermissionSeeder` bila toko Anda ingin Admin ikut melayani. Kasir yang membuka penjualan milik kasir lain mendapat 403.
+Admin pada matriks bawaan memegang `create-sale` sehingga bisa ikut melayani di Kasir (keputusan pemilik, 08 Nov 2026;
+lihat `docs/AUDIT.md`). Kasir yang membuka penjualan milik kasir lain mendapat 403.
 
 ## 5. Keputusan desain
 

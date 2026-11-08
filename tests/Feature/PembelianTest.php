@@ -5,14 +5,15 @@ namespace Tests\Feature;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\PurchaseStatus;
+use App\Enums\RoleName;
 use App\Enums\StockMovementType;
+use App\Exceptions\AturanBisnisException;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\StockMovement;
 use App\Models\Supplier;
 use App\Models\User;
-use App\Enums\RoleName;
 use App\Services\PurchaseService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\SiapkanPeran;
@@ -24,9 +25,13 @@ class PembelianTest extends TestCase
     use RefreshDatabase, SiapkanPeran;
 
     private User $admin;
+
     private User $kasir;
+
     private Supplier $supplier;
+
     private Product $p1;
+
     private Product $p2;
 
     protected function setUp(): void
@@ -84,7 +89,7 @@ class PembelianTest extends TestCase
 
         $pembelian = Purchase::with(['items', 'payments'])->firstOrFail();
 
-        $this->assertSame('PUR-' . now()->format('Ymd') . '-0001', $pembelian->number);
+        $this->assertSame('PUR-'.now()->format('Ymd').'-0001', $pembelian->number);
         $this->assertSame('94500.00', $pembelian->subtotal);
         $this->assertSame('1000.00', $pembelian->discount);
         $this->assertSame('2000.00', $pembelian->other_cost);
@@ -107,7 +112,7 @@ class PembelianTest extends TestCase
 
         $this->assertCount(1, $pembelian->payments);
         $bayar = $pembelian->payments->first();
-        $this->assertSame('PAY-' . now()->format('Ymd') . '-0001', $bayar->number);
+        $this->assertSame('PAY-'.now()->format('Ymd').'-0001', $bayar->number);
         $this->assertSame('95500.00', $bayar->amount);
         $this->assertSame(PaymentMethod::Cash, $bayar->method);
         $this->assertSame('purchase', $bayar->payable_type);
@@ -226,10 +231,9 @@ class PembelianTest extends TestCase
             ->post(route('purchases.store'), $this->payload(['items' => [
                 ['product_id' => $this->p1->id, 'quantity' => '1', 'unit_price' => '1000', 'discount' => '0'],
                 ['product_id' => $this->p1->id, 'quantity' => '2', 'unit_price' => '1000', 'discount' => '0'],
-            ]]));
+            ]]))
+            ->assertSessionHasErrors(['items.1.product_id' => 'Produk yang sama tidak boleh muncul dua kali. Gabungkan jumlahnya.']);
 
-        $kunci = collect(session('errors')->keys());
-        $this->assertTrue($kunci->contains(fn ($k) => str_contains($k, 'product_id')));
         $this->assertDatabaseCount('purchases', 0);
     }
 
@@ -301,7 +305,7 @@ class PembelianTest extends TestCase
         $this->post(route('purchases.store'), $this->payload(['supplier_invoice_number' => 'A-3', 'purchase_date' => '2026-01-15']));
 
         $this->assertEqualsCanonicalizing(
-            ['PUR-' . now()->format('Ymd') . '-0001', 'PUR-' . now()->format('Ymd') . '-0002', 'PUR-20260115-0001'],
+            ['PUR-'.now()->format('Ymd').'-0001', 'PUR-'.now()->format('Ymd').'-0002', 'PUR-20260115-0001'],
             Purchase::pluck('number')->all()
         );
     }
@@ -340,10 +344,13 @@ class PembelianTest extends TestCase
 
     public function test_produk_yang_tidak_ada_menggagalkan_pembelian_tanpa_sisa(): void
     {
-        $this->expectException(\App\Exceptions\AturanBisnisException::class);
+        $this->expectException(AturanBisnisException::class);
 
         try {
-            $this->buatPembelian(['items' => [['product_id' => 99999, 'quantity' => '1', 'unit_price' => '1000', 'discount' => '0']]]);
+            $this->buatPembelian([
+                'items' => [['product_id' => 99999, 'quantity' => '1', 'unit_price' => '1000', 'discount' => '0']],
+                'discount' => '0', 'other_cost' => '0', 'paid_amount' => '1000',
+            ]);
         } finally {
             $this->assertDatabaseCount('purchases', 0);
             $this->assertDatabaseCount('stock_movements', 0);
@@ -380,7 +387,7 @@ class PembelianTest extends TestCase
             ->assertSee('Ayam Geprek')
             ->assertSee('Rp 95.500')
             ->assertSee('Riwayat pembayaran')
-            ->assertSee('PAY-' . now()->format('Ymd') . '-0001');
+            ->assertSee('PAY-'.now()->format('Ymd').'-0001');
     }
 
     public function test_daftar_dapat_difilter_dan_meringkas_total_serta_hutang(): void

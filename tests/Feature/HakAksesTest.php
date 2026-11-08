@@ -52,7 +52,7 @@ class HakAksesTest extends TestCase
     {
         $admin = $this->buatPengguna(RoleName::Admin);
 
-        foreach (['manage-products', 'manage-categories', 'manage-suppliers', 'manage-customers', 'create-purchase', 'manage-stock', 'view-reports', 'void-sale'] as $izin) {
+        foreach (['manage-products', 'manage-categories', 'manage-suppliers', 'manage-customers', 'create-sale', 'create-purchase', 'manage-stock', 'view-reports', 'void-sale'] as $izin) {
             $this->assertTrue($admin->can($izin), "Admin seharusnya boleh: $izin");
         }
 
