@@ -6,7 +6,7 @@ use App\Enums\StatusCuti;
 use App\Models\Cuti;
 use App\Models\PersetujuanCuti;
 use App\Models\User;
-use App\Services\CutiService;
+use App\Services\Sdm\CutiService;
 
 /**
  * Pegawai (request-leave) mengajukan dan melihat cutinya sendiri. Admin (view-leaves) melihat semua.

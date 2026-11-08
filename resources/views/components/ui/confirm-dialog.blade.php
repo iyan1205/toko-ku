@@ -1,6 +1,6 @@
 {{--
-    Dialog konfirmasi sebelum aksi berbahaya. Pasang SEKALI di layout. Memakai event yang sama
-    dengan partials/confirm-delete lama, jadi tombol hapus yang sudah ada langsung bekerja:
+    Dialog konfirmasi sebelum aksi berbahaya. Sudah terpasang di layouts.app dan layouts.pos.
+    Tombol hapus di halaman mana pun cukup mengirim event:
 
         $dispatch('konfirmasi-hapus', { action: '{{ route(...) }}', nama: 'Ayam Geprek' })
 

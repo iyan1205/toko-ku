@@ -50,7 +50,7 @@ class Product extends Model
     /** Satu produk jual punya satu BOM aktif. */
     public function recipe(): HasOne
     {
-        return $this->hasOne(\App\Models\Recipe::class);
+        return $this->hasOne(Recipe::class);
     }
 
     public function category(): BelongsTo
@@ -120,6 +120,12 @@ class Product extends Model
     public function scopeStokAman(Builder $query): Builder
     {
         return $query->whereColumn('stock', '>', 'min_stock');
+    }
+
+    /** Produk aktif yang perlu diisi ulang: stok menipis atau habis (stok <= stok minimum). */
+    public function scopeNeedsRestock(Builder $query): Builder
+    {
+        return $query->aktif()->whereColumn('stock', '<=', 'min_stock');
     }
 
     public function scopeCari(Builder $query, ?string $kata): Builder

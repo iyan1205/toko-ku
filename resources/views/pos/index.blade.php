@@ -12,7 +12,7 @@
     ];
 @endphp
 
-<x-app-layout>
+<x-pos-layout>
     <x-slot name="header">Kasir</x-slot>
 
     <div x-data="kasir(@js($awal))" x-init="init()" x-on:keydown.window="shortcut($event)" class="grid gap-4 lg:grid-cols-5">
@@ -387,4 +387,4 @@
         }
     </script>
     @endverbatim
-</x-app-layout>
+</x-pos-layout>

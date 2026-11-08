@@ -3,11 +3,32 @@
 @tailwind utilities;
 
 /*
-|| Komponen bersama.
+|| Tata letak aplikasi (layouts/app.blade.php).
 ||
-|| Tujuannya supaya tombol, kartu, input, dan tabel terlihat sama di SEMUA halaman.
-|| Sebelumnya setiap halaman menulis ulang kelasnya sendiri, sehingga sering ada
-|| tombol yang mirip tapi beda ukuran/warna. Halaman baru cukup memakai kelas di sini.
+|| Sidebar 260px, bisa diciutkan ke ikon saja (72px) di layar lebar. Status ciut disimpan di
+|| localStorage dan dipasang sebagai kelas `sidebar-ciut` di <html> sebelum halaman tampil,
+|| supaya tidak berkedip. Ditulis di luar @layer agar selalu ikut ter-build.
+*/
+.layout-sidebar {
+    @apply w-[260px];
+    transition: width 200ms cubic-bezier(0.4, 0, 0.2, 1), transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.layout-content {
+    @apply lg:pl-[260px];
+    transition: padding-left 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html.sidebar-ciut .layout-sidebar { @apply lg:w-[72px]; }
+html.sidebar-ciut .layout-content { @apply lg:pl-[72px]; }
+html.sidebar-ciut .sidebar-label { @apply lg:hidden; }
+html.sidebar-ciut .sidebar-divider { @apply lg:block; }
+html.sidebar-ciut .sidebar-item { @apply lg:justify-center lg:px-0; }
+
+/*
+|| Komponen bersama LAMA (kelas CSS). Halaman baru memakai Blade component di
+|| resources/views/components/ui. Kelas di bawah tetap ada untuk halaman yang belum
+|| dipindah, dan warnanya sudah memakai token redesign agar serasi dengan layout baru.
 |*/
 @layer components {
     /* ---------------- Kartu ---------------- */
@@ -20,49 +41,45 @@
     }
 
     .kartu-judul {
-        @apply text-sm font-semibold text-slate-700;
+        @apply text-sm font-semibold text-slate-900;
     }
 
     /* ---------------- Tombol ---------------- */
     .tombol {
         @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2
-               text-sm font-medium transition-all duration-200
+               text-sm font-medium transition-colors
                focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
                disabled:cursor-not-allowed disabled:opacity-50;
     }
 
-    /* Aksi utama: biruabu profesional. */
     .tombol-utama {
-        @apply tombol bg-slate-600 text-white shadow-sm
-               hover:bg-slate-700 focus-visible:ring-slate-500;
+        @apply tombol bg-primary-600 text-white shadow-sm
+               hover:bg-primary-700 focus-visible:ring-primary-500;
     }
 
-    /* Aksi kedua: netral, tidak bersaing dengan aksi utama. */
     .tombol-kedua {
-        @apply tombol border border-slate-300 bg-white text-slate-700
-               hover:bg-slate-50 focus-visible:ring-slate-400;
+        @apply tombol border border-slate-300 bg-white text-slate-700 shadow-sm
+               hover:bg-slate-50 hover:text-slate-900 focus-visible:ring-primary-500;
     }
 
-    /* Aksi destruktif: oranye lembut untuk menandai aksi penting/bahaya. */
     .tombol-bahaya {
-        @apply tombol bg-amber-600 text-white shadow-sm
-               hover:bg-amber-700 focus-visible:ring-amber-500;
+        @apply tombol bg-danger-600 text-white shadow-sm
+               hover:bg-danger-700 focus-visible:ring-danger-500;
     }
 
-    /* Tautan yang berperan seperti tombol. */
     .tombol-tautan {
-        @apply text-sm font-medium text-slate-600 hover:text-slate-800 hover:underline;
+        @apply text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline;
     }
 
     /* ---------------- Formulir ---------------- */
     .isian {
         @apply block w-full rounded-lg border-slate-300 text-sm shadow-sm
                placeholder:text-slate-400
-               focus:border-slate-500 focus:ring-slate-500;
+               focus:border-primary-500 focus:ring-primary-500;
     }
 
     .isian-salah {
-        @apply border-amber-500 focus:border-slate-500 focus:ring-slate-500;
+        @apply border-danger-400 focus:border-danger-500 focus:ring-danger-500;
     }
 
     .label-isian {
@@ -75,11 +92,11 @@
     }
 
     .tabel thead {
-        @apply bg-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-slate-600;
+        @apply bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500;
     }
 
     .tabel th {
-        @apply whitespace-nowrap px-4 py-3 font-medium;
+        @apply whitespace-nowrap px-4 py-3 font-semibold;
     }
 
     .tabel td {
@@ -93,63 +110,33 @@
     }
 
     .tabel tbody tr {
-        @apply transition-colors hover:bg-slate-50;
+        @apply transition-colors hover:bg-slate-50/70;
     }
 
     /* ---------------- Badge ---------------- */
     .badge {
-        @apply inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium;
+        @apply inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-slate-900/5;
     }
 
     .badge-utilitas {
-        @apply badge bg-slate-100 text-slate-800;
+        @apply badge bg-slate-50 text-slate-700 ring-slate-500/20;
     }
 
     .badge-berhasil {
-        @apply badge bg-emerald-100 text-emerald-800;
+        @apply badge bg-success-50 text-success-700 ring-success-600/20;
     }
 
     .badge-peringatan {
-        @apply badge bg-amber-100 text-amber-800;
+        @apply badge bg-warning-50 text-warning-800 ring-warning-600/25;
     }
 
     /* ---------------- Judul bagian ---------------- */
     .judul-bagian {
-        @apply text-sm font-semibold text-slate-800;
+        @apply text-sm font-semibold text-slate-900;
     }
 
     .teks-bantu {
         @apply text-sm text-slate-500;
-    }
-
-    /* ---------------- Sidebar ------------------ */
-    .sidebar {
-        @apply h-screen w-64 bg-slate-100 border-r border-slate-200;
-    }
-
-    .sidebar-item {
-        @apply flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-slate-200 transition-colors duration-200;
-    }
-
-    .sidebar-item-aktif {
-        @apply bg-slate-200 text-slate-900 font-medium;
-    }
-
-    .sidebar-icon {
-        @apply text-xl;
-    }
-
-    /* ---------------- Card utama ---------------- */
-    .kartu-utama {
-        @apply kartu;
-    }
-
-    .kartu-utama-header {
-        @apply kartu-kepala flex justify-between items-center;
-    }
-
-    .kartu-utama-body {
-        @apply p-5;
     }
 }
 
@@ -157,15 +144,5 @@
     /* Angka uang sejajar rapi di kolom tabel. */
     .angka-rata {
         font-variant-numeric: tabular-nums;
-    }
-
-    /* Overlay latar gelap untuk modal */
-    .overlay-gelap {
-        @apply fixed inset-0 bg-black bg-opacity-50 z-40;
-    }
-
-    /* Loading spinner */
-    .spinner {
-        @apply animate-spin rounded-full border-2 border-slate-300 border-t-slate-600;
     }
 }

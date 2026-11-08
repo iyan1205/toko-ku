@@ -8,7 +8,7 @@ use App\Models\Cuti;
 use App\Models\JenisCuti;
 use App\Models\TahapPersetujuan;
 use App\Models\User;
-use App\Services\CutiService;
+use App\Services\Sdm\CutiService;
 use Database\Seeders\KepegawaianSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\SiapkanPeran;

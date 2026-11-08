@@ -9,13 +9,13 @@ use Illuminate\View\View;
 class DashboardController extends Controller
 {
     /**
-     * Placeholder Tahap 1: sapaan dan pintasan modul sesuai hak akses.
-     * Ringkasan penjualan/stok/keuntungan ditambahkan pada Tahap 9.
+     * Sementara: sapaan dan pintasan ke halaman yang boleh dibuka pengguna.
+     * KPI, grafik, dan transaksi terakhir dibuat di Fase 4.
      */
     public function __invoke(Request $request): View
     {
         return view('dashboard', [
-            'menu' => Menu::untuk($request->user())->reject(fn ($m) => $m['route'] === 'dashboard'),
+            'menu' => Menu::links($request->user())->reject(fn (array $item) => $item['key'] === 'dashboard')->values(),
         ]);
     }
 }

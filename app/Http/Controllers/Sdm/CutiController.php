@@ -1,14 +1,15 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Sdm;
 
 use App\Enums\StatusCuti;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\CutiRequest;
 use App\Models\Absensi;
 use App\Models\Cuti;
 use App\Models\JenisCuti;
 use App\Models\User;
-use App\Services\CutiService;
+use App\Services\Sdm\CutiService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;

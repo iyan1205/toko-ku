@@ -32,6 +32,10 @@ export default {
                 danger: colors.red,
                 info: colors.sky,
 
+                // Halaman lama memakai stone-* (abu hangat) sebagai netral. Dipetakan ke slate
+                // agar netralnya seragam dengan komponen baru tanpa mengubah tiap halaman.
+                stone: colors.slate,
+
             /*
             | WARNA LAMA, masih dipakai halaman yang belum dipindah ke komponen baru.
             | Dihapus setelah semua halaman memakai token di atas (Fase 2).

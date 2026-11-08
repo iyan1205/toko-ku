@@ -1,14 +1,15 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Sdm;
 
 use App\Enums\StatusCuti;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\JadwalRequest;
 use App\Models\Cuti;
 use App\Models\Jadwal;
 use App\Models\Shift;
 use App\Models\User;
-use App\Services\JadwalService;
+use App\Services\Sdm\JadwalService;
 use App\Support\Format;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\RedirectResponse;

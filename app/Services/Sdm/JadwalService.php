@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Sdm;
 
 use App\Models\Jadwal;
 use App\Models\User;

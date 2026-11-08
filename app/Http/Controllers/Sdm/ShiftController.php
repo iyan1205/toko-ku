@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Sdm;
 
 use App\Exceptions\AturanBisnisException;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\ShiftRequest;
 use App\Models\Shift;
 use Illuminate\Http\RedirectResponse;

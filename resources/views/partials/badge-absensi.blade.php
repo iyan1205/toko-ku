@@ -1,12 +1,12 @@
 @php
-    // Hadir = hijau. Terlambat = kuning. Izin/sakit = biru/ungu (tidak hadir tapi beralasan). Alpa = merah muda.
+    // Hadir = hijau. Terlambat = kuning. Izin/sakit = biru/ungu (tidak hadir tapi beralasan). Alpa = merah. Cuti = netral.
     $warna = match ($status) {
-        \App\Enums\StatusAbsensi::Hadir => 'bg-emerald-100 text-emerald-800',
-        \App\Enums\StatusAbsensi::Terlambat => 'bg-amber-100 text-amber-800',
-        \App\Enums\StatusAbsensi::Izin => 'bg-sky-100 text-sky-800',
-        \App\Enums\StatusAbsensi::Sakit => 'bg-violet-100 text-violet-800',
-        \App\Enums\StatusAbsensi::Alpa => 'bg-rose-100 text-rose-800',
-        \App\Enums\StatusAbsensi::Cuti => 'bg-teal-100 text-teal-800',
+        \App\Enums\StatusAbsensi::Hadir => 'success',
+        \App\Enums\StatusAbsensi::Terlambat => 'warning',
+        \App\Enums\StatusAbsensi::Izin => 'info',
+        \App\Enums\StatusAbsensi::Sakit => 'primary',
+        \App\Enums\StatusAbsensi::Alpa => 'danger',
+        \App\Enums\StatusAbsensi::Cuti => 'neutral',
     };
 @endphp
-<span class="badge {{ $warna }}">{{ $status->label() }}</span>
+<x-ui.badge :color="$warna">{{ $status->label() }}</x-ui.badge>

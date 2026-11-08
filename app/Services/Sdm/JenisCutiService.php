@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Sdm;
 
 use App\Models\JenisCuti;
 use Illuminate\Support\Facades\DB;

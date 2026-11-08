@@ -1,13 +1,14 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Sdm;
 
 use App\Enums\StatusAbsensi;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\AbsensiRequest;
 use App\Models\Absensi;
 use App\Models\User;
-use App\Services\AbsensiService;
-use App\Services\JadwalService;
+use App\Services\Sdm\AbsensiService;
+use App\Services\Sdm\JadwalService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;

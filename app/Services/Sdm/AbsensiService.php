@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Sdm;
 
 use App\Enums\PerangkatAbsensi;
 use App\Enums\StatusAbsensi;

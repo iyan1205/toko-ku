@@ -376,6 +376,16 @@ Ukuran: **S** = kecil, **M** = sedang, **L** = besar, **XL** = sangat besar. Set
 - **Belum mengubah halaman fitur.**
 
 ### Fase 2 — Layout utama & menu dinamis · L
+**Status 08 Nov 2026: selesai, menunggu pengecekan pemilik.**
+- Layout aplikasi baru (sidebar 260px yang bisa diciutkan ke ikon, drawer di layar kecil, topbar dengan breadcrumb, pencarian global, pilihan cabang, notifikasi stok, menu profil) dan layout Kasir layar penuh.
+- `config/menu.php` memuat seluruh Struktur Menu dengan status enabled/coming_soon/hidden. Menu SDM yang sudah berjalan tetap aktif; yang belum ada (Karyawan, Departemen & Jabatan, Penggajian) serta seluruh Akuntansi = Segera Hadir.
+- Halaman "Segera Hadir" (`/segera-hadir/{key}`), pencarian global (`/pencarian`, JSON, kasir hanya menemukan penjualannya sendiri), notifikasi stok (`/notifikasi`, JSON, diambil saat lonceng dibuka).
+- Route dipecah ke `routes/modules/*.php`: URL, nama route, dan middleware tidak berubah (dibandingkan lewat `route:list`). Controller dan service SDM pindah ke namespace `Sdm`.
+- Halaman lama otomatis memakai layout baru tanpa perubahan logika. Kelas CSS lama (`.tombol-*`, `.isian`, `.tabel`, `.badge-*`) dan warna `stone` dipetakan ke token baru agar serasi. Partial badge status memakai `x-ui.badge`.
+- Dihapus: partial toast/konfirmasi lama, `welcome.blade.php`, `NewPasswordController`, dan komponen Breeze yang tidak dipakai. Komponen yang dipakai view profil dipertahankan untuk Fase 3.
+- 17 test baru (`MenuSidebarTest`, `HalamanSegeraHadirTest`, `PencarianGlobalTest`, `NotifikasiStokTest`); seluruh suite 403/403 lulus.
+- Belum: memindahkan tombol aksi tiap halaman ke slot `actions` (dikerjakan saat modulnya di-redesign), dark mode.
+
 - `layouts/app` baru: sidebar 260px yang bisa diciutkan ke ikon (status disimpan di `localStorage`), grup dengan judul kecil, submenu buka-tutup, menu aktif ter-highlight, drawer di mobile. Topbar: tombol collapse, breadcrumb, pencarian global (versi awal: produk, pelanggan, nomor transaksi), notifikasi (awal: jumlah stok menipis), pilihan cabang (placeholder nonaktif sampai Fase 4), menu profil + Keluar.
 - `layouts/pos` baru (layar penuh, tanpa sidebar). Untuk sementara Kasir dipindah ke sini **tanpa mengubah isi** (redesign penuh di Fase 6).
 - `<x-app-layout>` mendapat slot tambahan `description` dan `actions`. Karena 41 halaman sudah memakai komponen ini, pergantian layout cukup di satu tempat. Lalu rapikan header tiap halaman: pindahkan tombol aksi ke slot `actions`.

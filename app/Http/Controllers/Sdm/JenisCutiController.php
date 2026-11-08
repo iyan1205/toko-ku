@@ -1,14 +1,15 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Sdm;
 
 use App\Enums\RoleName;
 use App\Enums\StatusAbsensi;
 use App\Exceptions\AturanBisnisException;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\JenisCutiRequest;
 use App\Models\JenisCuti;
 use App\Models\User;
-use App\Services\JenisCutiService;
+use App\Services\Sdm\JenisCutiService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
