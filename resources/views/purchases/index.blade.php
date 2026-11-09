@@ -42,7 +42,7 @@
             </form>
             @error('sampai') <p class="text-sm text-brand-600">{{ $message }}</p> @enderror
 
-            @can('create-purchase')
+            @can('purchasing.invoices.create')
                 <a href="{{ route('purchases.create') }}"
                    class="inline-block rounded-md bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:ring-offset-2">Pembelian baru</a>
             @endcan

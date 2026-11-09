@@ -36,7 +36,7 @@ class KepegawaianSeeder extends Seeder
         }
 
         foreach ($alur as $i => $peran) {
-            $jenis->tahap()->create(['urutan' => $i + 1, 'peran' => $peran]);
+            $jenis->tahap()->create(['urutan' => $i + 1, 'peran' => $peran->value]);
         }
     }
 }

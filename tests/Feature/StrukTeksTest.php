@@ -24,7 +24,9 @@ class StrukTeksTest extends TestCase
     use RefreshDatabase, SiapkanPeran;
 
     private User $kasir;
+
     private User $admin;
+
     private Product $ayam;
 
     protected function setUp(): void
@@ -246,10 +248,10 @@ class StrukTeksTest extends TestCase
     public function test_tanpa_izin_print_receipt_ditolak(): void
     {
         $jual = $this->jual();
-        $tanpaIzin = $this->buatPengguna(RoleName::Kasir);
-        $tanpaIzin->revokePermissionTo('print-receipt');
+        // Boleh melihat semua penjualan (lolos SalePolicy), tetapi tidak punya izin cetak struk.
+        $tanpaIzin = User::factory()->create()->givePermissionTo('pos.transactions.view');
 
-        $this->actingAs($tanpaIzin->fresh())
+        $this->actingAs($tanpaIzin)
             ->getJson(route('sales.receipt.text', $jual))
             ->assertForbidden();
     }

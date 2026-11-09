@@ -21,6 +21,7 @@ Spesifikasi lengkap: docs/REDESIGN-TOKOKU.md. Hasil audit, keputusan, dan rencan
 - Route per modul: routes/modules/{modul}.php, di-include dari routes/web.php, prefix & name sesuai modul.
 - Komponen UI reusable: resources/views/components/ui/* (Blade components).
 - Permission format: `{modul}.{fitur}.{aksi}` contoh `inventory.products.view`, `pos.transactions.create`.
+- Semua izin terdaftar di config/permission-matrix.php. Izin baru: tambahkan di katalog, lalu `php artisan db:seed --class=RolePermissionSeeder` (tidak menimpa hak akses yang sudah diatur). Route baru wajib dijaga middleware `permission:` (dicek ProteksiRouteTest).
 - Menu sidebar didefinisikan di config/menu.php, bukan hardcode di Blade.
 - Validasi pakai Form Request. Logika bisnis berat di Service class (app/Services/{Modul}).
 

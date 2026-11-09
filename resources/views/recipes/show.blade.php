@@ -5,7 +5,7 @@
         <a href="{{ route('recipes.index') }}" class="text-sm text-stone-500 hover:text-brand-700 hover:underline">
             &larr; Kembali ke daftar
         </a>
-        @can('manage-products', $recipe->product)
+        @can('inventory.recipes.update')
             <div class="flex gap-2">
                 <a href="{{ route('recipes.edit', $recipe) }}" class="tombol-kedua">Ubah Resep</a>
                 <button type="button"

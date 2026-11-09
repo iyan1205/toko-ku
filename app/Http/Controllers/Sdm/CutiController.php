@@ -20,13 +20,13 @@ class CutiController extends Controller
 {
     public function __construct(private readonly CutiService $service) {}
 
-    /** Tab: saya (pengajuan sendiri), persetujuan (menunggu keputusan saya), semua (view-leaves). */
+    /** Tab: saya (pengajuan sendiri), persetujuan (menunggu keputusan saya), semua (sdm.leaves.view). */
     public function index(Request $request): View
     {
         Gate::authorize('viewAny', Cuti::class);
 
         $user = $request->user();
-        $bisaLihatSemua = $user->can('view-leaves');
+        $bisaLihatSemua = $user->can('sdm.leaves.view');
 
         $filter = $request->validate([
             'tab' => ['nullable', Rule::in(['saya', 'persetujuan', 'semua'])],
@@ -35,7 +35,7 @@ class CutiController extends Controller
             'pegawai' => ['nullable', 'integer'],
             'tahun' => ['nullable', 'integer', 'min:2000', 'max:2100'],
         ]);
-        $tab = $filter['tab'] ?? ($user->can('request-leave') ? 'saya' : 'persetujuan');
+        $tab = $filter['tab'] ?? ($user->can('sdm.leaves.create') ? 'saya' : 'persetujuan');
 
         abort_if($tab === 'semua' && ! $bisaLihatSemua, 403);
 
@@ -55,7 +55,7 @@ class CutiController extends Controller
                 ->orderByDesc('tanggal_mulai')->orderByDesc('id')->paginate(15)->withQueryString(),
             'jumlahPerluPersetujuan' => Cuti::query()->perluDiputuskanOleh($user)->count(),
             'bisaLihatSemua' => $bisaLihatSemua,
-            'bisaMengajukan' => $user->can('request-leave'),
+            'bisaMengajukan' => $user->can('sdm.leaves.create'),
             'tahunIni' => $tahunIni,
             'kuota' => JenisCuti::query()->aktif()->whereNotNull('kuota_tahunan')->orderBy('nama')->get()
                 ->map(fn (JenisCuti $j) => [

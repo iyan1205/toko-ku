@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\RoleName;
+use App\Models\Concerns\RecordsActivity;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -12,7 +13,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, HasRoles, Notifiable, SoftDeletes;
+    use HasFactory, HasRoles, Notifiable, RecordsActivity, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -53,7 +54,7 @@ class User extends Authenticatable
             return $query;
         }
 
-        $kata = '%' . trim($kata) . '%';
+        $kata = '%'.trim($kata).'%';
 
         return $query->where(function (Builder $q) use ($kata) {
             $q->where('name', 'like', $kata)
@@ -66,5 +67,21 @@ class User extends Authenticatable
     public function namaPeran(): string
     {
         return $this->roles->pluck('name')->first() ?? '-';
+    }
+
+    protected function activityLogName(): string
+    {
+        return 'pengguna';
+    }
+
+    protected function activityLogLabel(): string
+    {
+        return 'Pengguna';
+    }
+
+    /** @return list<string> */
+    protected function activityLogAttributes(): array
+    {
+        return ['name', 'email', 'phone', 'is_active'];
     }
 }

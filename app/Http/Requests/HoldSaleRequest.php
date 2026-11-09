@@ -9,7 +9,7 @@ class HoldSaleRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('create-sale');
+        return $this->user()->can('pos.transactions.create');
     }
 
     public function rules(): array

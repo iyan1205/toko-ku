@@ -57,7 +57,7 @@ class MenuSidebarTest extends TestCase
 
     public function test_menu_segera_hadir_tampil_dengan_badge_dan_menuju_halaman_pengganti(): void
     {
-        $this->actingAs($this->buatPengguna(RoleName::Admin))
+        $this->actingAs($this->buatPengguna(RoleName::Akuntan))
             ->get(route('dashboard'))
             ->assertOk()
             ->assertSee('Akuntansi')
@@ -72,7 +72,7 @@ class MenuSidebarTest extends TestCase
             'items' => [
                 ['key' => 'uji-hidden', 'label' => 'Tersembunyi', 'icon' => 'home', 'route' => 'dashboard', 'status' => 'hidden'],
                 ['key' => 'uji-induk', 'label' => 'Induk', 'icon' => 'home', 'children' => [
-                    ['key' => 'uji-anak', 'label' => 'Anak', 'route' => 'users.index', 'permission' => 'manage-users'],
+                    ['key' => 'uji-anak', 'label' => 'Anak', 'route' => 'users.index', 'permission' => 'access.users.view'],
                 ]],
                 ['key' => 'uji-tanpa-route', 'label' => 'Tanpa route', 'icon' => 'home', 'route' => 'route.yang.tidak.ada'],
                 ['key' => 'uji-tampil', 'label' => 'Tampil', 'icon' => 'home', 'route' => 'dashboard'],

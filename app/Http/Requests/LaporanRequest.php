@@ -13,7 +13,7 @@ class LaporanRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('view-reports') ?? false;
+        return $this->user()?->can('reports.sales.view') ?? false;
     }
 
     /** @return array<string, mixed> */

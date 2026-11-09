@@ -2,7 +2,7 @@
     $edit = $jenis->exists;
     $tahapAwal = collect(old('tahap', $jenis->tahap->map(fn ($t) => [
         'tipe' => $t->approver_id ? 'orang' : 'peran',
-        'peran' => $t->peran?->value,
+        'peran' => $t->peran,
         'approver_id' => $t->approver_id,
     ])->all()))->map(fn ($t, $i) => [
         'uid' => $i,
@@ -87,7 +87,7 @@
                         <select x-show="t.tipe === 'peran'" :disabled="t.tipe !== 'peran'" :name="`tahap[${i}][peran]`" x-model="t.peran"
                                 aria-label="Peran approver" class="isian w-auto min-w-[10rem] flex-1">
                             @foreach ($peran as $r)
-                                <option value="{{ $r->value }}">Semua {{ $r->value }}</option>
+                                <option value="{{ $r }}">Semua {{ $r }}</option>
                             @endforeach
                         </select>
                         <select x-show="t.tipe === 'orang'" x-cloak :disabled="t.tipe !== 'orang'" :name="`tahap[${i}][approver_id]`" x-model="t.approver_id"

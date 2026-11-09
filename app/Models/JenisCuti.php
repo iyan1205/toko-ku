@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\StatusAbsensi;
+use App\Models\Concerns\RecordsActivity;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class JenisCuti extends Model
 {
-    use HasFactory;
+    use HasFactory, RecordsActivity;
 
     protected $fillable = ['nama', 'kuota_tahunan', 'status_absensi', 'is_active'];
 
@@ -45,5 +46,21 @@ class JenisCuti extends Model
     public function punyaKuota(): bool
     {
         return $this->kuota_tahunan !== null;
+    }
+
+    protected function activityLogName(): string
+    {
+        return 'sdm';
+    }
+
+    protected function activityLogLabel(): string
+    {
+        return 'Jenis cuti';
+    }
+
+    /** @return list<string> */
+    protected function activityLogAttributes(): array
+    {
+        return $this->getFillable();
     }
 }

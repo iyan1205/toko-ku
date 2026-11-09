@@ -27,8 +27,7 @@ class SaleService
         private readonly StockService $stok,
         private readonly PaymentService $pembayaran,
         private readonly KodeService $kode,
-    ) {
-    }
+    ) {}
 
     /**
      * Catat penjualan kasir. HARGA SELALU DIAMBIL DARI DATABASE: yang dipercaya dari klien hanya
@@ -63,7 +62,7 @@ class SaleService
             $sekarang = now();
 
             $penjualan = new Sale([
-                'number' => $this->kode->berikutnya(Sale::class, 'number', 'POS-' . $sekarang->format('Ymd') . '-', 4),
+                'number' => $this->kode->berikutnya(Sale::class, 'number', 'POS-'.$sekarang->format('Ymd').'-', 4),
                 'customer_id' => $h['pelanggan']->getKey(),
                 'user_id' => $kasir->getKey(),
                 'sold_at' => $sekarang,
@@ -107,7 +106,7 @@ class SaleService
                 $this->stok->catat(
                     $p,
                     StockMovementType::Sale,
-                    '-' . Uang::milliKeDesimal($b['milli']),
+                    '-'.Uang::milliKeDesimal($b['milli']),
                     $penjualan,
                     "Penjualan {$penjualan->number}",
                     $kasir,
@@ -198,6 +197,10 @@ class SaleService
                 'voided_by' => $user->getKey(),
                 'void_reason' => $alasan,
             ])->save();
+
+            activity('penjualan')->performedOn($terkunci)->causedBy($user)->event('voided')
+                ->withProperties(['alasan' => $alasan, 'total' => $terkunci->grand_total])
+                ->log("Penjualan {$terkunci->number} dibatalkan");
 
             return $terkunci;
         });

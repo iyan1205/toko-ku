@@ -37,7 +37,7 @@ class AbsensiController extends Controller
         }
 
         $user = $request->user();
-        $semuaPegawai = $user->can('manage-attendance');
+        $semuaPegawai = $user->can('sdm.attendances.view');
 
         if (! $semuaPegawai) {
             $filter['pegawai'] = $user->id;
@@ -57,7 +57,7 @@ class AbsensiController extends Controller
             'filter' => $filter,
             'semuaPegawai' => $semuaPegawai,
             'pegawai' => $semuaPegawai ? User::query()->orderBy('name')->get(['id', 'name']) : collect(),
-            'bisaAbsen' => $user->can('record-attendance'),
+            'bisaAbsen' => $user->can('sdm.attendances.record'),
             'hariIni' => $this->service->hariIni($user),
             'jadwalHariIni' => $jadwal->untukTanggal($user, today()),
         ]);

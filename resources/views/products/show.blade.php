@@ -71,7 +71,7 @@
                 @include('partials.badge-stok', ['status' => $produk->statusStok()])
                 <p class="text-sm text-stone-500">Minimum {{ \App\Support\Format::jumlah($produk->min_stock) }}</p>
             </div>
-            @can('manage-stock')
+            @can('inventory.stock-card.view')
                 <div class="mt-6 border-t border-stone-100 pt-4">
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <h4 class="text-sm font-medium text-stone-600">Mutasi terakhir</h4>

@@ -10,7 +10,7 @@ class StockAdjustmentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('manage-stock');
+        return $this->user()->can('inventory.adjustments.create');
     }
 
     public function rules(): array
@@ -18,7 +18,7 @@ class StockAdjustmentRequest extends FormRequest
         return [
             'product_id' => ['required', 'integer', Rule::exists('products', 'id')->whereNull('deleted_at')],
             'type' => ['required', Rule::in(array_map(fn ($t) => $t->value, StockMovementType::manual()))],
-            'direction' => ['required_if:type,' . StockMovementType::Adjustment->value, 'nullable', Rule::in(['in', 'out'])],
+            'direction' => ['required_if:type,'.StockMovementType::Adjustment->value, 'nullable', Rule::in(['in', 'out'])],
             'quantity' => ['required', 'numeric', 'gt:0', 'max:999999999'],
             'note' => ['required', 'string', 'max:255'],
         ];

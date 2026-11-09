@@ -8,12 +8,14 @@ use App\Models\Sale;
 use App\Models\StockOpname;
 use App\Models\User;
 use App\Policies\ProductPolicy;
+use App\Policies\RolePolicy;
 use App\View\Composers\NavigationComposer;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Permission\Models\Role;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,6 +30,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(fn (User $user) => $user->isSuperAdmin() ? true : null);
 
         Gate::policy(Product::class, ProductPolicy::class);
+        Gate::policy(Role::class, RolePolicy::class);
 
         // reference_type di stock_movements memakai nama pendek. Modul berikutnya menambah 'sale', 'purchase', dst.
         Relation::morphMap([

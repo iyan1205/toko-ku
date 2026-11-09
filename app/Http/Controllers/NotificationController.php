@@ -19,7 +19,7 @@ class NotificationController extends Controller
 
     public function __invoke(Request $request): JsonResponse
     {
-        abort_unless(Menu::allows(['view-stock', 'manage-stock'], $request->user()), 403);
+        abort_unless(Menu::allows('inventory.stock.view', $request->user()), 403);
 
         $products = Product::query()->needsRestock()
             ->with('unit:id,name')

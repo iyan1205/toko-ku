@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\RoleName;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -15,7 +14,6 @@ class TahapPersetujuan extends Model
     {
         return [
             'urutan' => 'integer',
-            'peran' => RoleName::class,
         ];
     }
 
@@ -32,6 +30,6 @@ class TahapPersetujuan extends Model
     /** "Peran Admin" atau nama orang yang ditunjuk. */
     public function label(): string
     {
-        return $this->approver_id !== null ? (string) $this->approver?->name : "Peran {$this->peran?->value}";
+        return $this->approver_id !== null ? (string) $this->approver?->name : "Peran {$this->peran}";
     }
 }

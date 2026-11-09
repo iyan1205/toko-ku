@@ -12,7 +12,7 @@ class AbsensiRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('manage-attendance');
+        return $this->user()->can($this->route('absensi') ? 'sdm.attendances.update' : 'sdm.attendances.create');
     }
 
     public function rules(): array

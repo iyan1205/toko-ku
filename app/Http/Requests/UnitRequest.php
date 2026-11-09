@@ -9,7 +9,7 @@ class UnitRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('manage-products');
+        return $this->user()->can($this->route('unit') ? 'inventory.units.update' : 'inventory.units.create');
     }
 
     protected function prepareForValidation(): void

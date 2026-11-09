@@ -24,8 +24,7 @@ class PurchaseService
         private readonly StockService $stok,
         private readonly PaymentService $pembayaran,
         private readonly KodeService $kode,
-    ) {
-    }
+    ) {}
 
     /**
      * Simpan pembelian: dokumen, rincian, stok masuk (lewat StockService), harga beli produk,
@@ -56,7 +55,7 @@ class PurchaseService
             $tanggal = $data['purchase_date'];
 
             $pembelian = new Purchase([
-                'number' => $this->kode->berikutnya(Purchase::class, 'number', 'PUR-' . date('Ymd', strtotime($tanggal)) . '-', 4),
+                'number' => $this->kode->berikutnya(Purchase::class, 'number', 'PUR-'.date('Ymd', strtotime($tanggal)).'-', 4),
                 'supplier_id' => $supplier->getKey(),
                 'supplier_invoice_number' => $data['supplier_invoice_number'] ?? null,
                 'purchase_date' => $tanggal,
@@ -154,7 +153,7 @@ class PurchaseService
                     $this->stok->catat(
                         Product::withTrashed()->findOrFail($item->product_id),
                         StockMovementType::Purchase,
-                        '-' . $item->quantity,
+                        '-'.$item->quantity,
                         $terkunci,
                         "Pembatalan pembelian {$terkunci->number}: {$alasan}",
                         $user,
@@ -163,7 +162,7 @@ class PurchaseService
             } catch (AturanBisnisException $e) {
                 throw new AturanBisnisException(
                     "Pembelian {$terkunci->number} tidak dapat dibatalkan karena sebagian barangnya sudah keluar. "
-                    . $e->getMessage() . ' Gunakan Retur Pembelian untuk barang yang sudah terjual.'
+                    .$e->getMessage().' Gunakan Retur Pembelian untuk barang yang sudah terjual.'
                 );
             }
 
@@ -178,6 +177,10 @@ class PurchaseService
                 'voided_by' => $user->getKey(),
                 'void_reason' => $alasan,
             ])->save();
+
+            activity('pembelian')->performedOn($terkunci)->causedBy($user)->event('voided')
+                ->withProperties(['alasan' => $alasan, 'total' => $terkunci->grand_total])
+                ->log("Pembelian {$terkunci->number} dibatalkan");
 
             // Harga beli produk tidak dikembalikan otomatis; ubah manual di master produk bila perlu.
             return $terkunci;

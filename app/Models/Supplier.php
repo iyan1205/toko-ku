@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\RecordsActivity;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Supplier extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, RecordsActivity, SoftDeletes;
 
     /** `code` dibuat otomatis oleh SupplierService, tidak diisi dari formulir. */
     protected $fillable = ['code', 'name', 'contact_name', 'phone', 'email', 'address', 'npwp', 'note'];
@@ -26,7 +27,7 @@ class Supplier extends Model
             return $query;
         }
 
-        $kata = '%' . trim($kata) . '%';
+        $kata = '%'.trim($kata).'%';
 
         return $query->where(function (Builder $q) use ($kata) {
             $q->where('name', 'like', $kata)
@@ -34,5 +35,21 @@ class Supplier extends Model
                 ->orWhere('contact_name', 'like', $kata)
                 ->orWhere('phone', 'like', $kata);
         });
+    }
+
+    protected function activityLogName(): string
+    {
+        return 'pembelian';
+    }
+
+    protected function activityLogLabel(): string
+    {
+        return 'Supplier';
+    }
+
+    /** @return list<string> */
+    protected function activityLogAttributes(): array
+    {
+        return $this->getFillable();
     }
 }

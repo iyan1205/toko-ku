@@ -49,7 +49,7 @@
                     <a href="{{ route('stock.adjust.create') }}"
                        class="tombol-utama">Penyesuaian stok</a>
                     <a href="{{ route('stock.movements') }}" class="tombol-kedua">Riwayat mutasi</a>
-                    @can('stock-opname')
+                    @can('inventory.opnames.view')
                         <a href="{{ route('stock-opnames.index') }}" class="tombol-kedua">Stok opname</a>
                     @endcan
                 </div>

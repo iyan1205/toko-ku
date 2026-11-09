@@ -402,6 +402,16 @@ Ukuran: **S** = kecil, **M** = sedang, **L** = besar, **XL** = sangat besar. Set
 - Test: filter menu per peran, item `coming_soon`, menu aktif, layout tampil untuk tiap peran.
 
 ### Fase 3 — Pengguna & Hak Akses · L
+**Status 09 Nov 2026: selesai, menunggu pengecekan pemilik.**
+- Katalog izin `config/permission-matrix.php` (165 izin, 9 modul termasuk Akuntansi & SDM, format `{modul}.{fitur}.{aksi}`), dibaca lewat `App\Support\PermissionCatalog`.
+- Migration data mengganti 31 izin lama ke format baru tanpa mengubah hak akses yang berlaku dan tanpa menyentuh pengguna (diuji di `MigrasiIzinLamaTest`).
+- `RolePermissionSeeder`: 8 peran bawaan. Menjalankan ulang seeder tidak menimpa perubahan dari halaman Hak Akses; hanya izin yang baru masuk katalog yang diberikan ke peran bawaan.
+- Semua route yang butuh login dijaga `permission:` (kecuali dashboard, pencarian, segera-hadir, ui-kit, profil, logout; dijaga `ProteksiRouteTest`).
+- Halaman: Pengguna (CRUD, aktif/nonaktif, reset kata sandi), Peran (CRUD peran buatan sendiri), Hak Akses (matriks per peran), Log Aktivitas, Profil Saya.
+- Log aktivitas (`spatie/laravel-activitylog` 4.12): login/logout/login gagal, perubahan 9 data master, pergantian peran, reset kata sandi, perubahan peran & hak akses, pembatalan penjualan/pembelian, perubahan profil toko. Log lebih dari 365 hari dihapus oleh jadwal harian (butuh scheduler aktif di server).
+- Perubahan perilaku: menu Akuntansi kini milik Akuntan & Pemilik (sebelumnya sementara memakai izin laporan, sehingga Admin ikut melihat). Form ubah pengguna tidak lagi berisi kata sandi; gantinya tombol Reset kata sandi.
+- Seluruh suite 439/439 lulus.
+
 - spatie/laravel-permission **sudah terpasang**, tidak perlu instal. Fokusnya **migrasi**:
   - Buat daftar izin baru `{modul}.{fitur}.{aksi}` untuk semua modul (termasuk Akuntansi & SDM) dalam satu kelas konstanta atau enum. Modul SDM berawalan `sdm.` (misal `record-attendance` menjadi `sdm.attendances.record`, `manage-leave-types` menjadi `sdm.leave-types.manage`).
   - Migration data yang **mengganti nama** baris izin lama ke nama baru (id tetap, jadi relasi peran dan user utuh). Izin baru ditambahkan, tidak ada yang dihapus.

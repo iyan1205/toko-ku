@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use App\Enums\PaymentMethod;
-use App\Models\Purchase;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -11,7 +10,7 @@ class PurchaseRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('create-purchase');
+        return $this->user()->can('purchasing.invoices.create');
     }
 
     protected function prepareForValidation(): void

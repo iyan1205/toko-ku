@@ -8,7 +8,7 @@ class CustomerRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('manage-customers');
+        return $this->user()->can($this->route('customer') ? 'pos.customers.update' : 'pos.customers.create');
     }
 
     public function rules(): array

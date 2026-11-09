@@ -1,23 +1,25 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Access;
 
 use App\Enums\RoleName;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\ResetUserPasswordRequest;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
-use App\Services\UserService;
+use App\Services\Access\UserService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
-    public function __construct(private readonly UserService $service)
-    {
-    }
+    public function __construct(private readonly UserService $service) {}
 
     public function index(Request $request): View
     {
@@ -25,7 +27,7 @@ class UserController extends Controller
 
         $filter = $request->validate([
             'cari' => ['nullable', 'string', 'max:100'],
-            'peran' => ['nullable', Rule::in(RoleName::values())],
+            'peran' => ['nullable', 'string', Rule::exists(config('permission.table_names.roles'), 'name')->where('guard_name', 'web')],
             'status' => ['nullable', Rule::in(['aktif', 'nonaktif'])],
         ]);
 
@@ -38,17 +40,20 @@ class UserController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        return view('users.index', [
+        return view('access.users.index', [
             'users' => $users,
-            'peran' => RoleName::cases(),
+            'peran' => Role::query()->where('guard_name', 'web')->orderBy('id')->get(['id', 'name']),
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         Gate::authorize('create', User::class);
 
-        return view('users.form', ['user' => new User(['is_active' => true]), 'peran' => RoleName::cases()]);
+        return view('access.users.form', [
+            'user' => new User(['is_active' => true]),
+            'peran' => $this->assignableRoles($request->user()),
+        ]);
     }
 
     public function store(StoreUserRequest $request): RedirectResponse
@@ -59,11 +64,14 @@ class UserController extends Controller
             ->with('success', "Pengguna {$user->name} berhasil ditambahkan.");
     }
 
-    public function edit(User $user): View
+    public function edit(Request $request, User $user): View
     {
         Gate::authorize('update', $user);
 
-        return view('users.form', ['user' => $user->load('roles'), 'peran' => RoleName::cases()]);
+        return view('access.users.form', [
+            'user' => $user->load('roles'),
+            'peran' => $this->assignableRoles($request->user()),
+        ]);
     }
 
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
@@ -85,6 +93,14 @@ class UserController extends Controller
             : "Akun {$user->name} dinonaktifkan.");
     }
 
+    /** Admin menetapkan kata sandi baru (pengguna lupa kata sandi). */
+    public function resetPassword(ResetUserPasswordRequest $request, User $user): RedirectResponse
+    {
+        $this->service->resetKataSandi($user, $request->validated('password'), $request->user());
+
+        return back()->with('success', "Kata sandi {$user->name} berhasil direset.");
+    }
+
     public function destroy(Request $request, User $user): RedirectResponse
     {
         Gate::authorize('delete', $user);
@@ -93,5 +109,19 @@ class UserController extends Controller
 
         return redirect()->route('users.index')
             ->with('success', "Pengguna {$user->name} dihapus.");
+    }
+
+    /**
+     * Peran yang boleh diberikan: semua peran, kecuali Super Admin bila yang login bukan Super Admin.
+     *
+     * @return Collection<int, Role>
+     */
+    private function assignableRoles(User $actor): Collection
+    {
+        return Role::query()
+            ->where('guard_name', 'web')
+            ->when(! $actor->isSuperAdmin(), fn ($q) => $q->where('name', '!=', RoleName::SuperAdmin->value))
+            ->orderBy('id')
+            ->get(['id', 'name', 'description']);
     }
 }

@@ -9,7 +9,7 @@ class ShiftRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('manage-schedules');
+        return $this->user()->can($this->route('shift') ? 'sdm.shifts.update' : 'sdm.shifts.create');
     }
 
     protected function prepareForValidation(): void

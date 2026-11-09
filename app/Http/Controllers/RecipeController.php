@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\RecipeRequest;
 use App\Models\Product;
+use App\Models\Recipe;
+use App\Models\Unit;
 use App\Services\RecipeService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\View\View;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\View\View;
 
 /**
  * Bill of Materials (BOM) — resep per produk jual.
@@ -16,13 +18,11 @@ use Illuminate\Support\Facades\Gate;
  */
 class RecipeController extends Controller
 {
-    public function __construct(private readonly RecipeService $service)
-    {
-    }
+    public function __construct(private readonly RecipeService $service) {}
 
     public function index(): View
     {
-        Gate::authorize('view-recipes');
+        Gate::authorize('inventory.recipes.view');
 
         return view('recipes.index', [
             'recipes' => $this->service->semua(),
@@ -37,7 +37,7 @@ class RecipeController extends Controller
             'recipe' => null,
             'produkList' => Product::jual()->orderBy('name')->get(['id', 'name', 'sku', 'unit_id', 'selling_price']),
             'bahanList' => Product::bahanBaku()->orderBy('name')->get(['id', 'name', 'sku', 'unit_id', 'purchase_price']),
-            'units' => \App\Models\Unit::orderBy('name')->get(),
+            'units' => Unit::orderBy('name')->get(),
         ]);
     }
 
@@ -63,9 +63,9 @@ class RecipeController extends Controller
             ->with('success', "BOM untuk {$product->name} tersimpan.");
     }
 
-    public function show(\App\Models\Recipe $recipe): View
+    public function show(Recipe $recipe): View
     {
-        Gate::authorize('view-recipes');
+        Gate::authorize('inventory.recipes.view');
 
         return view('recipes.show', [
             'recipe' => $recipe->load('items.product.unit'),
@@ -73,7 +73,7 @@ class RecipeController extends Controller
         ]);
     }
 
-    public function edit(\App\Models\Recipe $recipe): View
+    public function edit(Recipe $recipe): View
     {
         Gate::authorize('update', $recipe->product);
 
@@ -81,11 +81,11 @@ class RecipeController extends Controller
             'recipe' => $recipe->load('items.product.unit'),
             'produkList' => Product::jual()->orderBy('name')->get(['id', 'name', 'sku', 'unit_id', 'selling_price']),
             'bahanList' => Product::bahanBaku()->orderBy('name')->get(['id', 'name', 'sku', 'unit_id', 'purchase_price']),
-            'units' => \App\Models\Unit::orderBy('name')->get(),
+            'units' => Unit::orderBy('name')->get(),
         ]);
     }
 
-    public function update(RecipeRequest $request, \App\Models\Recipe $recipe): RedirectResponse
+    public function update(RecipeRequest $request, Recipe $recipe): RedirectResponse
     {
         Gate::authorize('update', $recipe->product);
 
@@ -107,7 +107,7 @@ class RecipeController extends Controller
             ->with('success', "BOM untuk {$product->name} diperbarui.");
     }
 
-    public function destroy(\App\Models\Recipe $recipe): RedirectResponse
+    public function destroy(Recipe $recipe): RedirectResponse
     {
         Gate::authorize('delete', $recipe->product);
 

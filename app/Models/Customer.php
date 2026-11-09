@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\RecordsActivity;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Customer extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, RecordsActivity, SoftDeletes;
 
     public const KODE_UMUM = 'UMUM';
 
@@ -45,12 +46,28 @@ class Customer extends Model
             return $query;
         }
 
-        $kata = '%' . trim($kata) . '%';
+        $kata = '%'.trim($kata).'%';
 
         return $query->where(function (Builder $q) use ($kata) {
             $q->where('name', 'like', $kata)
                 ->orWhere('code', 'like', $kata)
                 ->orWhere('phone', 'like', $kata);
         });
+    }
+
+    protected function activityLogName(): string
+    {
+        return 'penjualan';
+    }
+
+    protected function activityLogLabel(): string
+    {
+        return 'Pelanggan';
+    }
+
+    /** @return list<string> */
+    protected function activityLogAttributes(): array
+    {
+        return $this->getFillable();
     }
 }

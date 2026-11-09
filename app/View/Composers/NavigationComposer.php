@@ -42,7 +42,7 @@ class NavigationComposer
      */
     private function restockCount(?User $user): ?int
     {
-        if (! Menu::allows(['view-stock', 'manage-stock'], $user)) {
+        if (! Menu::allows('inventory.stock.view', $user)) {
             return null;
         }
 

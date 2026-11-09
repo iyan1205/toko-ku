@@ -26,8 +26,7 @@ class ProductController extends Controller
     public function __construct(
         private readonly ProductService $service,
         private readonly ProductImportService $importService,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): View
     {
@@ -71,7 +70,7 @@ class ProductController extends Controller
 
         return view('products.show', [
             'produk' => $product->load(['category', 'unit']),
-            'riwayat' => auth()->user()->can('manage-stock')
+            'riwayat' => auth()->user()->can('inventory.stock-card.view')
                 ? $product->stockMovements()->with('user')->orderByDesc('id')->limit(5)->get()
                 : collect(),
         ]);
@@ -111,14 +110,14 @@ class ProductController extends Controller
     {
         Gate::authorize('export', Product::class);
 
-        return Excel::download(new ProductsExport($this->filter($request)), 'produk-' . now()->format('Ymd') . '.xlsx');
+        return Excel::download(new ProductsExport($this->filter($request)), 'produk-'.now()->format('Ymd').'.xlsx');
     }
 
     public function template(): BinaryFileResponse
     {
         Gate::authorize('import', Product::class);
 
-        return Excel::download(new ProductImportTemplate(), 'template-impor-produk.xlsx');
+        return Excel::download(new ProductImportTemplate, 'template-impor-produk.xlsx');
     }
 
     public function importForm(): View
@@ -131,7 +130,7 @@ class ProductController extends Controller
     public function import(ImportProductRequest $request): RedirectResponse
     {
         try {
-            $pembaca = new ProductsImport();
+            $pembaca = new ProductsImport;
             Excel::import($pembaca, $request->file('file'));
 
             $hasil = $this->importService->impor($pembaca->rows);

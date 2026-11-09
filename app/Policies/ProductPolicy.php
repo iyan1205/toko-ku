@@ -13,7 +13,7 @@ class ProductPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->canAny(['view-products', 'manage-products']);
+        return $user->can('inventory.products.view');
     }
 
     public function view(User $user, Product $product): bool
@@ -23,26 +23,26 @@ class ProductPolicy
 
     public function create(User $user): bool
     {
-        return $user->can('manage-products');
+        return $user->can('inventory.products.create');
     }
 
     public function update(User $user, Product $product): bool
     {
-        return $user->can('manage-products');
+        return $user->can('inventory.products.update');
     }
 
     public function delete(User $user, Product $product): bool
     {
-        return $user->can('manage-products');
+        return $user->can('inventory.products.delete');
     }
 
     public function import(User $user): bool
     {
-        return $user->can('manage-products');
+        return $user->can('inventory.products.import');
     }
 
     public function export(User $user): bool
     {
-        return $user->can('manage-products');
+        return $user->can('inventory.products.export');
     }
 }

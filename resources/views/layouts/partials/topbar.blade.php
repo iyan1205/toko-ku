@@ -167,7 +167,8 @@
                 <x-ui.badge class="mt-2">{{ $user->namaPeran() }}</x-ui.badge>
             </div>
             <div class="py-1">
-                @can('manage-settings')
+                <x-ui.dropdown-item :href="route('profile.edit')" icon="user-circle">Profil saya</x-ui.dropdown-item>
+                @can('settings.store.view')
                     <x-ui.dropdown-item :href="route('settings.edit')" icon="cog-6-tooth">Pengaturan toko</x-ui.dropdown-item>
                 @endcan
                 <form method="POST" action="{{ route('logout') }}">

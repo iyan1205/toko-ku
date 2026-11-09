@@ -9,7 +9,7 @@ class CategoryRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('manage-categories');
+        return $this->user()->can($this->route('category') ? 'inventory.categories.update' : 'inventory.categories.create');
     }
 
     public function rules(): array

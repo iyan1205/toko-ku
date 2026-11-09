@@ -36,7 +36,7 @@
             </form>
             @error('sampai') <p class="text-sm text-brand-600">{{ $message }}</p> @enderror
 
-            @can('create-sale')
+            @can('pos.transactions.create')
                 <a href="{{ route('pos.index') }}"
                    class="inline-block rounded-md bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:ring-offset-2">Buka Kasir</a>
             @endcan

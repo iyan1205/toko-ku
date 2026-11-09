@@ -25,15 +25,13 @@ use Illuminate\Support\Facades\Gate;
  */
 class StrukController extends Controller
 {
-    public function __construct(private readonly StoreProfileService $profil)
-    {
-    }
+    public function __construct(private readonly StoreProfileService $profil) {}
 
     public function teks(Sale $sale): JsonResponse
     {
         // Izin sama dengan melihat struk: kasir hanya struk miliknya sendiri.
         Gate::authorize('view', $sale);
-        Gate::authorize('print-receipt');
+        Gate::authorize('pos.transactions.print');
 
         $toko = $this->profil->ambil();
 

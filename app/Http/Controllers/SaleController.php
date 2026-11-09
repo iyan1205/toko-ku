@@ -3,13 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Enums\PaymentMethod;
-use App\Enums\PaymentStatus;
 use App\Enums\PurchaseStatus;
 use App\Http\Requests\SaleRequest;
 use App\Http\Requests\VoidSaleRequest;
 use App\Models\Customer;
 use App\Models\Sale;
 use App\Services\SaleService;
+use App\Support\Format;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -18,9 +18,7 @@ use Illuminate\View\View;
 
 class SaleController extends Controller
 {
-    public function __construct(private readonly SaleService $service)
-    {
-    }
+    public function __construct(private readonly SaleService $service) {}
 
     public function index(Request $request): View
     {
@@ -36,7 +34,7 @@ class SaleController extends Controller
         ]);
 
         $user = $request->user();
-        $hanyaMilikSendiri = ! $user->can('view-sales');
+        $hanyaMilikSendiri = ! $user->can('pos.transactions.view');
 
         if ($hanyaMilikSendiri) {
             $filter['kasir'] = $user->id;
@@ -71,7 +69,7 @@ class SaleController extends Controller
 
         $pesan = "Penjualan {$penjualan->number} tersimpan.";
         if ($penjualan->payment_method === PaymentMethod::Cash && (float) $penjualan->change_amount > 0) {
-            $pesan .= ' Kembalian ' . \App\Support\Format::rupiah($penjualan->change_amount) . '.';
+            $pesan .= ' Kembalian '.Format::rupiah($penjualan->change_amount).'.';
         }
 
         // Kasir diarahkan langsung ke struk: itu langkah berikutnya setelah pembayaran.

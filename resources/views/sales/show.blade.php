@@ -27,7 +27,7 @@
                     @else
                         @include('partials.badge-pembayaran', ['status' => $penjualan->payment_status, 'penjualan' => true])
                     @endif
-                    @can('print-receipt')
+                    @can('pos.transactions.print')
                         <a href="{{ route('sales.receipt', $penjualan) }}" target="_blank" rel="noopener"
                            class="tombol-utama">Cetak Struk</a>
                     @endcan
@@ -40,7 +40,7 @@
             <dl class="mt-5 grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
                 <div><dt class="text-stone-500">Pelanggan</dt><dd class="font-medium text-stone-900">{{ $penjualan->customer?->name }}</dd></div>
                 <div><dt class="text-stone-500">Metode pembayaran</dt><dd class="font-medium text-stone-900">{{ $penjualan->payment_method->label() }}</dd></div>
-                @can('view-sales')
+                @can('pos.transactions.view')
                     <div><dt class="text-stone-500">Dibuat oleh</dt><dd class="font-medium text-stone-900">{{ $penjualan->user?->name }}</dd></div>
                 @endcan
                 <div><dt class="text-stone-500">Catatan</dt><dd class="font-medium text-stone-900">{{ $penjualan->note ?: '-' }}</dd></div>
@@ -57,7 +57,7 @@
                             <th class="text-right font-medium">Harga</th>
                             <th class="text-right font-medium">Diskon</th>
                             <th class="text-right font-medium">Subtotal</th>
-                            @can('view-sales')
+                            @can('pos.transactions.view')
                                 <th class="text-right font-medium print:hidden">Laba</th>
                             @endcan
                         </tr>
@@ -73,7 +73,7 @@
                                 <td class="text-right">@rupiah($i->unit_price)</td>
                                 <td class="text-right">@rupiah($i->discount)</td>
                                 <td class="text-right font-medium text-stone-900">@rupiah($i->line_total)</td>
-                                @can('view-sales')
+                                @can('pos.transactions.view')
                                     <td class="px-4 py-3 text-right text-brand-700 print:hidden">@rupiah($i->line_total - $i->cost_price * $i->quantity)</td>
                                 @endcan
                             </tr>
@@ -97,7 +97,7 @@
             </dl>
         </div>
 
-        @can('view-sales')
+        @can('pos.transactions.view')
             <div class="kartu print:hidden">
                 <h3 class="kartu-kepala kartu-judul">Riwayat pembayaran</h3>
                 @if ($penjualan->payments->isEmpty())
@@ -134,7 +134,7 @@
             </div>
         @endcan
 
-        @can('void-sale')
+        @can('pos.transactions.void')
             @unless ($penjualan->dibatalkan())
                 <div x-data="{ buka: @js($errors->has('alasan')) }" x-on:keydown.escape.window="buka = false" class="flex justify-end print:hidden">
                     <button type="button" @click="buka = true" class="text-sm text-brand-600 hover:underline">Batalkan penjualan ini</button>

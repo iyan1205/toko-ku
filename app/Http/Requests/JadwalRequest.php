@@ -15,7 +15,7 @@ class JadwalRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('manage-schedules');
+        return $this->user()->can('sdm.schedules.update');
     }
 
     public function rules(): array

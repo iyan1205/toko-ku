@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\StatusStok;
+use App\Models\Concerns\RecordsActivity;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, RecordsActivity, SoftDeletes;
 
     /**
      * `stock` sengaja TIDAK ada di $fillable. Stok hanya boleh berubah lewat
@@ -156,5 +157,21 @@ class Product extends Model
                 default => $q,
             })
             ->when($f['status'] ?? null, fn (Builder $q, $v) => $q->where('is_active', $v === 'aktif'));
+    }
+
+    protected function activityLogName(): string
+    {
+        return 'inventori';
+    }
+
+    protected function activityLogLabel(): string
+    {
+        return 'Produk';
+    }
+
+    /** @return list<string> */
+    protected function activityLogAttributes(): array
+    {
+        return $this->getFillable();
     }
 }

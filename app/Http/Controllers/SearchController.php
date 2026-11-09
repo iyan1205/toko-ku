@@ -70,7 +70,7 @@ class SearchController extends Controller
 
         return Sale::query()
             ->with('customer:id,name')
-            ->filter(['cari' => $keyword, 'kasir' => $user->can('view-sales') ? null : $user->id])
+            ->filter(['cari' => $keyword, 'kasir' => $user->can('pos.transactions.view') ? null : $user->id])
             ->orderByDesc('sold_at')->orderByDesc('id')->limit(self::LIMIT)
             ->get(['id', 'number', 'customer_id', 'grand_total', 'sold_at'])
             ->map(fn (Sale $sale) => [
@@ -83,7 +83,7 @@ class SearchController extends Controller
     /** @return Collection<int, array{title: string, subtitle: string, url: string}>|null */
     private function customers(string $keyword, User $user): ?Collection
     {
-        if (! $user->can('manage-customers')) {
+        if (! $user->can('pos.customers.view')) {
             return null;
         }
 
@@ -99,7 +99,7 @@ class SearchController extends Controller
     /** @return Collection<int, array{title: string, subtitle: string, url: string}>|null */
     private function purchases(string $keyword, User $user): ?Collection
     {
-        if (! $user->can('view-purchases')) {
+        if (! $user->can('purchasing.invoices.view')) {
             return null;
         }
 
@@ -118,7 +118,7 @@ class SearchController extends Controller
     /** @return Collection<int, array{title: string, subtitle: string, url: string}>|null */
     private function suppliers(string $keyword, User $user): ?Collection
     {
-        if (! $user->can('manage-suppliers')) {
+        if (! $user->can('purchasing.suppliers.view')) {
             return null;
         }
 

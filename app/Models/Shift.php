@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\RecordsActivity;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /** Jam kerja yang dipakai di jadwal, mis. Pagi 08:00–16:00. */
 class Shift extends Model
 {
-    use HasFactory;
+    use HasFactory, RecordsActivity;
 
     protected $fillable = ['nama', 'jam_masuk', 'jam_pulang', 'is_active'];
 
@@ -50,5 +51,21 @@ class Shift extends Model
     public function rentang(): string
     {
         return "{$this->jam_masuk}–{$this->jam_pulang}".($this->lintasHari() ? ' (+1)' : '');
+    }
+
+    protected function activityLogName(): string
+    {
+        return 'sdm';
+    }
+
+    protected function activityLogLabel(): string
+    {
+        return 'Shift';
+    }
+
+    /** @return list<string> */
+    protected function activityLogAttributes(): array
+    {
+        return $this->getFillable();
     }
 }

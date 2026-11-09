@@ -9,7 +9,7 @@ use App\Models\User;
 use App\Services\Sdm\CutiService;
 
 /**
- * Pegawai (request-leave) mengajukan dan melihat cutinya sendiri. Admin (view-leaves) melihat semua.
+ * Pegawai (sdm.leaves.create) mengajukan dan melihat cutinya sendiri. sdm.leaves.view melihat semua.
  * Approver melihat pengajuan yang salah satu tahapnya ditujukan kepadanya.
  */
 class CutiPolicy
@@ -18,19 +18,19 @@ class CutiPolicy
 
     public function viewAny(User $user): bool
     {
-        return $user->canAny(['request-leave', 'view-leaves']);
+        return $user->canAny(['sdm.leaves.create', 'sdm.leaves.view', 'sdm.leaves.approve']);
     }
 
     public function view(User $user, Cuti $cuti): bool
     {
         return $cuti->user_id === $user->id
-            || $user->can('view-leaves')
+            || $user->can('sdm.leaves.view')
             || $cuti->persetujuan->contains(fn (PersetujuanCuti $tahap) => $tahap->ditujukanKe($user));
     }
 
     public function create(User $user): bool
     {
-        return $user->can('request-leave');
+        return $user->can('sdm.leaves.create');
     }
 
     /** Menyetujui atau menolak tahap yang sedang aktif. */

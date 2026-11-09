@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">Produk</x-slot>
 
-    @php($kelola = auth()->user()->can('manage-products'))
+    @php($kelola = auth()->user()->can('inventory.products.update'))
 
     <div class="kartu">
         <div class="space-y-3 border-b border-stone-200 p-4">

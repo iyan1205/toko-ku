@@ -121,7 +121,7 @@
             @endif
         </div>
 
-        @can('void-purchase')
+        @can('purchasing.invoices.void')
             @unless ($pembelian->dibatalkan())
                 <div x-data="{ buka: @js($errors->has('alasan')) }" x-on:keydown.escape.window="buka = false" class="flex justify-end">
                     <button type="button" @click="buka = true" class="text-sm text-brand-600 hover:underline">Batalkan pembelian ini</button>

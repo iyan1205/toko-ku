@@ -5,7 +5,7 @@
         <div>
             <p class="text-sm text-stone-500">Resep bahan untuk tiap produk jual. Harga bahan otomatis mengikuti harga beli di produk.</p>
         </div>
-        @can('manage-products')
+        @can('inventory.recipes.create')
             <a href="{{ route('recipes.create') }}" class="tombol-utama">+ Buat Resep</a>
         @endcan
     </div>
@@ -44,7 +44,7 @@
                             <td class="text-right">
                                 <div class="flex items-center justify-end gap-3">
                                     <a href="{{ route('recipes.show', $r) }}" class="text-brand-700 hover:underline">Detail</a>
-                                    @can('manage-products', $r->product)
+                                    @can('inventory.recipes.update')
                                         <a href="{{ route('recipes.edit', $r) }}" class="text-brand-700 hover:underline">Ubah</a>
                                     @endcan
                                 </div>

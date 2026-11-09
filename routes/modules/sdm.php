@@ -3,6 +3,7 @@
 /*
 | SDM: absensi, jadwal & shift kerja, cuti.
 | Di-include dari routes/web.php di dalam grup middleware auth.
+| Setiap route dijaga izin "{modul}.{fitur}.{aksi}" (config/permission-matrix.php).
 */
 
 use App\Http\Controllers\Sdm\AbsensiController;
@@ -12,48 +13,59 @@ use App\Http\Controllers\Sdm\JenisCutiController;
 use App\Http\Controllers\Sdm\ShiftController;
 use Illuminate\Support\Facades\Route;
 
-// ---- Absensi pegawai ----
-// Daftar: dicek via AbsensiPolicy (manage-attendance = semua pegawai, record-attendance = milik sendiri).
-Route::get('absensi', [AbsensiController::class, 'index'])->name('attendances.index');
+// ---- Absensi: view = semua pegawai, record = absen sendiri (AbsensiPolicy membatasi isi daftarnya). ----
+Route::get('absensi', [AbsensiController::class, 'index'])
+    ->middleware('permission:sdm.attendances.view|sdm.attendances.record')->name('attendances.index');
 
-Route::middleware('can:record-attendance')->group(function () {
+Route::middleware('permission:sdm.attendances.record')->group(function () {
     Route::post('absensi/masuk', [AbsensiController::class, 'clockIn'])->name('attendances.clock-in');
     Route::post('absensi/pulang', [AbsensiController::class, 'clockOut'])->name('attendances.clock-out');
 });
 
-// Catatan manual admin: izin/sakit/alpa dan koreksi jam (mis. lupa absen pulang).
-Route::middleware('can:manage-attendance')->group(function () {
-    Route::resource('absensi', AbsensiController::class)
-        ->parameters(['absensi' => 'absensi'])
-        ->names('attendances')
-        ->only(['create', 'store', 'edit', 'update', 'destroy']);
-});
+// Catatan manual: izin/sakit/alpa dan koreksi jam (mis. lupa absen pulang).
+Route::resource('absensi', AbsensiController::class)
+    ->parameters(['absensi' => 'absensi'])
+    ->names('attendances')
+    ->only(['create', 'store', 'edit', 'update', 'destroy'])
+    ->middlewareFor(['create', 'store'], 'permission:sdm.attendances.create')
+    ->middlewareFor(['edit', 'update'], 'permission:sdm.attendances.update')
+    ->middlewareFor('destroy', 'permission:sdm.attendances.delete');
 
-// ---- Jadwal kerja: semua pegawai melihat (JadwalPolicy), manage-schedules mengisi jadwal dan shift ----
-Route::get('jadwal', [JadwalController::class, 'index'])->name('schedules.index');
-
-Route::middleware('can:manage-schedules')->group(function () {
+// ---- Jadwal & shift kerja ----
+Route::get('jadwal', [JadwalController::class, 'index'])->middleware('permission:sdm.schedules.view')->name('schedules.index');
+Route::middleware('permission:sdm.schedules.update')->group(function () {
     Route::put('jadwal', [JadwalController::class, 'update'])->name('schedules.update');
     Route::post('jadwal/salin', [JadwalController::class, 'copy'])->name('schedules.copy');
-
-    Route::resource('shift', ShiftController::class)
-        ->names('shifts')
-        ->only(['index', 'store', 'update', 'destroy']);
 });
 
-// ---- Cuti: pengajuan dan persetujuan bertingkat (CutiPolicy) ----
-Route::resource('cuti', CutiController::class)
-    ->parameters(['cuti' => 'cuti'])
-    ->names('leaves')
-    ->only(['index', 'create', 'store', 'show']);
-Route::post('cuti/{cuti}/setujui', [CutiController::class, 'approve'])->name('leaves.approve');
-Route::post('cuti/{cuti}/tolak', [CutiController::class, 'reject'])->name('leaves.reject');
-Route::post('cuti/{cuti}/batal', [CutiController::class, 'cancel'])->name('leaves.cancel');
+Route::resource('shift', ShiftController::class)
+    ->names('shifts')
+    ->only(['index', 'store', 'update', 'destroy'])
+    ->middlewareFor('index', 'permission:sdm.shifts.view')
+    ->middlewareFor('store', 'permission:sdm.shifts.create')
+    ->middlewareFor('update', 'permission:sdm.shifts.update')
+    ->middlewareFor('destroy', 'permission:sdm.shifts.delete');
 
-// Jenis cuti, kuota, dan alur persetujuannya. Hanya Super Admin (manage-leave-types).
-Route::middleware('can:manage-leave-types')->group(function () {
-    Route::resource('jenis-cuti', JenisCutiController::class)
-        ->parameters(['jenis-cuti' => 'jenis_cuti'])
-        ->names('leave-types')
-        ->except('show');
+// ---- Cuti. Siapa yang boleh melihat/memutuskan tiap pengajuan dicek CutiPolicy (pemohon, sdm.leaves.view, penyetuju tahap). ----
+// cuti/create didaftarkan lebih dulu agar tidak tertangkap sebagai cuti/{cuti}.
+Route::middleware('permission:sdm.leaves.create')->group(function () {
+    Route::get('cuti/create', [CutiController::class, 'create'])->name('leaves.create');
+    Route::post('cuti', [CutiController::class, 'store'])->name('leaves.store');
 });
+Route::middleware('permission:sdm.leaves.view|sdm.leaves.create|sdm.leaves.approve')->group(function () {
+    Route::get('cuti', [CutiController::class, 'index'])->name('leaves.index');
+    Route::get('cuti/{cuti}', [CutiController::class, 'show'])->name('leaves.show');
+    Route::post('cuti/{cuti}/setujui', [CutiController::class, 'approve'])->name('leaves.approve');
+    Route::post('cuti/{cuti}/tolak', [CutiController::class, 'reject'])->name('leaves.reject');
+    Route::post('cuti/{cuti}/batal', [CutiController::class, 'cancel'])->name('leaves.cancel');
+});
+
+// Jenis cuti, kuota, dan alur persetujuannya.
+Route::resource('jenis-cuti', JenisCutiController::class)
+    ->parameters(['jenis-cuti' => 'jenis_cuti'])
+    ->names('leave-types')
+    ->except('show')
+    ->middlewareFor('index', 'permission:sdm.leave-types.view')
+    ->middlewareFor(['create', 'store'], 'permission:sdm.leave-types.create')
+    ->middlewareFor(['edit', 'update'], 'permission:sdm.leave-types.update')
+    ->middlewareFor('destroy', 'permission:sdm.leave-types.delete');

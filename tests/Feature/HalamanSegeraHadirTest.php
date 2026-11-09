@@ -19,7 +19,7 @@ class HalamanSegeraHadirTest extends TestCase
 
     public function test_menu_yang_belum_tersedia_menampilkan_halaman_segera_hadir(): void
     {
-        $this->actingAs($this->buatPengguna(RoleName::Admin))
+        $this->actingAs($this->buatPengguna(RoleName::Akuntan))
             ->get(route('coming-soon', 'accounting-coa'))
             ->assertOk()
             ->assertSee('Bagan Akun (COA)')

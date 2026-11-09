@@ -56,6 +56,8 @@ class StoreProfileService
     /** @param array<string, mixed> $data */
     public function simpan(array $data): void
     {
+        $sebelum = $this->ambil();
+
         Setting::simpan([
             'nama_toko' => $data['nama_toko'] ?? null,
             'nama_pemilik' => $data['nama_pemilik'] ?? null,
@@ -66,6 +68,18 @@ class StoreProfileService
             'footer_struk' => $data['footer_struk'] ?? null,
             'lebar_struk_mm' => isset($data['lebar_struk_mm']) ? (string) $data['lebar_struk_mm'] : null,
         ]);
+
+        $sesudah = $this->ambil();
+        $berubah = array_keys(array_diff_assoc(array_map('strval', $sesudah), array_map('strval', $sebelum)));
+
+        if ($berubah !== []) {
+            activity('pengaturan')->event('updated')
+                ->withProperties([
+                    'old' => array_intersect_key($sebelum, array_flip($berubah)),
+                    'attributes' => array_intersect_key($sesudah, array_flip($berubah)),
+                ])
+                ->log('Profil toko diubah');
+        }
     }
 
     /** Lebar kertas struk dalam mm; nilai tak dikenal dikembalikan ke 58. */

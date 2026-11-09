@@ -12,13 +12,7 @@ class RecipeRequest extends FormRequest
     {
         $recipe = $this->route('resep') ?? $this->route('recipe');
 
-        // Untuk create, belum ada recipe instance — cek izin manage-products.
-        if (! $recipe) {
-            return $this->user()->can('manage-products');
-        }
-
-        // Untuk update/destroy, cek izin update pada produk terkait.
-        return $recipe->product && $this->user()->can('update', $recipe->product);
+        return $this->user()->can($recipe ? 'inventory.recipes.update' : 'inventory.recipes.create');
     }
 
     public function rules(): array

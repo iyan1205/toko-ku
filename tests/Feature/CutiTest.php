@@ -75,7 +75,7 @@ class CutiTest extends TestCase
         $this->assertSame(1, $cuti->tahap_aktif);
         $this->assertSame(
             [[1, 'Admin', null, 'menunggu'], [2, null, $this->pemilik->id, 'menunggu']],
-            $cuti->persetujuan->map(fn ($p) => [$p->urutan, $p->peran?->value, $p->approver_id, $p->status->value])->all(),
+            $cuti->persetujuan->map(fn ($p) => [$p->urutan, $p->peran, $p->approver_id, $p->status->value])->all(),
         );
         $this->assertSame([], $this->absensiKasir());
     }

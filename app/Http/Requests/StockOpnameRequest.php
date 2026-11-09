@@ -8,7 +8,7 @@ class StockOpnameRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('stock-opname');
+        return $this->user()->can('inventory.opnames.create');
     }
 
     public function rules(): array

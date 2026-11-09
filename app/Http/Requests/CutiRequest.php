@@ -10,7 +10,7 @@ class CutiRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('request-leave');
+        return $this->user()->can('sdm.leaves.create');
     }
 
     public function rules(): array

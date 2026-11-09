@@ -5,9 +5,11 @@ namespace Tests\Feature;
 use App\Enums\RoleName;
 use App\Exceptions\AturanBisnisException;
 use App\Models\User;
-use App\Services\UserService;
+use App\Services\Access\UserService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Activitylog\Models\Activity;
+use Spatie\Permission\Models\Role;
 use Tests\Concerns\SiapkanPeran;
 use Tests\TestCase;
 
@@ -172,5 +174,74 @@ class PenggunaTest extends TestCase
         $this->get(route('users.index', ['status' => 'nonaktif']))
             ->assertSee('Joko Widodo')
             ->assertDontSee('Siti Aminah');
+    }
+
+    public function test_reset_kata_sandi_mengganti_sandi_dan_tercatat_tanpa_isi_sandinya(): void
+    {
+        $kasir = $this->buatPengguna(RoleName::Kasir);
+
+        $this->actingAs($this->super)
+            ->put(route('users.password', $kasir), ['password' => 'baru12345', 'password_confirmation' => 'baru12345'])
+            ->assertSessionHas('success');
+
+        $this->assertTrue(Hash::check('baru12345', $kasir->fresh()->password));
+        $log = Activity::query()->where('event', 'password_reset')->sole();
+        $this->assertSame("Kata sandi {$kasir->name} direset", $log->description);
+        $this->assertStringNotContainsString('baru12345', json_encode($log->properties));
+    }
+
+    public function test_reset_kata_sandi_menolak_sandi_lemah_atau_tidak_cocok(): void
+    {
+        $kasir = $this->buatPengguna(RoleName::Kasir);
+
+        $this->actingAs($this->super)
+            ->put(route('users.password', $kasir), ['password' => 'baru12345', 'password_confirmation' => 'lain12345'])
+            ->assertSessionHasErrors('password');
+
+        $this->assertTrue(Hash::check('password', $kasir->fresh()->password));
+    }
+
+    public function test_selain_super_admin_tidak_bisa_mengubah_akun_super_admin(): void
+    {
+        $pemilik = $this->buatPengguna(RoleName::Pemilik);
+
+        $this->actingAs($pemilik)->get(route('users.edit', $this->super))->assertForbidden();
+        $this->actingAs($pemilik)
+            ->put(route('users.password', $this->super), ['password' => 'baru12345', 'password_confirmation' => 'baru12345'])
+            ->assertForbidden();
+        $this->assertTrue(Hash::check('password', $this->super->fresh()->password));
+    }
+
+    public function test_selain_super_admin_tidak_bisa_memberi_peran_super_admin(): void
+    {
+        $this->actingAs($this->buatPengguna(RoleName::Pemilik))
+            ->post(route('users.store'), $this->dataValid(['role' => RoleName::SuperAdmin->value]))
+            ->assertSessionHasErrors(['role' => 'Hanya Super Admin yang dapat memberikan peran Super Admin.']);
+
+        $this->assertDatabaseMissing('users', ['email' => 'budi@toko.test']);
+    }
+
+    public function test_peran_buatan_sendiri_bisa_diberikan_ke_pengguna(): void
+    {
+        Role::create(['name' => 'Supervisor', 'guard_name' => 'web']);
+
+        $this->actingAs($this->super)
+            ->post(route('users.store'), $this->dataValid(['role' => 'Supervisor']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertTrue(User::where('email', 'budi@toko.test')->sole()->hasRole('Supervisor'));
+    }
+
+    public function test_pergantian_peran_tercatat_di_log_aktivitas(): void
+    {
+        $kasir = $this->buatPengguna(RoleName::Kasir);
+
+        $this->actingAs($this->super)->put(route('users.update', $kasir), [
+            'name' => $kasir->name, 'email' => $kasir->email, 'role' => RoleName::StafGudang->value, 'is_active' => '1',
+        ]);
+
+        $log = Activity::query()->where('event', 'role_changed')->sole();
+        $this->assertSame(['peran' => 'Kasir'], $log->properties['old']);
+        $this->assertSame(['peran' => 'Staf Gudang'], $log->properties['attributes']);
     }
 }

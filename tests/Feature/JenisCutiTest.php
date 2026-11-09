@@ -41,7 +41,7 @@ class JenisCutiTest extends TestCase
     /** @return array<int, array{0:int, 1:?string, 2:?int}> [urutan, peran, approver_id] */
     private function alur(JenisCuti $jenis): array
     {
-        return $jenis->tahap()->get()->map(fn (TahapPersetujuan $t) => [$t->urutan, $t->peran?->value, $t->approver_id])->all();
+        return $jenis->tahap()->get()->map(fn (TahapPersetujuan $t) => [$t->urutan, $t->peran, $t->approver_id])->all();
     }
 
     public function test_super_admin_menyimpan_jenis_cuti_dengan_tahap_peran_dan_orang(): void
@@ -90,7 +90,7 @@ class JenisCutiTest extends TestCase
             ->assertRedirect(route('leave-types.index'));
 
         $this->assertSame([[1, 'Admin', null], [2, 'Super Admin', null]], $this->alur($jenis));
-        $this->assertSame([[1, 'Admin']], $cuti->persetujuan()->get()->map(fn ($p) => [$p->urutan, $p->peran->value])->all());
+        $this->assertSame([[1, 'Admin']], $cuti->persetujuan()->get()->map(fn ($p) => [$p->urutan, $p->peran])->all());
     }
 
     public function test_jenis_cuti_dinonaktifkan_bila_kotak_aktif_tidak_dicentang(): void

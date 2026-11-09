@@ -8,7 +8,7 @@ class SupplierRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('manage-suppliers');
+        return $this->user()->can($this->route('supplier') ? 'purchasing.suppliers.update' : 'purchasing.suppliers.create');
     }
 
     public function rules(): array

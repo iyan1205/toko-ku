@@ -8,7 +8,7 @@ class VoidPurchaseRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('void-purchase');
+        return $this->user()->can('purchasing.invoices.void');
     }
 
     public function rules(): array

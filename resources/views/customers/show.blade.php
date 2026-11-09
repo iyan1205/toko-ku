@@ -47,10 +47,10 @@
             <div class="flex items-center justify-between border-b border-stone-200 px-4 py-3">
                 <h3 class="text-sm font-medium text-stone-600">Riwayat pembelian</h3>
                 <div class="flex gap-3 text-sm">
-                    @can('create-sale')
+                    @can('pos.transactions.create')
                         <a href="{{ route('pos.index') }}" class="text-brand-700 hover:underline">Buka Kasir</a>
                     @endcan
-                    @can('view-sales')
+                    @can('pos.transactions.view')
                         <a href="{{ route('sales.index', ['pelanggan' => $customer->id]) }}" class="text-stone-600 hover:underline">Semua</a>
                     @endcan
                 </div>
@@ -58,7 +58,7 @@
             @forelse ($penjualan as $p)
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 px-4 py-3 text-sm last:border-0">
                     <div>
-                        @can('view-sales')
+                        @can('pos.transactions.view')
                             <a href="{{ route('sales.show', $p) }}" class="font-medium {{ $p->dibatalkan() ? 'text-stone-400 line-through' : 'text-stone-900 hover:underline' }}">{{ $p->number }}</a>
                         @else
                             <span class="font-medium text-stone-900">{{ $p->number }}</span>

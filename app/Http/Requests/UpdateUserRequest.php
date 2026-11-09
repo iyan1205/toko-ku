@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\RoleName;
+use App\Rules\AssignableRole;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -31,7 +31,7 @@ class UpdateUserRequest extends FormRequest
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'phone' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+\-\s]+$/'],
             'password' => ['nullable', 'confirmed', Password::min(8)->letters()->numbers()],
-            'role' => ['required', Rule::in(RoleName::values())],
+            'role' => ['required', 'string', new AssignableRole($this->user())],
             'is_active' => ['boolean'],
         ];
     }

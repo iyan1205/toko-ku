@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\RoleName;
 use App\Enums\StatusPersetujuan;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,7 +18,6 @@ class PersetujuanCuti extends Model
     {
         return [
             'urutan' => 'integer',
-            'peran' => RoleName::class,
             'status' => StatusPersetujuan::class,
             'diputuskan_pada' => 'datetime',
         ];
@@ -45,12 +43,12 @@ class PersetujuanCuti extends Model
     {
         return $this->approver_id !== null
             ? $this->approver_id === $user->id
-            : $this->peran !== null && $user->hasRole($this->peran->value);
+            : $this->peran !== null && $user->hasRole($this->peran);
     }
 
     /** "Peran Admin" atau nama orang yang ditunjuk. */
     public function label(): string
     {
-        return $this->approver_id !== null ? (string) $this->approver?->name : "Peran {$this->peran?->value}";
+        return $this->approver_id !== null ? (string) $this->approver?->name : "Peran {$this->peran}";
     }
 }

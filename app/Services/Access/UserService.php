@@ -1,12 +1,17 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Access;
 
 use App\Enums\RoleName;
 use App\Exceptions\AturanBisnisException;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
+/**
+ * Akun pengguna. Perubahan data akun dicatat otomatis oleh model User (log aktivitas);
+ * di sini dicatat hal yang tidak terlihat dari kolom user: peran dan reset kata sandi.
+ */
 class UserService
 {
     /** @param array{name:string,email:string,phone?:?string,password:string,role:string,is_active?:bool} $data */
@@ -23,6 +28,10 @@ class UserService
 
             $user->syncRoles($data['role']);
 
+            activity('pengguna')->performedOn($user)->event('role_assigned')
+                ->withProperties(['peran' => $data['role']])
+                ->log("Peran {$user->name} diatur menjadi {$data['role']}");
+
             return $user;
         });
     }
@@ -31,6 +40,7 @@ class UserService
     public function perbarui(User $user, array $data, User $aktor): User
     {
         $aktif = $data['is_active'] ?? $user->is_active;
+        $peranLama = $user->namaPeran();
         $peranBerubah = ! $user->hasRole($data['role']);
         $dinonaktifkan = $user->is_active && ! $aktif;
 
@@ -42,7 +52,7 @@ class UserService
             $this->pastikanMasihAdaSuperAdminLain($user);
         }
 
-        return DB::transaction(function () use ($user, $data, $aktif) {
+        return DB::transaction(function () use ($user, $data, $aktif, $peranLama, $peranBerubah) {
             $user->fill([
                 'name' => $data['name'],
                 'email' => $data['email'],
@@ -56,6 +66,12 @@ class UserService
 
             $user->save();
             $user->syncRoles($data['role']);
+
+            if ($peranBerubah) {
+                activity('pengguna')->performedOn($user)->event('role_changed')
+                    ->withProperties(['old' => ['peran' => $peranLama], 'attributes' => ['peran' => $data['role']]])
+                    ->log("Peran {$user->name} diubah dari {$peranLama} menjadi {$data['role']}");
+            }
 
             return $user;
         });
@@ -74,6 +90,27 @@ class UserService
         $user->update(['is_active' => ! $user->is_active]);
 
         return $user;
+    }
+
+    /**
+     * Tetapkan kata sandi baru dan akhiri semua sesi login pengguna itu, supaya siapa pun
+     * yang memegang sesi lama harus login ulang. Kata sandinya tidak ikut dicatat di log.
+     */
+    public function resetKataSandi(User $user, string $kataSandiBaru, User $aktor): void
+    {
+        DB::transaction(function () use ($user, $kataSandiBaru, $aktor) {
+            $user->forceFill([
+                'password' => $kataSandiBaru,
+                'remember_token' => Str::random(60),
+            ])->save();
+
+            if (config('session.driver') === 'database' && $user->isNot($aktor)) {
+                DB::table(config('session.table', 'sessions'))->where('user_id', $user->getKey())->delete();
+            }
+
+            activity('pengguna')->performedOn($user)->causedBy($aktor)->event('password_reset')
+                ->log("Kata sandi {$user->name} direset");
+        });
     }
 
     /** Soft delete: baris tetap ada agar riwayat transaksi yang merujuk pengguna ini tidak rusak. */

@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\RoleName;
 use App\Models\User;
+use App\Rules\AssignableRole;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -30,7 +30,7 @@ class StoreUserRequest extends FormRequest
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
             'phone' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+\-\s]+$/'],
             'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
-            'role' => ['required', Rule::in(RoleName::values())],
+            'role' => ['required', 'string', new AssignableRole($this->user())],
             'is_active' => ['boolean'],
         ];
     }

@@ -1,29 +1,37 @@
+{{-- Profil saya: data akun sendiri dan ganti kata sandi. --}}
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Profile') }}
-        </h2>
-    </x-slot>
+    <x-slot name="header">Profil Saya</x-slot>
+    <x-slot name="description">{{ $user->namaPeran() }} · login terakhir {{ \App\Support\Format::tanggal($user->last_login_at, true) }}</x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.update-profile-information-form')
+    <div class="grid gap-8">
+        <form method="POST" action="{{ route('profile.update') }}">
+            @csrf
+            @method('PUT')
+            <x-ui.form-section title="Data akun" description="Nama tampil di struk dan riwayat transaksi. Email dipakai untuk login.">
+                <x-ui.input name="name" label="Nama" :value="$user->name" maxlength="100" required />
+                <div class="grid gap-5 sm:grid-cols-2">
+                    <x-ui.input name="email" label="Email" type="email" :value="$user->email" autocomplete="email" required />
+                    <x-ui.input name="phone" label="Nomor HP" type="tel" :value="$user->phone" maxlength="20" />
                 </div>
-            </div>
+                <x-slot:footer>
+                    <x-ui.button type="submit">Simpan profil</x-ui.button>
+                </x-slot:footer>
+            </x-ui.form-section>
+        </form>
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.update-password-form')
+        <form method="POST" action="{{ route('profile.password') }}">
+            @csrf
+            @method('PUT')
+            <x-ui.form-section title="Ganti kata sandi" description="Minimal 8 karakter, mengandung huruf dan angka. Sesi login di perangkat lain akan diakhiri.">
+                <x-ui.input name="current_password" label="Kata sandi saat ini" type="password" autocomplete="current-password" required />
+                <div class="grid gap-5 sm:grid-cols-2">
+                    <x-ui.input name="password" label="Kata sandi baru" type="password" autocomplete="new-password" required />
+                    <x-ui.input name="password_confirmation" label="Ulangi kata sandi baru" type="password" autocomplete="new-password" required />
                 </div>
-            </div>
-
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.delete-user-form')
-                </div>
-            </div>
-        </div>
+                <x-slot:footer>
+                    <x-ui.button type="submit" icon="key">Ganti kata sandi</x-ui.button>
+                </x-slot:footer>
+            </x-ui.form-section>
+        </form>
     </div>
 </x-app-layout>

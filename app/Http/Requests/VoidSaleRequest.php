@@ -8,7 +8,7 @@ class VoidSaleRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('void-sale');
+        return $this->user()->can('pos.transactions.void');
     }
 
     public function rules(): array

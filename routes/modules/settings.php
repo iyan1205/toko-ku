@@ -8,7 +8,5 @@
 use App\Http\Controllers\SettingController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('can:manage-settings')->group(function () {
-    Route::get('pengaturan', [SettingController::class, 'edit'])->name('settings.edit');
-    Route::put('pengaturan', [SettingController::class, 'update'])->name('settings.update');
-});
+Route::get('pengaturan', [SettingController::class, 'edit'])->middleware('permission:settings.store.view')->name('settings.edit');
+Route::put('pengaturan', [SettingController::class, 'update'])->middleware('permission:settings.store.update')->name('settings.update');

@@ -10,7 +10,7 @@ class StoreProfileRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('manage-settings');
+        return $this->user()->can('settings.store.update');
     }
 
     /** @return array<string, mixed> */

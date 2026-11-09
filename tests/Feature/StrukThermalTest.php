@@ -8,7 +8,6 @@ use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\User;
-use App\Models\Setting;
 use App\Services\SaleService;
 use App\Services\StoreProfileService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -20,7 +19,9 @@ class StrukThermalTest extends TestCase
     use RefreshDatabase, SiapkanPeran;
 
     private User $kasir;
+
     private User $admin;
+
     private Product $ayam;
 
     protected function setUp(): void
@@ -196,11 +197,10 @@ class StrukThermalTest extends TestCase
     {
         $jual = $this->jual();
 
-        // Kasir punya print-receipt pada matriks bawaan; cabut untuk menguji gerbang izinnya.
-        $tanpaIzin = $this->buatPengguna(RoleName::Kasir);
-        $tanpaIzin->revokePermissionTo('print-receipt');
+        // Boleh melihat semua penjualan (lolos SalePolicy), tetapi tidak punya izin cetak struk.
+        $tanpaIzin = User::factory()->create()->givePermissionTo('pos.transactions.view');
 
-        $this->actingAs($tanpaIzin->fresh())
+        $this->actingAs($tanpaIzin)
             ->get(route('sales.receipt', $jual))
             ->assertForbidden();
     }

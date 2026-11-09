@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\RoleName;
 use App\Enums\StatusAbsensi;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -12,7 +11,7 @@ class JenisCutiRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('manage-leave-types');
+        return $this->user()->can($this->route('jenis_cuti') ? 'sdm.leave-types.update' : 'sdm.leave-types.create');
     }
 
     protected function prepareForValidation(): void
@@ -29,7 +28,7 @@ class JenisCutiRequest extends FormRequest
             'is_active' => ['boolean'],
             'tahap' => ['nullable', 'array', 'max:5'],
             'tahap.*.tipe' => ['required', Rule::in(['peran', 'orang'])],
-            'tahap.*.peran' => ['exclude_unless:tahap.*.tipe,peran', 'required', Rule::enum(RoleName::class), 'distinct'],
+            'tahap.*.peran' => ['exclude_unless:tahap.*.tipe,peran', 'required', Rule::exists(config('permission.table_names.roles'), 'name')->where('guard_name', 'web'), 'distinct'],
             'tahap.*.approver_id' => [
                 'exclude_unless:tahap.*.tipe,orang', 'required', 'integer', 'distinct',
                 Rule::exists('users', 'id')->whereNull('deleted_at')->where('is_active', true),

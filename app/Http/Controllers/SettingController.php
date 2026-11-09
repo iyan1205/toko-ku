@@ -11,13 +11,11 @@ use Illuminate\View\View;
  * Profil toko: identitas yang muncul di kepala struk (nama, alamat, telepon,
  * Instagram, TikTok, nama pemilik) beserta kebutuhan printer (lebar kertas).
  *
- * Izin manage-settings dipasang di routes/web.php lewat middleware 'can:'.
+ * Izin settings.store.* dipasang di routes/modules/settings.php lewat middleware 'permission:'.
  */
 class SettingController extends Controller
 {
-    public function __construct(private readonly StoreProfileService $profil)
-    {
-    }
+    public function __construct(private readonly StoreProfileService $profil) {}
 
     public function edit(): View
     {

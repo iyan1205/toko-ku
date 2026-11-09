@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Sdm;
 
-use App\Enums\RoleName;
 use App\Enums\StatusAbsensi;
 use App\Exceptions\AturanBisnisException;
 use App\Http\Controllers\Controller;
@@ -12,6 +11,7 @@ use App\Models\User;
 use App\Services\Sdm\JenisCutiService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
+use Spatie\Permission\Models\Role;
 
 class JenisCutiController extends Controller
 {
@@ -64,7 +64,8 @@ class JenisCutiController extends Controller
     {
         return view('jenis-cuti.form', [
             'jenis' => $jenis,
-            'peran' => RoleName::cases(),
+            // Semua peran, termasuk peran buatan sendiri.
+            'peran' => Role::query()->where('guard_name', 'web')->orderBy('id')->pluck('name'),
             'statusAbsensi' => StatusAbsensi::untukCuti(),
             // Approver yang sudah nonaktif tetap muncul supaya alur lama terbaca; saat disimpan wajib diganti.
             'pengguna' => User::query()

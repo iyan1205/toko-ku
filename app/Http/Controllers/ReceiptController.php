@@ -9,6 +9,7 @@ use Illuminate\View\View;
 
 /**
  * Struk untuk printer thermal. Halaman berdiri sendiri (tanpa sidebar) dengan CSS
+ *
  * @page berukuran roll, jadi saat dicetak dari browser hasilnya pas selebar kertas.
  *
  * Pencetakan dilakukan di komputer kasir: browser → dialog cetak → printer thermal
@@ -19,15 +20,13 @@ use Illuminate\View\View;
  */
 class ReceiptController extends Controller
 {
-    public function __construct(private readonly StoreProfileService $profil)
-    {
-    }
+    public function __construct(private readonly StoreProfileService $profil) {}
 
     public function show(Sale $sale): View
     {
         // Izin yang sama dengan melihat detail penjualan: kasir hanya struk miliknya sendiri.
         Gate::authorize('view', $sale);
-        Gate::authorize('print-receipt');
+        Gate::authorize('pos.transactions.print');
 
         $profil = $this->profil->ambil();
 

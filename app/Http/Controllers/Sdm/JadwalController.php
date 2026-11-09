@@ -50,7 +50,7 @@ class JadwalController extends Controller
             'jadwal' => $this->service->dalamMinggu($senin, $idPegawai),
             'cuti' => $cuti,
             'shifts' => Shift::query()->orderBy('jam_masuk')->orderBy('nama')->get(),
-            'bisaUbah' => $request->user()->can('manage-schedules'),
+            'bisaUbah' => $request->user()->can('sdm.schedules.update'),
         ]);
     }
 

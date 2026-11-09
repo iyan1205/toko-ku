@@ -14,7 +14,7 @@ class SaleRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('create-sale');
+        return $this->user()->can('pos.transactions.create');
     }
 
     protected function prepareForValidation(): void

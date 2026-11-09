@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
  * Laporan penjualan. Satu halaman dengan beberapa sudut pandang (ringkasan, harian,
  * produk terlaris, kasir, metode pembayaran) plus ekspor Excel multi-lembar.
  *
- * Izin view-reports dipasang di routes/web.php lewat middleware 'can:'.
+ * Izin reports.sales.* dipasang di routes/modules/reports.php lewat middleware 'permission:'.
  */
 class LaporanController extends Controller
 {
@@ -28,7 +28,7 @@ class LaporanController extends Controller
 
         return Excel::download(
             new LaporanPenjualanExport($laporan),
-            'laporan-penjualan-' . $laporan->dari()->format('Ymd') . '-' . $laporan->sampai()->format('Ymd') . '.xlsx'
+            'laporan-penjualan-'.$laporan->dari()->format('Ymd').'-'.$laporan->sampai()->format('Ymd').'.xlsx'
         );
     }
 

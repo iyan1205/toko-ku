@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\StockMovement;
 use App\Services\StockService;
+use App\Support\Format;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -15,11 +16,9 @@ use Illuminate\View\View;
 
 class StockController extends Controller
 {
-    public function __construct(private readonly StockService $service)
-    {
-    }
+    public function __construct(private readonly StockService $service) {}
 
-    /** Ringkasan stok semua produk. Kasir (view-stock) melihat stok tanpa nilai persediaan. */
+    /** Ringkasan stok semua produk. Tanpa izin penyesuaian stok, nilai persediaan dan tombol kelola disembunyikan. */
     public function index(Request $request): View
     {
         $filter = $request->validate([
@@ -28,7 +27,7 @@ class StockController extends Controller
             'stok' => ['nullable', Rule::in(['aman', 'menipis', 'habis'])],
         ]);
 
-        $kelola = $request->user()->can('manage-stock');
+        $kelola = $request->user()->can('inventory.adjustments.create');
 
         return view('stock.index', [
             'kelola' => $kelola,
@@ -89,6 +88,6 @@ class StockController extends Controller
         );
 
         return redirect()->route('stock.movements', ['produk' => $produk->id])
-            ->with('success', "{$mutasi->type->label()} untuk {$produk->name} dicatat. Stok kini " . \App\Support\Format::jumlah($mutasi->stock_after) . '.');
+            ->with('success', "{$mutasi->type->label()} untuk {$produk->name} dicatat. Stok kini ".Format::jumlah($mutasi->stock_after).'.');
     }
 }
