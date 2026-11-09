@@ -9,8 +9,11 @@ use App\Models\Sale;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\SaleService;
-use App\Services\StoreProfileService;
+use App\Services\Settings\StoreProfileService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use PHPUnit\Framework\Attributes\TestWith;
 use Tests\Concerns\SiapkanPeran;
 use Tests\TestCase;
 
@@ -19,7 +22,9 @@ class ProfilTokoTest extends TestCase
     use RefreshDatabase, SiapkanPeran;
 
     private User $superAdmin;
+
     private User $admin;
+
     private User $kasir;
 
     protected function setUp(): void
@@ -41,8 +46,8 @@ class ProfilTokoTest extends TestCase
             'telepon' => '0812-3456-7890',
             'instagram' => 'dkriukjabong',
             'tiktok' => 'dkriukjabong',
-            'footer_struk' => 'Terima kasih telah berbelanja',
-            'lebar_struk_mm' => 58,
+            'email' => 'halo@dkriukjabong.com',
+            'npwp' => '01.234.567.8-901.000',
         ], $ubah);
     }
 
@@ -94,7 +99,8 @@ class ProfilTokoTest extends TestCase
             ->assertSee('Nama pemilik')
             ->assertSee('Instagram')
             ->assertSee('TikTok')
-            ->assertSee('Lebar kertas struk');
+            ->assertSee('NPWP')
+            ->assertSee('Unggah logo');
 
         $this->actingAs($this->superAdmin)
             ->put(route('settings.update'), $this->payload())
@@ -108,7 +114,19 @@ class ProfilTokoTest extends TestCase
         $this->assertSame('0812-3456-7890', $profil['telepon']);
         $this->assertSame('dkriukjabong', $profil['instagram']);
         $this->assertSame('dkriukjabong', $profil['tiktok']);
-        $this->assertSame(58, $profil['lebar_struk_mm']);
+        $this->assertSame('halo@dkriukjabong.com', $profil['email']);
+        $this->assertSame('01.234.567.8-901.000', $profil['npwp']);
+    }
+
+    public function test_menyimpan_profil_tidak_mengubah_pengaturan_struk(): void
+    {
+        Setting::simpan(['lebar_struk_mm' => '80', 'footer_struk' => 'Sampai jumpa']);
+
+        $this->actingAs($this->superAdmin)->put(route('settings.update'), $this->payload())->assertSessionHasNoErrors();
+
+        $profil = app(StoreProfileService::class)->ambil();
+        $this->assertSame(80, $profil['lebar_struk_mm']);
+        $this->assertSame('Sampai jumpa', $profil['footer_struk']);
     }
 
     public function test_halaman_menampilkan_nilai_yang_tersimpan(): void
@@ -147,11 +165,27 @@ class ProfilTokoTest extends TestCase
             ->assertSessionHasErrors('nama_toko');
     }
 
-    public function test_lebar_kertas_harus_58_atau_80(): void
+    #[TestWith(['01.234.567.8-901.000'])]
+    #[TestWith(['3201234567890001'])]
+    public function test_npwp_15_atau_16_digit_diterima(string $npwp): void
     {
         $this->actingAs($this->superAdmin)
-            ->put(route('settings.update'), $this->payload(['lebar_struk_mm' => 72]))
-            ->assertSessionHasErrors('lebar_struk_mm');
+            ->put(route('settings.update'), $this->payload(['npwp' => $npwp]))
+            ->assertSessionHasNoErrors();
+    }
+
+    public function test_npwp_dengan_jumlah_digit_lain_ditolak(): void
+    {
+        $this->actingAs($this->superAdmin)
+            ->put(route('settings.update'), $this->payload(['npwp' => '12.345.678']))
+            ->assertSessionHasErrors(['npwp' => 'NPWP harus 15 atau 16 digit.']);
+    }
+
+    public function test_email_toko_harus_alamat_email(): void
+    {
+        $this->actingAs($this->superAdmin)
+            ->put(route('settings.update'), $this->payload(['email' => 'bukan-email']))
+            ->assertSessionHasErrors('email');
     }
 
     public function test_telepon_menolak_karakter_selain_angka_dan_tanda_umum(): void
@@ -213,22 +247,6 @@ class ProfilTokoTest extends TestCase
             ->assertSee('TikTok @dkriukjabong');
     }
 
-    public function test_struk_memakai_lebar_dan_footer_dari_profil_toko(): void
-    {
-        $this->actingAs($this->superAdmin)->put(route('settings.update'), $this->payload([
-            'lebar_struk_mm' => 80,
-            'footer_struk' => "Terima kasih\nSelamat menikmati",
-        ]));
-        $jual = $this->jual();
-
-        $this->actingAs($this->kasir)
-            ->get(route('sales.receipt', $jual))
-            ->assertOk()
-            ->assertSee('size: 80mm auto', false)
-            ->assertSee('width: 80mm', false)
-            ->assertSee('Selamat menikmati');
-    }
-
     public function test_struk_tidak_menampilkan_bagian_kosong(): void
     {
         // Hanya nama toko yang diisi; sisanya dibiarkan kosong.
@@ -265,5 +283,61 @@ class ProfilTokoTest extends TestCase
             ->get(route('sales.receipt', $jual))
             ->assertOk()
             ->assertSee('Warung Aiti');
+    }
+
+    // ---------------- Logo ----------------
+
+    public function test_logo_diunggah_ke_penyimpanan_publik(): void
+    {
+        Storage::fake('public');
+
+        $this->actingAs($this->superAdmin)
+            ->put(route('settings.update'), $this->payload(['logo' => UploadedFile::fake()->image('logo.png', 200, 200)]))
+            ->assertSessionHasNoErrors();
+
+        $profil = app(StoreProfileService::class)->ambil();
+        Storage::disk('public')->assertExists($profil['logo']);
+        $this->assertSame(Storage::disk('public')->url($profil['logo']), $profil['logo_url']);
+    }
+
+    public function test_logo_baru_menggantikan_dan_menghapus_berkas_lama(): void
+    {
+        Storage::fake('public');
+        $this->actingAs($this->superAdmin)->put(route('settings.update'), $this->payload(['logo' => UploadedFile::fake()->image('lama.png')]));
+        $lama = app(StoreProfileService::class)->ambil()['logo'];
+
+        $this->actingAs($this->superAdmin)->put(route('settings.update'), $this->payload(['logo' => UploadedFile::fake()->image('baru.png')]));
+
+        $baru = app(StoreProfileService::class)->ambil()['logo'];
+        $this->assertNotSame($lama, $baru);
+        Storage::disk('public')->assertMissing($lama);
+        Storage::disk('public')->assertExists($baru);
+    }
+
+    public function test_logo_bisa_dihapus(): void
+    {
+        Storage::fake('public');
+        $this->actingAs($this->superAdmin)->put(route('settings.update'), $this->payload(['logo' => UploadedFile::fake()->image('logo.png')]));
+        $lama = app(StoreProfileService::class)->ambil()['logo'];
+
+        $this->actingAs($this->superAdmin)->put(route('settings.update'), $this->payload(['hapus_logo' => '1']))->assertSessionHasNoErrors();
+
+        $profil = app(StoreProfileService::class)->ambil();
+        $this->assertSame('', $profil['logo']);
+        $this->assertNull($profil['logo_url']);
+        Storage::disk('public')->assertMissing($lama);
+    }
+
+    public function test_logo_svg_ditolak(): void
+    {
+        Storage::fake('public');
+
+        $this->actingAs($this->superAdmin)
+            ->put(route('settings.update'), $this->payload([
+                'logo' => UploadedFile::fake()->createWithContent('logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'),
+            ]))
+            ->assertSessionHasErrors('logo');
+
+        $this->assertSame([], Storage::disk('public')->allFiles());
     }
 }

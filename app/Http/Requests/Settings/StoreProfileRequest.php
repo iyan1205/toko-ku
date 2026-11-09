@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\Settings;
 
-use App\Services\StoreProfileService;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\File;
 
 class StoreProfileRequest extends FormRequest
 {
@@ -21,10 +21,13 @@ class StoreProfileRequest extends FormRequest
             'nama_pemilik' => ['nullable', 'string', 'max:100'],
             'alamat' => ['nullable', 'string', 'max:255'],
             'telepon' => ['nullable', 'string', 'max:25', 'regex:/^[0-9+\-\s()]+$/'],
+            'email' => ['nullable', 'string', 'email', 'max:100'],
+            'npwp' => ['nullable', 'string', 'max:25', 'regex:/^[0-9.\-\s]+$/', $this->npwpDigits(...)],
             'instagram' => ['nullable', 'string', 'max:60', 'regex:/^[A-Za-z0-9._]+$/'],
             'tiktok' => ['nullable', 'string', 'max:60', 'regex:/^[A-Za-z0-9._]+$/'],
-            'footer_struk' => ['nullable', 'string', 'max:255'],
-            'lebar_struk_mm' => ['required', 'integer', Rule::in(StoreProfileService::LEBAR_DIDUKUNG)],
+            // SVG sengaja tidak diterima: bisa berisi skrip.
+            'logo' => ['nullable', File::image()->types(['jpg', 'jpeg', 'png', 'webp'])->max(1024)],
+            'hapus_logo' => ['boolean'],
         ];
     }
 
@@ -35,10 +38,11 @@ class StoreProfileRequest extends FormRequest
             'nama_pemilik' => 'nama pemilik',
             'alamat' => 'alamat',
             'telepon' => 'nomor telepon',
+            'email' => 'email',
+            'npwp' => 'NPWP',
             'instagram' => 'Instagram',
             'tiktok' => 'TikTok',
-            'footer_struk' => 'footer struk',
-            'lebar_struk_mm' => 'lebar kertas struk',
+            'logo' => 'logo',
         ];
     }
 
@@ -46,9 +50,10 @@ class StoreProfileRequest extends FormRequest
     {
         return [
             'telepon.regex' => 'Nomor telepon hanya boleh berisi angka, spasi, tanda +, -, dan ().',
+            'npwp.regex' => 'NPWP hanya boleh berisi angka, titik, dan tanda -.',
             'instagram.regex' => 'Username Instagram hanya boleh berisi huruf, angka, titik, dan garis bawah.',
             'tiktok.regex' => 'Username TikTok hanya boleh berisi huruf, angka, titik, dan garis bawah.',
-            'lebar_struk_mm.in' => 'Lebar kertas struk harus 58 mm atau 80 mm.',
+            'logo.max' => 'Ukuran logo maksimal 1 MB.',
         ];
     }
 
@@ -58,7 +63,18 @@ class StoreProfileRequest extends FormRequest
         $this->merge([
             'instagram' => $this->bersihkanUsername($this->input('instagram')),
             'tiktok' => $this->bersihkanUsername($this->input('tiktok')),
+            'hapus_logo' => $this->boolean('hapus_logo'),
         ]);
+    }
+
+    /** NPWP lama 15 digit, NPWP baru (sama dengan NIK) 16 digit. */
+    private function npwpDigits(string $attribute, mixed $value, Closure $fail): void
+    {
+        $digits = strlen((string) preg_replace('/\D/', '', (string) $value));
+
+        if (! in_array($digits, [15, 16], true)) {
+            $fail('NPWP harus 15 atau 16 digit.');
+        }
     }
 
     private function bersihkanUsername(mixed $nilai): ?string

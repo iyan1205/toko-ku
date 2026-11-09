@@ -9,6 +9,9 @@
         'urlHapusTahanTemplate' => $urlHapusTahan,
         'csrf' => csrf_token(),
         'stokMinus' => $stokMinus,
+        // Metode pertama yang aktif di Pengaturan → Metode Pembayaran.
+        'metodeAwal' => $metodeAwal,
+        'dpMetodeAwal' => $metodeUangMuka[0]->value ?? 'cash',
     ];
 @endphp
 
@@ -165,7 +168,7 @@
                         <div x-show="angka(dp) > 0" x-cloak>
                             <label for="dp-metode" class="block text-xs font-medium text-stone-600">Metode DP</label>
                             <select id="dp-metode" x-model="dpMetode" class="isian mt-1">
-                                @foreach (\App\Enums\PaymentMethod::untukPembelian() as $m)
+                                @foreach ($metodeUangMuka as $m)
                                     <option value="{{ $m->value }}">{{ $m->label() }}</option>
                                 @endforeach
                             </select>
@@ -231,7 +234,7 @@
                 q: '', hasilProduk: [], memuatProduk: false,
                 items: [], diskonTrans: 0,
                 qPelanggan: '', hasilPelanggan: [], bukaPelanggan: false, pelanggan: null,
-                metode: 'cash', diterima: 0, dp: 0, dpMetode: 'cash',
+                metode: awal.metodeAwal, diterima: 0, dp: 0, dpMetode: awal.dpMetodeAwal,
                 daftarTahan: [], modalTahan: false, heldId: null,
                 memproses: false, pesan: '',
 
@@ -316,7 +319,7 @@
 
                 resetKeranjang() {
                     this.items = []; this.diskonTrans = 0; this.pelanggan = null; this.qPelanggan = '';
-                    this.metode = 'cash'; this.diterima = 0; this.dp = 0; this.heldId = null; this.pesan = '';
+                    this.metode = this.metodeAwal; this.diterima = 0; this.dp = 0; this.heldId = null; this.pesan = '';
                 },
 
                 async tahan() {

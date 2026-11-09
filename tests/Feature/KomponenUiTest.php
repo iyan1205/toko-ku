@@ -3,10 +3,41 @@
 namespace Tests\Feature;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
 class KomponenUiTest extends TestCase
 {
+    /**
+     * Blade tidak mengompilasi direktif seperti @js() di dalam atribut tag komponen <x-...>:
+     * teksnya keluar mentah sehingga ekspresi Alpine rusak dan tombolnya tidak berfungsi.
+     * Di dalam tag komponen pakai {{ \Illuminate\Support\Js::from(...) }}.
+     */
+    public function test_tag_komponen_tidak_memakai_direktif_js_di_atribut(): void
+    {
+        $temuan = [];
+
+        foreach (File::allFiles(resource_path('views')) as $file) {
+            $isi = $file->getContents();
+            preg_match_all('/<x-[\w.\-:]+\b(?:[^>"]|"[^"]*")*>/s', $isi, $tag, PREG_OFFSET_CAPTURE);
+
+            foreach ($tag[0] as [$teks, $posisi]) {
+                if (preg_match('/@(js|json)\(/', $teks)) {
+                    $temuan[] = $file->getRelativePathname().':'.(substr_count(substr($isi, 0, $posisi), "\n") + 1);
+                }
+            }
+        }
+
+        $this->assertSame([], $temuan, 'Ganti @js() di dalam tag komponen dengan {{ \Illuminate\Support\Js::from(...) }}.');
+    }
+
+    public function test_js_from_di_atribut_komponen_menghasilkan_string_javascript(): void
+    {
+        // Tanda kutip ganda di nilai di-escape Js::from (\u0022), jadi tidak memutus atribut HTML.
+        $this->blade('<x-ui.button x-on:click="buka({{ \Illuminate\Support\Js::from($nama) }})">Ubah</x-ui.button>', ['nama' => 'Toko "Jaya"'])
+            ->assertSee('x-on:click="buka(\'Toko \u0022Jaya\u0022\')"', false);
+    }
+
     public function test_tombol_menjadi_tautan_bila_diberi_href_dan_tombol_biasa_bila_tidak(): void
     {
         $this->blade('<x-ui.button href="/produk">Produk</x-ui.button>')

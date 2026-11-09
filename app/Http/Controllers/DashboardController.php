@@ -2,19 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Dashboard\DashboardService;
 use App\Support\Menu;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
+/**
+ * Dashboard untuk semua pengguna login. Isinya menyesuaikan hak akses (lihat DashboardService);
+ * pengguna tanpa satu pun bagian dashboard melihat pintasan ke modul yang boleh dibuka.
+ */
 class DashboardController extends Controller
 {
-    /**
-     * Sementara: sapaan dan pintasan ke halaman yang boleh dibuka pengguna.
-     * KPI, grafik, dan transaksi terakhir dibuat di Fase 4.
-     */
-    public function __invoke(Request $request): View
+    public function __invoke(Request $request, DashboardService $dashboard): View
     {
-        return view('dashboard', [
+        $data = $dashboard->for($request->user());
+
+        return view('dashboard', $data + [
             'menu' => Menu::links($request->user())->reject(fn (array $item) => $item['key'] === 'dashboard')->values(),
         ]);
     }

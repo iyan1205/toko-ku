@@ -10,11 +10,13 @@ import '@fontsource/inter/latin-ext-700.css';
 
 import Alpine from 'alpinejs';
 import cariGlobal from './cari-global';
+import grafikPenjualan from './grafik-penjualan';
 import notifikasiStok from './notifikasi-stok';
 
 window.Alpine = Alpine;
 
 Alpine.data('cariGlobal', cariGlobal);
+Alpine.data('grafikPenjualan', grafikPenjualan);
 Alpine.data('notifikasiStok', notifikasiStok);
 
 Alpine.start();

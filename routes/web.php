@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ComingSoonController;
+use App\Http\Controllers\CurrentBranchController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Dev\UiKitController;
 use App\Http\Controllers\NotificationController;
@@ -29,6 +30,9 @@ Route::middleware('auth')->group(function () {
     Route::get('profil', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('profil', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('profil/kata-sandi', [ProfileController::class, 'updatePassword'])->name('profile.password');
+
+    // Pilihan cabang aktif di topbar (disimpan di session). Semua pengguna login boleh memilih.
+    Route::put('cabang-aktif', CurrentBranchController::class)->name('current-branch.update');
 
     // Halaman "Segera Hadir" untuk menu berstatus coming_soon di config/menu.php.
     Route::get('segera-hadir/{key}', ComingSoonController::class)->name('coming-soon');

@@ -14,14 +14,13 @@ return [
     | Struk dicetak dari browser komputer kasir (window.print) ke printer thermal
     | yang terpasang di komputer itu. Server tidak perlu terhubung ke printer.
     |
-    | Identitas toko (nama, alamat, telepon, Instagram, TikTok, pemilik), lebar
-    | kertas, dan footer diatur pemilik lewat menu Pengaturan → Profil Toko
-    | (tabel `settings`, lihat StoreProfileService). Di sini hanya tinggal
-    | perilaku cetak yang tidak perlu diubah dari aplikasi.
+    | Identitas toko (nama, alamat, NPWP, logo, media sosial) diatur di
+    | Pengaturan → Profil Toko; lebar kertas, footer, logo/NPWP di struk, dan
+    | cetak otomatis di Pengaturan → Struk & Printer (tabel `settings`).
     |
     | 'cetak_otomatis' : bila true, halaman struk langsung membuka dialog cetak
-    |               saat dibuka. Default false supaya tidak mengganggu saat
-    |               struk dibuka untuk dilihat/direkam.
+    |               saat dibuka. Sejak Fase 4 diatur di Pengaturan → Struk & Printer;
+    |               nilai .env ini hanya menjadi bawaan sampai pilihan di sana disimpan.
     */
     'struk' => [
         'cetak_otomatis' => (bool) env('POS_STRUK_AUTO_PRINT', false),

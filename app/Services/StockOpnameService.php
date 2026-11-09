@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Enums\DocumentType;
 use App\Enums\StockMovementType;
 use App\Exceptions\AturanBisnisException;
 use App\Models\Product;
 use App\Models\StockOpname;
 use App\Models\User;
+use App\Services\Settings\DocumentNumberService;
 use App\Support\Format;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -15,13 +17,12 @@ class StockOpnameService
 {
     public function __construct(
         private readonly StockService $stok,
-        private readonly KodeService $kode,
-    ) {
-    }
+        private readonly DocumentNumberService $numbers,
+    ) {}
 
     /**
-     * @param array{opname_date:string, note?:?string, items:array<int, array{system_stock?:mixed, physical_stock?:mixed, reason?:?string}>} $data
-     *        items diindeks dengan ID produk. Baris tanpa stok fisik dianggap tidak dihitung dan dilewati.
+     * @param  array{opname_date:string, note?:?string, items:array<int, array{system_stock?:mixed, physical_stock?:mixed, reason?:?string}>}  $data
+     *                                                                                                                                                items diindeks dengan ID produk. Baris tanpa stok fisik dianggap tidak dihitung dan dilewati.
      */
     public function simpan(array $data, User $user): StockOpname
     {
@@ -61,7 +62,7 @@ class StockOpnameService
             // saat menghitung), hitungan fisik tidak lagi sebanding, jadi ditolak, bukan ditebak.
             if ($berubah) {
                 throw new AturanBisnisException(
-                    'Stok berubah sejak halaman dibuka: ' . implode(', ', $berubah) . '. Muat ulang halaman lalu hitung ulang.'
+                    'Stok berubah sejak halaman dibuka: '.implode(', ', $berubah).'. Muat ulang halaman lalu hitung ulang.'
                 );
             }
 
@@ -71,7 +72,7 @@ class StockOpnameService
 
             $tanggal = $data['opname_date'];
             $opname = StockOpname::create([
-                'number' => $this->kode->berikutnya(StockOpname::class, 'number', 'OPN-' . date('Ymd', strtotime($tanggal)) . '-', 4),
+                'number' => $this->numbers->next(DocumentType::StockOpname, $tanggal),
                 'opname_date' => $tanggal,
                 'note' => $data['note'] ?? null,
                 'user_id' => $user->getKey(),

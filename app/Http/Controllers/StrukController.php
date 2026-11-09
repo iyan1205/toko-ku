@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Sale;
-use App\Services\StoreProfileService;
+use App\Services\Settings\ReceiptSettingsService;
 use App\Support\StrukTeks;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\Gate;
  */
 class StrukController extends Controller
 {
-    public function __construct(private readonly StoreProfileService $profil) {}
+    public function __construct(private readonly ReceiptSettingsService $struk) {}
 
     public function teks(Sale $sale): JsonResponse
     {
@@ -33,7 +33,7 @@ class StrukController extends Controller
         Gate::authorize('view', $sale);
         Gate::authorize('pos.transactions.print');
 
-        $toko = $this->profil->ambil();
+        $toko = $this->struk->storeHeader();
 
         $sale->load(['customer', 'user', 'items']);
 

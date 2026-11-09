@@ -14,8 +14,13 @@ class PosController extends Controller
 {
     public function index(Request $request): View
     {
+        // Metode pertama yang aktif menjadi pilihan awal (biasanya Tunai).
+        $metode = PaymentMethod::untukPenjualan();
+
         return view('pos.index', [
-            'metode' => PaymentMethod::untukPenjualan(),
+            'metode' => $metode,
+            'metodeAwal' => ($metode[0] ?? PaymentMethod::Cash)->value,
+            'metodeUangMuka' => PaymentMethod::untukUangMuka(),
             'urlCariProduk' => route('pos.products'),
             'urlCariPelanggan' => route('pos.customers'),
             'urlTahan' => route('pos.hold.store'),

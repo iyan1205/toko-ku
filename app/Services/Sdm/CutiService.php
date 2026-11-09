@@ -2,6 +2,7 @@
 
 namespace App\Services\Sdm;
 
+use App\Enums\DocumentType;
 use App\Enums\StatusCuti;
 use App\Enums\StatusPersetujuan;
 use App\Exceptions\AturanBisnisException;
@@ -10,7 +11,7 @@ use App\Models\Cuti;
 use App\Models\JenisCuti;
 use App\Models\PersetujuanCuti;
 use App\Models\User;
-use App\Services\KodeService;
+use App\Services\Settings\DocumentNumberService;
 use Carbon\CarbonInterface;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -29,7 +30,7 @@ use Illuminate\Support\Facades\DB;
  */
 class CutiService
 {
-    public function __construct(private readonly KodeService $kode) {}
+    public function __construct(private readonly DocumentNumberService $numbers) {}
 
     /** Hari kalender, termasuk tanggal mulai dan selesai. */
     public function hitungHari(CarbonInterface $mulai, CarbonInterface $selesai): int
@@ -93,7 +94,7 @@ class CutiService
             $tanpaPersetujuan = $jenis->tahap->isEmpty();
 
             $cuti = Cuti::create([
-                'nomor' => $this->kode->berikutnya(Cuti::class, 'nomor', 'CT-', 5),
+                'nomor' => $this->numbers->next(DocumentType::Leave, now()),
                 'user_id' => $pemohon->id,
                 'jenis_cuti_id' => $jenis->id,
                 'tanggal_mulai' => $mulai->toDateString(),

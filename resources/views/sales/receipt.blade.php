@@ -36,6 +36,9 @@
 
         .nama-toko { font-size: 14px; font-weight: 700; letter-spacing: 0.5px; }
 
+        /* Logo hitam-putih tipis supaya jelas di printer thermal. */
+        .logo { display: block; max-width: 60%; max-height: 22mm; margin: 0 auto 4px; filter: grayscale(1) contrast(1.2); }
+
         hr {
             border: 0;
             border-top: 1px dashed #000;
@@ -93,6 +96,8 @@
     </style>
 </head>
 <body>
+    {{-- $pratinjau: struk contoh di Pengaturan → Struk & Printer (tanpa tombol dan skrip cetak). --}}
+    @unless ($pratinjau ?? false)
     <div class="aksi">
         <button type="button" onclick="window.print()">Cetak (printer biasa)</button>
 
@@ -103,9 +108,13 @@
             Cetak via Bluetooth
         </button>
     </div>
+    @endunless
 
     <div class="struk">
         <div class="tengah">
+            @if (! empty($toko['logo_url']))
+                <img src="{{ $toko['logo_url'] }}" alt="" class="logo">
+            @endif
             <div class="nama-toko">{{ $toko['nama_toko'] }}</div>
             @if ($toko['nama_pemilik'])
                 <div class="kecil">{{ $toko['nama_pemilik'] }}</div>
@@ -115,6 +124,9 @@
             @endif
             @if ($toko['telepon'])
                 <div class="kecil">Telp {{ $toko['telepon'] }}</div>
+            @endif
+            @if (! empty($toko['npwp']))
+                <div class="kecil">NPWP {{ $toko['npwp'] }}</div>
             @endif
         </div>
 
@@ -214,12 +226,13 @@
         </div>
     </div>
 
-    @if ($cetakOtomatis)
+    @if ($cetakOtomatis && ! ($pratinjau ?? false))
         <script>
             window.addEventListener('load', () => window.print());
         </script>
     @endif
 
+    @unless ($pratinjau ?? false)
     <script>
         /*
          * Cetak ke printer thermal Bluetooth lewat aplikasi jembatan RawBT.
@@ -289,5 +302,6 @@
             }
         });
     </script>
+    @endunless
 </body>
 </html>

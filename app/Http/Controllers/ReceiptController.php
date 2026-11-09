@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Sale;
-use App\Services\StoreProfileService;
+use App\Services\Settings\ReceiptSettingsService;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
@@ -15,12 +15,13 @@ use Illuminate\View\View;
  * Pencetakan dilakukan di komputer kasir: browser → dialog cetak → printer thermal
  * yang terpasang di komputer itu. Server tidak perlu terhubung ke printer.
  *
- * Identitas toko dan lebar kertas dibaca dari Profil Toko (menu Pengaturan),
- * bukan dari .env, supaya bisa diubah pemilik tanpa menyentuh server.
+ * Identitas toko (Pengaturan → Profil Toko), lebar kertas, footer, logo, NPWP, dan cetak
+ * otomatis (Pengaturan → Struk & Printer) dibaca dari tabel settings, bukan dari .env,
+ * supaya bisa diubah pemilik tanpa menyentuh server.
  */
 class ReceiptController extends Controller
 {
-    public function __construct(private readonly StoreProfileService $profil) {}
+    public function __construct(private readonly ReceiptSettingsService $struk) {}
 
     public function show(Sale $sale): View
     {
@@ -28,14 +29,15 @@ class ReceiptController extends Controller
         Gate::authorize('view', $sale);
         Gate::authorize('pos.transactions.print');
 
-        $profil = $this->profil->ambil();
+        $pengaturan = $this->struk->get();
 
         return view('sales.receipt', [
             'penjualan' => $sale->load(['customer', 'user', 'items']),
-            'toko' => $profil,
-            'lebarMm' => $profil['lebar_struk_mm'],
-            'footer' => $profil['footer_struk'],
-            'cetakOtomatis' => (bool) config('pos.struk.cetak_otomatis', false),
+            'toko' => $this->struk->storeHeader(),
+            'lebarMm' => $pengaturan['paper_width'],
+            'footer' => $pengaturan['footer'],
+            'cetakOtomatis' => $pengaturan['auto_print'],
+            'pratinjau' => false,
         ]);
     }
 }

@@ -9,6 +9,9 @@ use App\Models\StockOpname;
 use App\Models\User;
 use App\Policies\ProductPolicy;
 use App\Policies\RolePolicy;
+use App\Services\Settings\PaymentMethodService;
+use App\Support\CurrentBranch;
+use App\Support\SettingStore;
 use App\View\Composers\NavigationComposer;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Blade;
@@ -21,7 +24,11 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // Dibaca berkali-kali dalam satu request (helper setting(), label metode bayar,
+        // cabang aktif di topbar): satu instance per request, dibuat ulang di request berikutnya.
+        $this->app->scoped(SettingStore::class);
+        $this->app->scoped(PaymentMethodService::class);
+        $this->app->scoped(CurrentBranch::class);
     }
 
     public function boot(): void

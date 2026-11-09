@@ -79,26 +79,49 @@
             </div>
         </div>
 
-        {{-- Cabang: disiapkan untuk multi-cabang (Fase 4). Saat ini selalu Cabang Utama. --}}
-        <x-ui.dropdown class="hidden xl:inline-block" width="w-64">
-            <x-slot:trigger>
-                <button type="button" x-bind:aria-expanded="open"
-                        class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
-                    <x-ui.icon name="building-office-2" variant="m" class="h-4 w-4 text-slate-400" />
-                    <span class="max-w-[10rem] truncate">Cabang Utama</span>
-                    <x-ui.icon name="chevron-down" variant="m" class="h-4 w-4 text-slate-400" />
-                </button>
-            </x-slot:trigger>
-            <div class="px-4 py-3">
-                <p class="text-xs font-medium text-slate-500">Cabang aktif</p>
-                <p class="mt-1 flex items-center gap-2 text-sm font-medium text-slate-900">
-                    <x-ui.icon name="check" variant="m" class="h-4 w-4 text-primary-600" />
-                    Cabang Utama
-                </p>
-                <p class="mt-0.5 truncate pl-6 text-xs text-slate-500">{{ $storeName }}</p>
-            </div>
-            <div class="border-t border-slate-100 px-4 py-2.5 text-xs text-slate-500">Multi-cabang segera hadir.</div>
-        </x-ui.dropdown>
+        {{-- Cabang aktif (disimpan di session). Daftar berisi cabang yang aktif; cabang utama paling atas. --}}
+        @if ($currentBranch)
+            <x-ui.dropdown class="hidden xl:inline-block" width="w-64">
+                <x-slot:trigger>
+                    <button type="button" x-bind:aria-expanded="open" aria-label="Cabang aktif: {{ $currentBranch->name }}"
+                            class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
+                        <x-ui.icon name="building-office-2" variant="m" class="h-4 w-4 text-slate-400" />
+                        <span class="max-w-[10rem] truncate">{{ $currentBranch->name }}</span>
+                        <x-ui.icon name="chevron-down" variant="m" class="h-4 w-4 text-slate-400" />
+                    </button>
+                </x-slot:trigger>
+                <div class="px-4 pb-1 pt-3">
+                    <p class="text-xs font-medium text-slate-500">Cabang aktif</p>
+                    <p class="mt-0.5 truncate text-xs text-slate-400">{{ $storeName }}</p>
+                </div>
+                <div class="py-1">
+                    @foreach ($branchOptions as $branch)
+                        <form method="POST" action="{{ route('current-branch.update') }}">
+                            @csrf
+                            @method('PUT')
+                            <input type="hidden" name="branch_id" value="{{ $branch->id }}">
+                            <button type="submit" role="menuitem" @disabled($branch->is($currentBranch))
+                                    class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none disabled:cursor-default disabled:hover:bg-transparent">
+                                <span class="grid h-4 w-4 place-items-center">
+                                    @if ($branch->is($currentBranch))
+                                        <x-ui.icon name="check" variant="m" class="h-4 w-4 text-primary-600" />
+                                    @endif
+                                </span>
+                                <span @class(['min-w-0 flex-1 truncate', 'font-medium text-slate-900' => $branch->is($currentBranch)])>{{ $branch->name }}</span>
+                                @if ($branch->is_default)
+                                    <span class="text-[11px] text-slate-400">Utama</span>
+                                @endif
+                            </button>
+                        </form>
+                    @endforeach
+                </div>
+                @can('settings.branches.view')
+                    <div class="border-t border-slate-100 px-4 py-2.5">
+                        <a href="{{ route('settings.branches.index') }}" class="text-sm font-medium text-primary-600 hover:text-primary-700">Kelola cabang</a>
+                    </div>
+                @endcan
+            </x-ui.dropdown>
+        @endif
 
         {{-- Notifikasi: produk perlu diisi ulang (hanya untuk yang boleh melihat stok). Daftar diambil saat dibuka. --}}
         @if ($restockCount !== null)

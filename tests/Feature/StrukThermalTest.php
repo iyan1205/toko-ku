@@ -9,7 +9,7 @@ use App\Models\Product;
 use App\Models\Sale;
 use App\Models\User;
 use App\Services\SaleService;
-use App\Services\StoreProfileService;
+use App\Services\Settings\StoreProfileService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\SiapkanPeran;
 use Tests\TestCase;

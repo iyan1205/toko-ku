@@ -39,7 +39,7 @@ class SaleRequest extends FormRequest
             'payment_method' => ['required', Rule::in(array_map(fn (PaymentMethod $m) => $m->value, PaymentMethod::untukPenjualan()))],
             // Tunai: uang diterima. Piutang: bayar di muka (boleh 0). Metode lain: diabaikan (lunas otomatis).
             'paid_amount' => ['numeric', 'min:0', 'max:99999999999.99', 'decimal:0,2'],
-            'dp_method' => ['nullable', Rule::in(array_map(fn (PaymentMethod $m) => $m->value, PaymentMethod::untukPembelian()))],
+            'dp_method' => ['nullable', Rule::in(array_map(fn (PaymentMethod $m) => $m->value, PaymentMethod::untukUangMuka()))],
 
             'note' => ['nullable', 'string', 'max:500'],
             'held_id' => ['nullable', 'integer'],

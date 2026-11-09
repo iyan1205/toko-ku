@@ -423,6 +423,29 @@ Ukuran: **S** = kecil, **M** = sedang, **L** = besar, **XL** = sangat besar. Set
 - Test: `HakAksesTest` diperbarui, test matriks (simpan dan cabut izin), test Cuti dengan peran dinamis.
 
 ### Fase 4 — Pengaturan & Dashboard · L
+**Status 09 Nov 2026: selesai, menunggu pengecekan pemilik.**
+- Helper `setting('key', $default)` untuk membaca dan `setting([...])` untuk menyimpan, lewat `App\Support\SettingStore`. Semua nilai dibaca sekali lalu di-cache sampai ada perubahan.
+- Halaman Pengaturan baru:
+  - Profil Toko: ditambah logo, NPWP, dan email.
+  - Cabang: tabel `branches` dengan "Cabang Utama" bawaan, plus pilihan cabang aktif di topbar.
+  - Pajak: pengaturan PPN, belum dihitung di kasir sampai Fase 6.
+  - Metode Pembayaran: tabel `payment_methods` berisi nama, aktif/nonaktif, dan urutan di kasir.
+  - Struk & Printer: lebar kertas, footer, logo/NPWP di struk, cetak otomatis, dan pratinjau langsung.
+  - Penomoran Dokumen.
+  - Backup.
+- Penomoran: `DocumentNumberService` dan tabel `document_sequences` untuk 6 jenis dokumen (penjualan, pembelian, pembayaran hutang, penerimaan piutang, opname, cuti). Pola bawaan sama dengan format lama, jadi nomor tidak berubah sampai polanya diganti. Nomor yang sudah terpakai dilewati. Kode master data (SUP-, CUS-, PRD-) tetap memakai `KodeService`.
+- Backup: perintah `php artisan backup:database` menjalankan mysqldump + gzip dan menyimpan 14 berkas terbaru di `storage/app/private/backups`. Dijadwalkan pukul 01:30. Halaman Backup untuk membuat dan mengunduh berkas; izinnya hanya untuk Pemilik dan Super Admin.
+- Dashboard:
+  - KPI: omzet hari ini dibanding kemarin, jumlah transaksi, stok menipis, dan hutang jatuh tempo (plus yang jatuh tempo 7 hari ke depan).
+  - Grafik omzet 7/30 hari dengan `chart.js`, yang hanya dimuat di dashboard.
+  - Produk terlaris 7/30 hari, transaksi terakhir, dan daftar stok menipis.
+  - Setiap bagian tampil sesuai izin. Kasir hanya melihat angka penjualannya sendiri.
+- Perubahan perilaku:
+  - Lebar kertas dan footer struk pindah dari Profil Toko ke Struk & Printer. Nilai yang tersimpan tetap.
+  - Nilai cetak otomatis dari `.env` hanya menjadi bawaan sampai disimpan di Struk & Printer.
+  - Uang muka (DP) penjualan piutang hanya bisa memakai metode yang aktif di kasir.
+- Seluruh suite 537/537 lulus.
+
 - Helper `setting('key', $default)` di atas `Setting::ambil()` dengan cache yang dihapus saat data disimpan (cache driver `array` saat test, sesuai catatan di model `Setting`). `StoreProfileService` tetap dipakai.
 - Profil Toko: tambah logo, NPWP, email.
 - Cabang: tabel `branches` + "Cabang Utama" bawaan + pilihan cabang di topbar (disimpan di session). Stok tidak dipisah per cabang, melainkan per **gudang** (Fase 5a), dan gudang bisa ditautkan ke cabang.

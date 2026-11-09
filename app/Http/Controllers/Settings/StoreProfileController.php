@@ -1,28 +1,26 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Settings;
 
-use App\Http\Requests\StoreProfileRequest;
-use App\Services\StoreProfileService;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Settings\StoreProfileRequest;
+use App\Services\Settings\StoreProfileService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 /**
- * Profil toko: identitas yang muncul di kepala struk (nama, alamat, telepon,
- * Instagram, TikTok, nama pemilik) beserta kebutuhan printer (lebar kertas).
+ * Profil toko: identitas di kepala struk dan dokumen (nama, alamat, telepon, email, NPWP,
+ * logo, media sosial). Lebar kertas dan footer struk ada di Struk & Printer.
  *
  * Izin settings.store.* dipasang di routes/modules/settings.php lewat middleware 'permission:'.
  */
-class SettingController extends Controller
+class StoreProfileController extends Controller
 {
     public function __construct(private readonly StoreProfileService $profil) {}
 
     public function edit(): View
     {
-        return view('settings.store', [
-            'profil' => $this->profil->ambil(),
-            'lebarDidukung' => StoreProfileService::LEBAR_DIDUKUNG,
-        ]);
+        return view('settings.store', ['profil' => $this->profil->ambil()]);
     }
 
     public function update(StoreProfileRequest $request): RedirectResponse

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\DocumentType;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\PurchaseStatus;
@@ -11,6 +12,7 @@ use App\Models\Payment;
 use App\Models\Purchase;
 use App\Models\Sale;
 use App\Models\User;
+use App\Services\Settings\DocumentNumberService;
 use App\Support\Format;
 use App\Support\Uang;
 use Illuminate\Support\Facades\DB;
@@ -21,9 +23,7 @@ use Illuminate\Support\Facades\DB;
  */
 class PaymentService
 {
-    public function __construct(private readonly KodeService $kode)
-    {
-    }
+    public function __construct(private readonly DocumentNumberService $numbers) {}
 
     /** @param int $sen jumlah dalam sen (Rupiah x100) */
     public function bayarPembelian(
@@ -54,14 +54,14 @@ class PaymentService
 
             if ($sen > $sisa) {
                 throw new AturanBisnisException(
-                    'Pembayaran melebihi sisa hutang. Sisa hutang ' . Format::rupiah(Uang::keDesimal($sisa)) . '.'
+                    'Pembayaran melebihi sisa hutang. Sisa hutang '.Format::rupiah(Uang::keDesimal($sisa)).'.'
                 );
             }
 
             $tanggal ??= now()->toDateString();
 
             $pembayaran = Payment::create([
-                'number' => $this->kode->berikutnya(Payment::class, 'number', 'PAY-' . date('Ymd', strtotime($tanggal)) . '-', 4),
+                'number' => $this->numbers->next(DocumentType::SupplierPayment, $tanggal),
                 'payable_type' => $terkunci->getMorphClass(),
                 'payable_id' => $terkunci->getKey(),
                 'amount' => Uang::keDesimal($sen),
@@ -91,7 +91,7 @@ class PaymentService
      * Uang masuk dari pelanggan untuk sebuah penjualan: pembayaran saat transaksi, bayar di muka (DP),
      * dan nanti pelunasan piutang (Tahap 7). Untuk penjualan piutang, saldo piutang pelanggan ikut berkurang.
      *
-     * @param int $sen jumlah yang DITERIMA untuk penjualan ini (bukan uang yang diserahkan; kembalian tidak dihitung)
+     * @param  int  $sen  jumlah yang DITERIMA untuk penjualan ini (bukan uang yang diserahkan; kembalian tidak dihitung)
      */
     public function terimaPenjualan(
         Sale $penjualan,
@@ -120,14 +120,14 @@ class PaymentService
 
             if ($sen > $sisa) {
                 throw new AturanBisnisException(
-                    'Pembayaran melebihi sisa piutang. Sisa piutang ' . Format::rupiah(Uang::keDesimal($sisa)) . '.'
+                    'Pembayaran melebihi sisa piutang. Sisa piutang '.Format::rupiah(Uang::keDesimal($sisa)).'.'
                 );
             }
 
             $tanggal ??= now()->toDateString();
 
             $pembayaran = Payment::create([
-                'number' => $this->kode->berikutnya(Payment::class, 'number', 'RCV-' . date('Ymd', strtotime($tanggal)) . '-', 4),
+                'number' => $this->numbers->next(DocumentType::CustomerPayment, $tanggal),
                 'payable_type' => $terkunci->getMorphClass(),
                 'payable_id' => $terkunci->getKey(),
                 'amount' => Uang::keDesimal($sen),

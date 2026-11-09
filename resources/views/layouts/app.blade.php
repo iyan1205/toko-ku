@@ -8,7 +8,8 @@
     Data navigasi ($menuTree, $menuCurrent, $lowStock, $storeName) dari NavigationComposer.
 --}}
 @php
-    $pageTitle = trim(strip_tags((string) ($header ?? '')));
+    // Judul berisi entitas HTML (misal Struk &amp; Printer) dikembalikan ke teks biasa agar tidak ter-escape dua kali.
+    $pageTitle = trim(html_entity_decode(strip_tags((string) ($header ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
     $currentItem = $menuCurrent['item'] ?? null;
     $isMenuIndex = $currentItem['is_index'] ?? false;
 

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\DocumentType;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\PurchaseStatus;
@@ -11,6 +12,7 @@ use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\Supplier;
 use App\Models\User;
+use App\Services\Settings\DocumentNumberService;
 use App\Support\Uang;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -23,7 +25,7 @@ class PurchaseService
     public function __construct(
         private readonly StockService $stok,
         private readonly PaymentService $pembayaran,
-        private readonly KodeService $kode,
+        private readonly DocumentNumberService $numbers,
     ) {}
 
     /**
@@ -55,7 +57,7 @@ class PurchaseService
             $tanggal = $data['purchase_date'];
 
             $pembelian = new Purchase([
-                'number' => $this->kode->berikutnya(Purchase::class, 'number', 'PUR-'.date('Ymd', strtotime($tanggal)).'-', 4),
+                'number' => $this->numbers->next(DocumentType::Purchase, $tanggal),
                 'supplier_id' => $supplier->getKey(),
                 'supplier_invoice_number' => $data['supplier_invoice_number'] ?? null,
                 'purchase_date' => $tanggal,

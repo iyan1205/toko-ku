@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\DocumentType;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\PurchaseStatus;
@@ -12,6 +13,7 @@ use App\Models\HeldSale;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\User;
+use App\Services\Settings\DocumentNumberService;
 use App\Support\Uang;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +28,7 @@ class SaleService
     public function __construct(
         private readonly StockService $stok,
         private readonly PaymentService $pembayaran,
-        private readonly KodeService $kode,
+        private readonly DocumentNumberService $numbers,
     ) {}
 
     /**
@@ -62,7 +64,7 @@ class SaleService
             $sekarang = now();
 
             $penjualan = new Sale([
-                'number' => $this->kode->berikutnya(Sale::class, 'number', 'POS-'.$sekarang->format('Ymd').'-', 4),
+                'number' => $this->numbers->next(DocumentType::Sale, $sekarang),
                 'customer_id' => $h['pelanggan']->getKey(),
                 'user_id' => $kasir->getKey(),
                 'sold_at' => $sekarang,

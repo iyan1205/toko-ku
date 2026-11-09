@@ -2,40 +2,42 @@
 
 namespace App\Models;
 
+use App\Support\SettingStore;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Pengaturan aplikasi berbentuk key-value.
+ * Pengaturan aplikasi berbentuk key-value. Kode baru cukup memakai helper setting().
  *
- * Tidak ada cache statis di sini dengan sengaja: nilai harus selalu segar setelah
- * disimpan, dan cache proses akan bocor antar-tes saat database di-refresh.
+ * Nilai dibaca lewat SettingStore: di-cache sampai ada perubahan. Cache aplikasi saat test
+ * memakai driver `array` (phpunit.xml), yang dibuat baru untuk setiap test, jadi tidak bocor
+ * antar-test saat database di-refresh.
  */
 class Setting extends Model
 {
     protected $fillable = ['key', 'value'];
 
+    protected static function booted(): void
+    {
+        // Perubahan lewat jalur mana pun (bukan hanya simpan()) tetap menghapus cache.
+        static::saved(fn () => app(SettingStore::class)->flush());
+        static::deleted(fn () => app(SettingStore::class)->flush());
+    }
+
     /** Ambil satu nilai. String kosong dianggap "belum diisi" dan diganti default. */
     public static function ambil(string $key, ?string $default = null): ?string
     {
-        $nilai = static::query()->where('key', $key)->value('value');
-
-        return ($nilai === null || trim((string) $nilai) === '') ? $default : (string) $nilai;
+        return app(SettingStore::class)->get($key, $default);
     }
 
     /** @param array<string, string|null> $pasangan key => nilai */
     public static function simpan(array $pasangan): void
     {
-        foreach ($pasangan as $key => $value) {
-            static::updateOrCreate(
-                ['key' => $key],
-                ['value' => ($value === null || trim((string) $value) === '') ? null : (string) $value],
-            );
-        }
+        app(SettingStore::class)->set($pasangan);
     }
 
     /** @return array<string, string|null> key => nilai */
     public static function semua(): array
     {
-        return static::query()->pluck('value', 'key')->all();
+        return app(SettingStore::class)->all();
     }
 }

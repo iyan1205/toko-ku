@@ -9,7 +9,7 @@ use App\Models\Product;
 use App\Models\Sale;
 use App\Models\User;
 use App\Services\SaleService;
-use App\Services\StoreProfileService;
+use App\Services\Settings\StoreProfileService;
 use App\Support\StrukTeks;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\SiapkanPeran;

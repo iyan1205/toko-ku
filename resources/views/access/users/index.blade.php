@@ -51,7 +51,7 @@
                                 </x-slot:trigger>
                                 <x-ui.dropdown-item :href="route('users.edit', $u)" icon="pencil-square">Ubah</x-ui.dropdown-item>
                                 <x-ui.dropdown-item icon="key"
-                                    x-on:click="target = { url: @js(route('users.password', $u)), name: @js($u->name) }; $dispatch('open-modal', 'reset-sandi')">
+                                    x-on:click="target = { url: {{ \Illuminate\Support\Js::from(route('users.password', $u)) }}, name: {{ \Illuminate\Support\Js::from($u->name) }} }; $dispatch('open-modal', 'reset-sandi')">
                                     Reset kata sandi
                                 </x-ui.dropdown-item>
                                 @if ($u->isNot(auth()->user()))
@@ -65,7 +65,7 @@
                                     @can('delete', $u)
                                         <div class="my-1 border-t border-slate-100"></div>
                                         <x-ui.dropdown-item danger icon="trash"
-                                            x-on:click="$dispatch('konfirmasi-hapus', { action: @js(route('users.destroy', $u)), nama: @js($u->name), pesan: 'akan dihapus. Riwayat transaksi pengguna ini tetap tersimpan.' })">
+                                            x-on:click="$dispatch('konfirmasi-hapus', { action: {{ \Illuminate\Support\Js::from(route('users.destroy', $u)) }}, nama: {{ \Illuminate\Support\Js::from($u->name) }}, pesan: 'akan dihapus. Riwayat transaksi pengguna ini tetap tersimpan.' })">
                                             Hapus
                                         </x-ui.dropdown-item>
                                     @endcan

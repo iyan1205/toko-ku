@@ -11,3 +11,6 @@ Artisan::command('inspire', function () {
 // Hapus log aktivitas yang lebih tua dari activitylog.delete_records_older_than_days (365 hari).
 // Butuh scheduler aktif di server: * * * * * php artisan schedule:run
 Schedule::command('activitylog:clean')->dailyAt('02:00');
+
+// Cadangan database harian (Pengaturan → Backup). Menyimpan 14 berkas terbaru.
+Schedule::command('backup:database')->dailyAt('01:30');

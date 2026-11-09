@@ -4,18 +4,22 @@ namespace App\View\Composers;
 
 use App\Models\Product;
 use App\Models\User;
-use App\Services\StoreProfileService;
+use App\Services\Settings\StoreProfileService;
+use App\Support\CurrentBranch;
 use App\Support\Menu;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 /**
  * Data navigasi untuk layouts.app dan layouts.pos, dihitung sekali per halaman:
- * menu sidebar, menu aktif (breadcrumb), jumlah notifikasi stok, dan nama toko.
+ * menu sidebar, menu aktif (breadcrumb), jumlah notifikasi stok, nama toko, dan cabang aktif.
  */
 class NavigationComposer
 {
-    public function __construct(private readonly StoreProfileService $storeProfile) {}
+    public function __construct(
+        private readonly StoreProfileService $storeProfile,
+        private readonly CurrentBranch $currentBranch,
+    ) {}
 
     public function compose(View $view): void
     {
@@ -33,6 +37,8 @@ class NavigationComposer
             'menuTree' => $tree,
             'menuCurrent' => Menu::current($tree),
             'restockCount' => $this->restockCount($user),
+            'branchOptions' => $this->currentBranch->options(),
+            'currentBranch' => $this->currentBranch->get(),
         ]);
     }
 

@@ -23,6 +23,8 @@ Spesifikasi lengkap: docs/REDESIGN-TOKOKU.md. Hasil audit, keputusan, dan rencan
 - Permission format: `{modul}.{fitur}.{aksi}` contoh `inventory.products.view`, `pos.transactions.create`.
 - Semua izin terdaftar di config/permission-matrix.php. Izin baru: tambahkan di katalog, lalu `php artisan db:seed --class=RolePermissionSeeder` (tidak menimpa hak akses yang sudah diatur). Route baru wajib dijaga middleware `permission:` (dicek ProteksiRouteTest).
 - Menu sidebar didefinisikan di config/menu.php, bukan hardcode di Blade.
+- Pengaturan toko dibaca dengan `setting('key', $default)` dan disimpan dengan `setting([...])` (tabel settings, ter-cache). Jangan query tabel settings langsung.
+- Nomor dokumen baru dibuat lewat `DocumentNumberService::next()` di dalam `DB::transaction()` yang menyimpan dokumennya. Jangan menulis awalan nomor secara hardcode.
 - Validasi pakai Form Request. Logika bisnis berat di Service class (app/Services/{Modul}).
 
 ## Keputusan pemilik (08 Nov 2026, rincian di docs/AUDIT.md bagian 7)

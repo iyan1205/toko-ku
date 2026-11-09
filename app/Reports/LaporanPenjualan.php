@@ -23,11 +23,12 @@ use Illuminate\Support\Collection;
  */
 final class LaporanPenjualan
 {
+    /** @param int|null $kasirId hanya penjualan kasir ini (dashboard kasir); null = semua kasir */
     public function __construct(
         private readonly CarbonImmutable $dari,
         private readonly CarbonImmutable $sampai,
-    ) {
-    }
+        private readonly ?int $kasirId = null,
+    ) {}
 
     public function dari(): CarbonImmutable
     {
@@ -44,15 +45,15 @@ final class LaporanPenjualan
     {
         $dokumen = $this->penjualan()->selectRaw(
             'COUNT(*) as jumlah,'
-            . ' COALESCE(SUM(grand_total), 0) as omzet,'
-            . ' COALESCE(SUM(balance), 0) as piutang,'
-            . ' COALESCE(SUM(item_discount), 0) as diskon_item,'
-            . ' COALESCE(SUM(discount), 0) as diskon_transaksi'
+            .' COALESCE(SUM(grand_total), 0) as omzet,'
+            .' COALESCE(SUM(balance), 0) as piutang,'
+            .' COALESCE(SUM(item_discount), 0) as diskon_item,'
+            .' COALESCE(SUM(discount), 0) as diskon_transaksi'
         )->first();
 
         $baris = $this->baris()->selectRaw(
             'COALESCE(SUM(sale_items.quantity), 0) as jumlah_item,'
-            . ' COALESCE(SUM(sale_items.cost_price * sale_items.quantity), 0) as hpp'
+            .' COALESCE(SUM(sale_items.cost_price * sale_items.quantity), 0) as hpp'
         )->first();
 
         $omzet = (float) $dokumen->omzet;
@@ -178,9 +179,9 @@ final class LaporanPenjualan
         return $this->baris()
             ->selectRaw(
                 'sale_items.product_name, sale_items.sku, sale_items.unit_name,'
-                . ' COALESCE(SUM(sale_items.quantity), 0) as jumlah,'
-                . ' COALESCE(SUM(sale_items.line_total), 0) as omzet,'
-                . ' COALESCE(SUM(sale_items.cost_price * sale_items.quantity), 0) as hpp'
+                .' COALESCE(SUM(sale_items.quantity), 0) as jumlah,'
+                .' COALESCE(SUM(sale_items.line_total), 0) as omzet,'
+                .' COALESCE(SUM(sale_items.cost_price * sale_items.quantity), 0) as hpp'
             )
             ->groupBy('sale_items.product_name', 'sale_items.sku', 'sale_items.unit_name')
             ->orderByDesc('omzet')
@@ -201,7 +202,8 @@ final class LaporanPenjualan
     {
         return Sale::query()
             ->where('status', PurchaseStatus::Completed->value)
-            ->whereBetween('sold_at', [$this->dari, $this->sampai]);
+            ->whereBetween('sold_at', [$this->dari, $this->sampai])
+            ->when($this->kasirId, fn (Builder $q, int $id) => $q->where('user_id', $id));
     }
 
     /** Baris penjualan (join ke dokumennya) yang selesai pada rentang tanggal. */
@@ -210,6 +212,7 @@ final class LaporanPenjualan
         return SaleItem::query()
             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
             ->where('sales.status', PurchaseStatus::Completed->value)
-            ->whereBetween('sales.sold_at', [$this->dari, $this->sampai]);
+            ->whereBetween('sales.sold_at', [$this->dari, $this->sampai])
+            ->when($this->kasirId, fn (Builder $q, int $id) => $q->where('sales.user_id', $id));
     }
 }

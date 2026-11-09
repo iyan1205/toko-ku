@@ -3,7 +3,6 @@
 namespace App\Support;
 
 use App\Models\Sale;
-use App\Support\Format;
 
 /**
  * Menyusun struk sebagai teks murni berkolom tetap untuk printer thermal.
@@ -21,8 +20,7 @@ final class StrukTeks
     public function __construct(
         private readonly Sale $penjualan,
         private readonly array $toko,
-    ) {
-    }
+    ) {}
 
     public static function lebarKertas(int $lebarMm): int
     {
@@ -44,7 +42,11 @@ final class StrukTeks
             }
         }
         if (! empty($this->toko['telepon'])) {
-            $baris[] = $this->tengah('Telp ' . $this->toko['telepon'], $lebar);
+            $baris[] = $this->tengah('Telp '.$this->toko['telepon'], $lebar);
+        }
+        // Kosong bila "Tampilkan NPWP" dimatikan di Pengaturan → Struk & Printer.
+        if (! empty($this->toko['npwp'])) {
+            $baris[] = $this->tengah('NPWP '.$this->toko['npwp'], $lebar);
         }
         $baris[] = str_repeat('-', $lebar);
 
@@ -59,10 +61,10 @@ final class StrukTeks
         foreach ($s->items as $i) {
             $baris[] = $this->potong((string) $i->product_name, $lebar);
 
-            $kiri = Format::jumlah($i->quantity) . ' ' . $i->unit_name
-                . ' x ' . Format::rupiah($i->unit_price, false);
+            $kiri = Format::jumlah($i->quantity).' '.$i->unit_name
+                .' x '.Format::rupiah($i->unit_price, false);
             if ((float) $i->discount > 0) {
-                $kiri .= ' (-' . Format::rupiah($i->discount, false) . ')';
+                $kiri .= ' (-'.Format::rupiah($i->discount, false).')';
             }
             $baris[] = $this->duaKolom($kiri, Format::rupiah($i->line_total, false), $lebar);
         }
@@ -71,10 +73,10 @@ final class StrukTeks
         $baris[] = str_repeat('-', $lebar);
         $baris[] = $this->duaKolom('Subtotal', Format::rupiah($s->subtotal, false), $lebar);
         if ((float) $s->item_discount > 0) {
-            $baris[] = $this->duaKolom('Diskon item', '-' . Format::rupiah($s->item_discount, false), $lebar);
+            $baris[] = $this->duaKolom('Diskon item', '-'.Format::rupiah($s->item_discount, false), $lebar);
         }
         if ((float) $s->discount > 0) {
-            $baris[] = $this->duaKolom('Diskon', '-' . Format::rupiah($s->discount, false), $lebar);
+            $baris[] = $this->duaKolom('Diskon', '-'.Format::rupiah($s->discount, false), $lebar);
         }
         $baris[] = $this->duaKolom('TOTAL', Format::rupiah($s->grand_total, false), $lebar);
 
@@ -104,7 +106,7 @@ final class StrukTeks
 
         if ($s->note) {
             $baris[] = str_repeat('-', $lebar);
-            foreach ($this->bungkus('Catatan: ' . $s->note, $lebar) as $b) {
+            foreach ($this->bungkus('Catatan: '.$s->note, $lebar) as $b) {
                 $baris[] = $b;
             }
         }
@@ -117,10 +119,10 @@ final class StrukTeks
 
         $sosmed = [];
         if (! empty($this->toko['instagram'])) {
-            $sosmed[] = 'IG @' . $this->toko['instagram'];
+            $sosmed[] = 'IG @'.$this->toko['instagram'];
         }
         if (! empty($this->toko['tiktok'])) {
-            $sosmed[] = 'TikTok @' . $this->toko['tiktok'];
+            $sosmed[] = 'TikTok @'.$this->toko['tiktok'];
         }
         if ($sosmed) {
             // Usahakan satu baris; kalau tidak muat, tiap akun turun ke barisnya sendiri
@@ -148,7 +150,7 @@ final class StrukTeks
         $teks = $this->potong($teks, $lebar);
         $sisa = max(0, $lebar - mb_strlen($teks));
 
-        return str_repeat(' ', intdiv($sisa, 2)) . $teks;
+        return str_repeat(' ', intdiv($sisa, 2)).$teks;
     }
 
     /** Kiri + kanan dalam satu baris; teks kanan selalu rata kanan. */
@@ -159,17 +161,17 @@ final class StrukTeks
 
         if ($sisaKiri < 1) {
             // Tidak muat sebaris: turunkan nilai ke baris berikutnya, tetap rata kanan.
-            return $this->potong($kiri, $lebar) . "\n" . $this->rataKanan($kanan, $lebar);
+            return $this->potong($kiri, $lebar)."\n".$this->rataKanan($kanan, $lebar);
         }
 
-        return str_pad($this->potong($kiri, $sisaKiri), $sisaKiri) . ' ' . $kanan;
+        return str_pad($this->potong($kiri, $sisaKiri), $sisaKiri).' '.$kanan;
     }
 
     private function rataKanan(string $teks, int $lebar): string
     {
         $teks = $this->potong($teks, $lebar);
 
-        return str_repeat(' ', max(0, $lebar - mb_strlen($teks))) . $teks;
+        return str_repeat(' ', max(0, $lebar - mb_strlen($teks))).$teks;
     }
 
     /** Pecah teks panjang menjadi beberapa baris selebar kertas. */

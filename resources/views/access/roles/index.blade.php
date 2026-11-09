@@ -59,7 +59,7 @@
                         @endcan
                         @can('delete', $role)
                             <x-ui.button variant="ghost" size="sm" icon="trash" aria-label="Hapus {{ $role->name }}" class="text-danger-600 hover:text-danger-700"
-                                x-data x-on:click="$dispatch('konfirmasi-hapus', { action: @js(route('roles.destroy', $role)), nama: @js('Peran '.$role->name), pesan: 'akan dihapus. Peran yang masih dipakai pengguna tidak dapat dihapus.' })" />
+                                x-data x-on:click="$dispatch('konfirmasi-hapus', { action: {{ \Illuminate\Support\Js::from(route('roles.destroy', $role)) }}, nama: {{ \Illuminate\Support\Js::from('Peran '.$role->name) }}, pesan: 'akan dihapus. Peran yang masih dipakai pengguna tidak dapat dihapus.' })" />
                         @endcan
                     </div>
                 </x-ui.table.td>
