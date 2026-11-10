@@ -2,10 +2,13 @@
 
 namespace App\Providers;
 
+use App\Models\GoodsReceipt;
 use App\Models\Product;
 use App\Models\Purchase;
+use App\Models\PurchaseReturn;
 use App\Models\Sale;
 use App\Models\StockOpname;
+use App\Models\StockTransfer;
 use App\Models\User;
 use App\Policies\ProductPolicy;
 use App\Policies\RolePolicy;
@@ -39,11 +42,14 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Product::class, ProductPolicy::class);
         Gate::policy(Role::class, RolePolicy::class);
 
-        // reference_type di stock_movements memakai nama pendek. Modul berikutnya menambah 'sale', 'purchase', dst.
+        // reference_type di stock_movements (dan payable_type di payments) memakai nama pendek.
         Relation::morphMap([
             'stock_opname' => StockOpname::class,
             'purchase' => Purchase::class,
             'sale' => Sale::class,
+            'stock_transfer' => StockTransfer::class,
+            'goods_receipt' => GoodsReceipt::class,
+            'purchase_return' => PurchaseReturn::class,
         ]);
 
         // Menu sidebar, breadcrumb, notifikasi stok, dan nama toko untuk layout aplikasi & kasir.

@@ -64,6 +64,22 @@ class Product extends Model
         return $this->belongsTo(Unit::class);
     }
 
+    /** Stok per gudang. products.stock = jumlah seluruh baris ini. */
+    public function warehouseStocks(): HasMany
+    {
+        return $this->hasMany(WarehouseStock::class);
+    }
+
+    /** Stok di satu gudang (0 bila belum pernah ada mutasi di gudang itu). */
+    public function stockIn(Warehouse|int $warehouse): float
+    {
+        $id = $warehouse instanceof Warehouse ? $warehouse->getKey() : $warehouse;
+
+        return round((float) ($this->relationLoaded('warehouseStocks')
+            ? $this->warehouseStocks->firstWhere('warehouse_id', $id)?->quantity
+            : $this->warehouseStocks()->where('warehouse_id', $id)->value('quantity')), 3);
+    }
+
     public function stockMovements(): HasMany
     {
         return $this->hasMany(StockMovement::class);

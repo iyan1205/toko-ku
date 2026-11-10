@@ -14,4 +14,10 @@ enum PurchaseStatus: string
             self::Voided => 'Dibatalkan',
         };
     }
+
+    /** Warna x-ui.badge. */
+    public function color(): string
+    {
+        return $this === self::Completed ? 'success' : 'danger';
+    }
 }

@@ -16,6 +16,7 @@ class StockAdjustmentRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'warehouse_id' => ['nullable', 'integer', Rule::exists('warehouses', 'id')->where('is_active', true)->whereNull('deleted_at')],
             'product_id' => ['required', 'integer', Rule::exists('products', 'id')->whereNull('deleted_at')],
             'type' => ['required', Rule::in(array_map(fn ($t) => $t->value, StockMovementType::manual()))],
             'direction' => ['required_if:type,'.StockMovementType::Adjustment->value, 'nullable', Rule::in(['in', 'out'])],
@@ -27,6 +28,7 @@ class StockAdjustmentRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'warehouse_id' => 'gudang',
             'product_id' => 'produk',
             'type' => 'jenis',
             'direction' => 'arah',

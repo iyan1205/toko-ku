@@ -5,8 +5,6 @@ namespace Tests\Feature;
 use App\Enums\RoleName;
 use App\Models\Category;
 use App\Models\Product;
-use App\Models\Recipe;
-use App\Models\RecipeItem;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\RecipeService;
@@ -19,7 +17,9 @@ class RecipeTest extends TestCase
     use RefreshDatabase, SiapkanPeran;
 
     private User $superAdmin;
+
     private User $admin;
+
     private User $kasir;
 
     protected function setUp(): void
@@ -206,6 +206,37 @@ class RecipeTest extends TestCase
             ->assertSessionHasErrors('items.0.quantity');
     }
 
+    public function test_catatan_bahan_tersimpan_dan_muncul_lagi_saat_resep_diubah(): void
+    {
+        $bahan = $this->bahan('Ayam Karkas', 45000);
+        $produk = Product::factory()->create(['name' => 'Ayam Geprek']);
+        $this->actingAs($this->superAdmin)->post(route('recipes.store'), [
+            'product_id' => $produk->id,
+            'items' => [['product_id' => $bahan->id, 'quantity' => '0.111', 'notes' => 'Potong sembilan']],
+        ])->assertSessionHasNoErrors();
+        $recipe = $produk->recipe()->firstOrFail();
+
+        $response = $this->get(route('recipes.edit', $recipe));
+
+        $this->assertSame('Potong sembilan', $recipe->items()->sole()->notes);
+        $response->assertOk()->assertSee('Potong sembilan', false);
+    }
+
+    public function test_nama_produk_bertanda_kutip_ditulis_aman_di_tombol_hapus(): void
+    {
+        $bahan = $this->bahan('Ayam Karkas', 45000);
+        $produk = Product::factory()->create(['name' => "Ayam O'Neil"]);
+        $this->actingAs($this->superAdmin)->post(route('recipes.store'), [
+            'product_id' => $produk->id,
+            'items' => [['product_id' => $bahan->id, 'quantity' => '1', 'notes' => '']],
+        ]);
+
+        $response = $this->get(route('recipes.show', $produk->recipe()->firstOrFail()));
+
+        // Js::from mengubah kutip tunggal menjadi \u0027, sehingga ekspresi Alpine tidak terputus.
+        $response->assertOk()->assertSee("nama: 'Resep Ayam O\\u0027Neil'", false);
+    }
+
     // ---------------- Menu sidebar ----------------
 
     public function test_menu_resep_muncul_untuk_admin(): void
@@ -213,8 +244,8 @@ class RecipeTest extends TestCase
         $this->actingAs($this->superAdmin)
             ->get(route('recipes.index'))
             ->assertOk()
-            ->assertSee('Resep (Bill of Materials)')
-            ->assertSee('Buat Resep');
+            ->assertSee('Resep (BOM)')
+            ->assertSee('Buat resep');
     }
 
     public function test_menu_resep_tidak_muncul_untuk_kasir(): void

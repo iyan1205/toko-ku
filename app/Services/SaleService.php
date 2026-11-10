@@ -13,6 +13,7 @@ use App\Models\HeldSale;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\User;
+use App\Models\Warehouse;
 use App\Services\Settings\DocumentNumberService;
 use App\Support\Uang;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -62,9 +63,12 @@ class SaleService
 
         return DB::transaction(function () use ($data, $h, $kasir) {
             $sekarang = now();
+            // Kasir menjual dari gudang utama sampai sesi kasir (Fase 6) menentukan gudangnya.
+            $gudang = $this->stok->defaultWarehouse();
 
             $penjualan = new Sale([
                 'number' => $this->numbers->next(DocumentType::Sale, $sekarang),
+                'warehouse_id' => $gudang->getKey(),
                 'customer_id' => $h['pelanggan']->getKey(),
                 'user_id' => $kasir->getKey(),
                 'sold_at' => $sekarang,
@@ -112,6 +116,7 @@ class SaleService
                     $penjualan,
                     "Penjualan {$penjualan->number}",
                     $kasir,
+                    $gudang,
                 );
             }
 
@@ -169,6 +174,9 @@ class SaleService
                 );
             }
 
+            // Stok kembali ke gudang asal penjualan.
+            $gudang = Warehouse::withTrashed()->find($terkunci->warehouse_id) ?? $this->stok->defaultWarehouse();
+
             foreach ($terkunci->items->sortBy('product_id') as $item) {
                 $this->stok->catat(
                     Product::withTrashed()->findOrFail($item->product_id),
@@ -177,6 +185,7 @@ class SaleService
                     $terkunci,
                     "Pembatalan penjualan {$terkunci->number}: {$alasan}",
                     $user,
+                    $gudang,
                 );
             }
 

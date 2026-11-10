@@ -6,6 +6,7 @@ use App\Enums\DocumentType;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\PurchaseStatus;
+use App\Events\SupplierPaymentRecorded;
 use App\Exceptions\AturanBisnisException;
 use App\Models\Customer;
 use App\Models\Payment;
@@ -82,6 +83,8 @@ class PaymentService
 
             // Sinkronkan instance milik pemanggil agar tidak menampilkan angka basi.
             $pembelian->setRawAttributes($terkunci->getAttributes(), true);
+
+            SupplierPaymentRecorded::dispatch($pembayaran, $terkunci);
 
             return $pembayaran;
         });

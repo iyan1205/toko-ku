@@ -18,7 +18,7 @@ class StockMovement extends Model
     public const UPDATED_AT = null;
 
     protected $fillable = [
-        'product_id', 'type', 'reference_type', 'reference_id',
+        'warehouse_id', 'product_id', 'type', 'reference_type', 'reference_id',
         'quantity', 'stock_before', 'stock_after', 'note', 'user_id',
     ];
 
@@ -44,6 +44,11 @@ class StockMovement extends Model
         return $this->belongsTo(Product::class)->withTrashed();
     }
 
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class)->withTrashed();
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class)->withTrashed();
@@ -54,11 +59,12 @@ class StockMovement extends Model
         return $this->morphTo();
     }
 
-    /** @param array{produk?:?int,jenis?:?string,dari?:?string,sampai?:?string} $f */
+    /** @param array{produk?:?int,gudang?:?int,jenis?:?string,dari?:?string,sampai?:?string} $f */
     public function scopeFilter(Builder $query, array $f): Builder
     {
         return $query
             ->when($f['produk'] ?? null, fn (Builder $q, $v) => $q->where('product_id', $v))
+            ->when($f['gudang'] ?? null, fn (Builder $q, $v) => $q->where('warehouse_id', $v))
             ->when($f['jenis'] ?? null, fn (Builder $q, $v) => $q->where('type', $v))
             ->when($f['dari'] ?? null, fn (Builder $q, $v) => $q->whereDate('created_at', '>=', $v))
             ->when($f['sampai'] ?? null, fn (Builder $q, $v) => $q->whereDate('created_at', '<=', $v));

@@ -90,7 +90,9 @@ class PembelianTest extends TestCase
         $pembelian = Purchase::with(['items', 'payments'])->firstOrFail();
 
         $this->assertSame('PUR-'.now()->format('Ymd').'-0001', $pembelian->number);
-        $this->assertSame('94500.00', $pembelian->subtotal);
+        // subtotal = sebelum diskon baris (80.000 + 15.000), diskon baris 500 tercatat terpisah.
+        $this->assertSame('95000.00', $pembelian->subtotal);
+        $this->assertSame('500.00', $pembelian->item_discount);
         $this->assertSame('1000.00', $pembelian->discount);
         $this->assertSame('2000.00', $pembelian->other_cost);
         $this->assertSame('95500.00', $pembelian->grand_total);
@@ -386,8 +388,8 @@ class PembelianTest extends TestCase
             ->assertSee($pembelian->number)
             ->assertSee('Ayam Geprek')
             ->assertSee('Rp 95.500')
-            ->assertSee('Riwayat pembayaran')
-            ->assertSee('PAY-'.now()->format('Ymd').'-0001');
+            ->assertSee('PAY-'.now()->format('Ymd').'-0001')
+            ->assertSee('Pembelian langsung');
     }
 
     public function test_daftar_dapat_difilter_dan_meringkas_total_serta_hutang(): void
@@ -416,7 +418,7 @@ class PembelianTest extends TestCase
             ->assertSee('INV-B')->assertDontSee('INV-A');
 
         $this->get(route('purchases.index', ['dari' => now()->addDay()->format('Y-m-d')]))
-            ->assertSee('Belum ada pembelian yang cocok');
+            ->assertSee('Belum ada faktur yang cocok');
     }
 
     public function test_pencarian_produk_untuk_formulir(): void
@@ -450,7 +452,7 @@ class PembelianTest extends TestCase
         $this->actingAs($this->admin)
             ->get(route('suppliers.show', $this->supplier))
             ->assertOk()
-            ->assertSee('Hutang supplier')
+            ->assertSee('Sisa hutang')
             ->assertSee('Rp 75.500')
             ->assertSee($pembelian->number)
             ->assertSee('SEBAGIAN');

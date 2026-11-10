@@ -458,6 +458,29 @@ Ukuran: **S** = kecil, **M** = sedang, **L** = besar, **XL** = sangat besar. Set
 - Test: helper setting, penomoran (format dan urutan), data dashboard per peran.
 
 ### Fase 5a — Multi-gudang & Inventori · XL
+**Status 10 Nov 2026: selesai, menunggu pengecekan pemilik.**
+- Tabel baru: `warehouses` (Gudang Utama bawaan), `warehouse_stocks`, `stock_transfers` + `stock_transfer_items`. Kolom `warehouse_id` ditambahkan di `stock_movements`, `stock_opnames`, `sales`, dan `purchases`. Stok yang sudah ada dipindahkan ke Gudang Utama.
+- `StockService::catat()` bekerja per gudang. Stok minus ditolak per gudang, `products.stock` tetap total semua gudang, dan kartu stok mencatat saldo gudang. Pemanggil yang tidak memilih gudang memakai Gudang Utama; untuk saat ini ini termasuk kasir.
+- `stok:periksa` sekarang memeriksa total maupun per gudang. Versi lama akan salah melaporkan "tidak cocok" begitu ada dua gudang.
+- Transfer Stok langsung selesai dalam satu langkah, bisa dibatalkan, dan punya surat jalan (PDF). Stok Opname per gudang dengan alur draft → selesai.
+- Halaman yang di-redesign: Produk, Kategori, Satuan, Stok (produk × gudang dengan nilai persediaan), Kartu Stok, Penyesuaian, Stok Opname, Resep. Halaman baru: Gudang/Lokasi dan Transfer Stok.
+- Semua tabel daftar memakai `App\Exports\ListExport`: pencarian, filter, urutan, pagination, serta ekspor Excel dan PDF dengan isi yang sama dengan tampilan.
+
+### Fase 5b — Pembelian · L (dikerjakan bersama 5a)
+**Status 10 Nov 2026: selesai, menunggu pengecekan pemilik.**
+- Alur: Purchase Order (draft → disetujui; izin `purchasing.orders.approve`) → Penerimaan Barang (boleh bertahap, per gudang tujuan) → stok bertambah → faktur dan hutang tercatat otomatis.
+  - PO yang sisanya tidak akan dikirim bisa ditutup.
+  - Pembelian langsung tanpa PO tetap tersedia.
+- Halaman: Supplier, Purchase Order (termasuk cetak PDF), Penerimaan Barang, Faktur Pembelian, Retur Pembelian (draft → disetujui), dan Hutang Supplier (jatuh tempo, bayar cicil).
+- `subtotal` pembelian sekarang berarti sebelum diskon baris, sama dengan penjualan. Ada kolom baru `item_discount`.
+- Event, dikirim setelah transaksi database berhasil dan belum punya listener: `GoodsReceived`, `PurchaseVoided`, `PurchaseReturned`, `SupplierPaymentRecorded`.
+- Laporan Pembelian dan Laporan Stok (menu Laporan) belum dibuat, dan masih "Segera Hadir".
+- Bug lama yang ikut diperbaiki:
+  - Form Resep: kolom harga tidak pernah tampil karena ekspresi Alpine rusak, pesan error per bahan tidak pernah muncul, dan catatan bahan hilang saat resep diubah.
+  - Detail Resep: tombol Hapus rusak, dan rawan disusupi kode, bila nama produk mengandung tanda kutip.
+- Paket baru: `barryvdh/laravel-dompdf` (sudah disetujui di Fase 0).
+- Seluruh suite 603/603 lulus.
+
 Dikerjakan sebelum 5b dan Fase 6 karena mengubah `StockService`, yang dipakai penjualan dan pembelian.
 
 **Data (semua tambahan, tidak ada yang dihapus)**

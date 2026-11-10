@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Enums\PurchaseStatus;
 use App\Enums\RoleName;
 use App\Enums\StockMovementType;
-use App\Enums\PurchaseStatus;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Purchase;
@@ -22,8 +22,11 @@ class PembatalanPembelianTest extends TestCase
     use RefreshDatabase, SiapkanPeran;
 
     private User $admin;
+
     private Supplier $supplier;
+
     private Product $p1;
+
     private Product $p2;
 
     protected function setUp(): void
@@ -180,9 +183,9 @@ class PembatalanPembelianTest extends TestCase
 
         $this->get(route('purchases.show', $pembelian))
             ->assertOk()
-            ->assertSee('Pembelian ini dibatalkan')
+            ->assertSee('Faktur ini dibatalkan')
             ->assertSee('Salah input faktur')
-            ->assertDontSee('Batalkan pembelian ini');
+            ->assertDontSee(route('purchases.void', $pembelian));
 
         $this->get(route('purchases.index', ['status' => 'voided']))->assertSee($pembelian->number);
         $this->get(route('purchases.index', ['status' => 'completed']))->assertDontSee($pembelian->number);

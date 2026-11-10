@@ -26,6 +26,9 @@ Spesifikasi lengkap: docs/REDESIGN-TOKOKU.md. Hasil audit, keputusan, dan rencan
 - Pengaturan toko dibaca dengan `setting('key', $default)` dan disimpan dengan `setting([...])` (tabel settings, ter-cache). Jangan query tabel settings langsung.
 - Nomor dokumen baru dibuat lewat `DocumentNumberService::next()` di dalam `DB::transaction()` yang menyimpan dokumennya. Jangan menulis awalan nomor secara hardcode.
 - Validasi pakai Form Request. Logika bisnis berat di Service class (app/Services/{Modul}).
+- Perubahan stok selalu lewat `StockService::catat()` dengan gudang (`Warehouse`); tanpa gudang = Gudang Utama. Cek konsistensi dengan `php artisan stok:periksa`.
+- Tabel daftar dibangun dari satu kelas turunan `App\Exports\ListExport` (query, filter, sort, kolom), dipakai bersama oleh halaman, ekspor Excel, dan ekspor PDF.
+- Event antar modul (misal `GoodsReceived`) memakai `ShouldDispatchAfterCommit`, supaya listener (Akuntansi) hanya menerima transaksi yang benar-benar tersimpan.
 
 ## Keputusan pemilik (08 Nov 2026, rincian di docs/AUDIT.md bagian 7)
 - Admin boleh membuka Kasir (izin `create-sale`, nanti `pos.transactions.create`).

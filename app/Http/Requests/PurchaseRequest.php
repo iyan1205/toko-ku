@@ -30,6 +30,8 @@ class PurchaseRequest extends FormRequest
 
         return [
             'supplier_id' => ['required', 'integer', Rule::exists('suppliers', 'id')->whereNull('deleted_at')],
+            // Gudang tujuan barang. Kosong = gudang utama.
+            'warehouse_id' => ['nullable', 'integer', Rule::exists('warehouses', 'id')->where('is_active', true)->whereNull('deleted_at')],
             // Faktur yang sama dari supplier yang sama hanya boleh tercatat sekali (pembelian yang sudah dibatalkan tidak dihitung).
             'supplier_invoice_number' => [
                 'nullable', 'string', 'max:50',
@@ -63,6 +65,7 @@ class PurchaseRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'warehouse_id' => 'gudang',
             'supplier_id' => 'supplier',
             'supplier_invoice_number' => 'nomor faktur supplier',
             'purchase_date' => 'tanggal pembelian',

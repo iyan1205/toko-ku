@@ -4,10 +4,13 @@ namespace Tests\Feature;
 
 use App\Enums\RoleName;
 use App\Enums\StockMovementType;
+use App\Enums\StockOpnameStatus;
 use App\Models\Product;
 use App\Models\StockMovement;
 use App\Models\StockOpname;
 use App\Models\User;
+use App\Models\Warehouse;
+use App\Models\WarehouseStock;
 use App\Services\StockService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\SiapkanPeran;
@@ -18,7 +21,9 @@ class StokOpnameTest extends TestCase
     use RefreshDatabase, SiapkanPeran;
 
     private User $admin;
+
     private Product $a;
+
     private Product $b;
 
     protected function setUp(): void
@@ -32,7 +37,7 @@ class StokOpnameTest extends TestCase
 
     private function payload(array $items, array $ubah = []): array
     {
-        return array_merge(['opname_date' => now()->format('Y-m-d'), 'note' => 'Opname rak', 'items' => $items], $ubah);
+        return array_merge(['aksi' => 'final', 'opname_date' => now()->format('Y-m-d'), 'note' => 'Opname rak', 'items' => $items], $ubah);
     }
 
     private function item(Product $p, ?string $fisik, ?string $alasan = null, ?string $sistem = null): array
@@ -47,7 +52,7 @@ class StokOpnameTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $opname = StockOpname::firstOrFail();
-        $this->assertSame('OPN-' . now()->format('Ymd') . '-0001', $opname->number);
+        $this->assertSame('OPN-'.now()->format('Ymd').'-0001', $opname->number);
         $this->assertSame($this->admin->id, $opname->user_id);
 
         $this->assertSame(97.0, (float) $this->a->fresh()->stock);
@@ -103,7 +108,7 @@ class StokOpnameTest extends TestCase
         $this->post(route('stock-opnames.store'), $this->payload($this->item($this->a, '100'), ['opname_date' => '2026-01-15']));
 
         $this->assertEqualsCanonicalizing(
-            ['OPN-' . now()->format('Ymd') . '-0001', 'OPN-' . now()->format('Ymd') . '-0002', 'OPN-20260115-0001'],
+            ['OPN-'.now()->format('Ymd').'-0001', 'OPN-'.now()->format('Ymd').'-0002', 'OPN-20260115-0001'],
             StockOpname::pluck('number')->all()
         );
     }
@@ -225,6 +230,63 @@ class StokOpnameTest extends TestCase
         $this->get(route('stock-opnames.show', $opname))->assertForbidden();
         $this->post(route('stock-opnames.store'), $this->payload($this->item($this->a, '97', 'x')))->assertForbidden();
 
+        $this->assertSame(100.0, (float) $this->a->fresh()->stock);
+    }
+
+    // ---------------- Draft → selesai, per gudang ----------------
+
+    public function test_draft_menyimpan_hitungan_tanpa_mengubah_stok(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('stock-opnames.store'), $this->payload($this->item($this->a, '97', 'Rusak 3'), ['aksi' => 'draft']))
+            ->assertSessionHasNoErrors();
+
+        $opname = StockOpname::sole();
+        $this->assertSame(StockOpnameStatus::Draft, $opname->status);
+        $this->assertSame(100.0, (float) $this->a->fresh()->stock);
+        $this->assertDatabaseCount('stock_movements', 0);
+    }
+
+    public function test_draft_yang_diselesaikan_membukukan_selisih(): void
+    {
+        $this->actingAs($this->admin)->post(route('stock-opnames.store'), $this->payload($this->item($this->a, '97', 'Rusak 3'), ['aksi' => 'draft']));
+        $opname = StockOpname::sole();
+
+        $this->post(route('stock-opnames.finalize', $opname))->assertSessionHasNoErrors();
+
+        $this->assertSame(StockOpnameStatus::Final, $opname->fresh()->status);
+        $this->assertSame(97.0, (float) $this->a->fresh()->stock);
+        $this->assertSame(-3.0, (float) StockMovement::sole()->quantity);
+    }
+
+    public function test_opname_gudang_lain_hanya_mengubah_stok_gudang_itu(): void
+    {
+        $belakang = Warehouse::factory()->create(['name' => 'Gudang Belakang']);
+        app(StockService::class)->catat($this->a, StockMovementType::Purchase, 5, null, null, $this->admin, $belakang);
+
+        $this->actingAs($this->admin)
+            ->post(route('stock-opnames.store'), $this->payload($this->item($this->a, '3', 'Tumpah', '5'), ['warehouse_id' => $belakang->id]))
+            ->assertSessionHasNoErrors();
+
+        $stokDi = fn (Warehouse $g) => (float) WarehouseStock::where('warehouse_id', $g->id)->where('product_id', $this->a->id)->value('quantity');
+        $this->assertSame(3.0, $stokDi($belakang));
+        $this->assertSame(100.0, $stokDi(Warehouse::default()));
+        $this->assertSame(103.0, (float) $this->a->fresh()->stock);
+        $this->assertSame($belakang->id, StockOpname::sole()->warehouse_id);
+    }
+
+    public function test_staf_gudang_bisa_menyimpan_draft_tetapi_tidak_bisa_menyelesaikan(): void
+    {
+        $staf = $this->buatPengguna(RoleName::StafGudang);
+
+        $this->actingAs($staf)
+            ->post(route('stock-opnames.store'), $this->payload($this->item($this->a, '97', 'Rusak 3'), ['aksi' => 'draft']))
+            ->assertSessionHasNoErrors();
+        $opname = StockOpname::sole();
+        $this->post(route('stock-opnames.finalize', $opname))->assertForbidden();
+        $this->post(route('stock-opnames.store'), $this->payload($this->item($this->b, '49', 'Hilang')))->assertForbidden();
+
+        $this->assertSame(StockOpnameStatus::Draft, $opname->fresh()->status);
         $this->assertSame(100.0, (float) $this->a->fresh()->stock);
     }
 }

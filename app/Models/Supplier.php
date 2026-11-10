@@ -21,6 +21,11 @@ class Supplier extends Model
         return $this->hasMany(Purchase::class);
     }
 
+    public function purchaseOrders(): HasMany
+    {
+        return $this->hasMany(PurchaseOrder::class);
+    }
+
     public function scopeCari(Builder $query, ?string $kata): Builder
     {
         if ($kata === null || trim($kata) === '') {

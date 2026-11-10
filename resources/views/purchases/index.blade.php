@@ -1,99 +1,71 @@
+{{-- Faktur pembelian: pembelian langsung dan faktur dari penerimaan barang. Cari, filter, urutkan, ekspor. --}}
+@use('App\Support\Format')
+@use('App\Enums\PaymentStatus')
+@use('App\Enums\PurchaseStatus')
+
 <x-app-layout>
-    <x-slot name="header">Pembelian</x-slot>
+    <x-slot name="header">Faktur Pembelian</x-slot>
+    <x-slot name="description">Pembelian langsung dan faktur yang dibuat otomatis dari penerimaan barang.</x-slot>
+    <x-slot name="actions">
+        @can('purchasing.invoices.export')
+            <x-ui.export-menu :href="route('purchases.export')" />
+        @endcan
+        @can('purchasing.invoices.create')
+            <x-ui.button :href="route('purchases.create')" icon="plus">Pembelian langsung</x-ui.button>
+        @endcan
+    </x-slot>
 
-    <div class="mb-4 grid gap-3 sm:grid-cols-2">
-        <div class="kartu p-4">
-            <p class="text-sm text-stone-500">Total pembelian (sesuai filter, tanpa yang dibatalkan)</p>
-            <p class="mt-1 text-2xl font-semibold text-stone-900">@rupiah($ringkasan['total'])</p>
-        </div>
-        <div class="kartu p-4">
-            <p class="text-sm text-stone-500">Sisa hutang (sesuai filter)</p>
-            <p class="mt-1 text-2xl font-semibold {{ $ringkasan['hutang'] > 0 ? 'text-brand-700' : 'text-stone-900' }}">@rupiah($ringkasan['hutang'])</p>
-        </div>
+    <div class="mb-6 grid gap-4 sm:grid-cols-3">
+        <x-ui.stat-card label="Faktur" :value="Format::jumlah($ringkasan['jumlah'])" icon="document-text" color="neutral" hint="sesuai filter, tanpa yang dibatalkan" />
+        <x-ui.stat-card label="Total pembelian" :value="Format::rupiah($ringkasan['total'])" icon="shopping-bag" />
+        <x-ui.stat-card label="Sisa hutang" :value="Format::rupiah($ringkasan['hutang'])" icon="banknotes" color="warning" :href="route('payables.index')" />
     </div>
 
-    <div class="kartu">
-        <div class="space-y-3 border-b border-stone-200 p-4">
-            <form method="GET" action="{{ route('purchases.index') }}" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
-                <input type="search" name="cari" value="{{ request('cari') }}" placeholder="Cari nomor, faktur, supplier"
-                       class="rounded-md border-stone-300 text-sm focus:border-brand-600 focus:ring-brand-600 lg:col-span-2">
-                <select name="supplier" aria-label="Filter supplier" class="rounded-md border-stone-300 text-sm focus:border-brand-600 focus:ring-brand-600">
-                    <option value="">Semua supplier</option>
-                    @foreach ($suppliers as $s)
-                        <option value="{{ $s->id }}" @selected((string) request('supplier') === (string) $s->id)>{{ $s->name }}</option>
-                    @endforeach
-                </select>
-                <select name="pembayaran" aria-label="Filter pembayaran" class="rounded-md border-stone-300 text-sm focus:border-brand-600 focus:ring-brand-600">
-                    <option value="">Semua pembayaran</option>
-                    <option value="paid" @selected(request('pembayaran') === 'paid')>Lunas</option>
-                    <option value="partial" @selected(request('pembayaran') === 'partial')>Sebagian</option>
-                    <option value="unpaid" @selected(request('pembayaran') === 'unpaid')>Hutang</option>
-                </select>
-                <select name="status" aria-label="Filter status" class="rounded-md border-stone-300 text-sm focus:border-brand-600 focus:ring-brand-600">
-                    <option value="">Semua status</option>
-                    <option value="completed" @selected(request('status') === 'completed')>Selesai</option>
-                    <option value="voided" @selected(request('status') === 'voided')>Dibatalkan</option>
-                </select>
-                <div class="flex gap-2">
-                    <input type="date" name="dari" value="{{ request('dari') }}" aria-label="Dari tanggal" class="w-full rounded-md border-stone-300 text-sm focus:border-brand-600 focus:ring-brand-600">
-                    <input type="date" name="sampai" value="{{ request('sampai') }}" aria-label="Sampai tanggal" class="w-full rounded-md border-stone-300 text-sm focus:border-brand-600 focus:ring-brand-600">
-                </div>
-                <button type="submit" class="rounded-md border border-stone-300 px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 lg:col-span-6 lg:w-40">Terapkan filter</button>
-            </form>
-            @error('sampai') <p class="text-sm text-brand-600">{{ $message }}</p> @enderror
+    <x-ui.table :paginator="$pembelian">
+        <x-slot:toolbar>
+            <x-ui.filter-bar placeholder="Cari nomor, faktur supplier, atau supplier">
+                <x-ui.select name="supplier" label="Supplier" hide-label :options="$suppliers->pluck('name', 'id')" :selected="request('supplier')" placeholder="Semua supplier" />
+                <x-ui.select name="gudang" label="Gudang" hide-label :options="$gudang->pluck('name', 'id')" :selected="request('gudang')" placeholder="Semua gudang" />
+                <x-ui.select name="pembayaran" label="Pembayaran" hide-label :options="collect(PaymentStatus::cases())->mapWithKeys(fn ($s) => [$s->value => $s->label()])" :selected="request('pembayaran')" placeholder="Semua pembayaran" />
+                <x-ui.select name="status" label="Status" hide-label :options="collect(PurchaseStatus::cases())->mapWithKeys(fn ($s) => [$s->value => $s->label()])" :selected="request('status')" placeholder="Semua status" />
+                <x-ui.input name="dari" label="Dari tanggal" hide-label type="date" :value="request('dari')" />
+                <x-ui.input name="sampai" label="Sampai tanggal" hide-label type="date" :value="request('sampai')" />
+            </x-ui.filter-bar>
+        </x-slot:toolbar>
 
-            @can('purchasing.invoices.create')
-                <a href="{{ route('purchases.create') }}"
-                   class="inline-block rounded-md bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:ring-offset-2">Pembelian baru</a>
-            @endcan
-        </div>
+        <x-slot:head>
+            <x-ui.table.th sort="number">Nomor</x-ui.table.th>
+            <x-ui.table.th sort="date">Tanggal</x-ui.table.th>
+            <x-ui.table.th sort="supplier">Supplier</x-ui.table.th>
+            <x-ui.table.th>Gudang</x-ui.table.th>
+            <x-ui.table.th align="right" sort="total">Total</x-ui.table.th>
+            <x-ui.table.th align="right" sort="balance">Sisa hutang</x-ui.table.th>
+            <x-ui.table.th>Status</x-ui.table.th>
+        </x-slot:head>
 
-        <div class="overflow-x-auto">
-            <table class="tabel">
-                <thead>
-                    <tr>
-                        <th class="font-medium">Nomor</th>
-                        <th class="font-medium">Tanggal</th>
-                        <th class="font-medium">Supplier</th>
-                        <th class="text-right font-medium">Total</th>
-                        <th class="text-right font-medium">Dibayar</th>
-                        <th class="text-right font-medium">Sisa hutang</th>
-                        <th class="font-medium">Status</th>
-                        <th class="text-right font-medium">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($pembelian as $p)
-                        <tr @class(['bg-stone-50 text-stone-400' => $p->dibatalkan()])>
-                            <td class="font-medium {{ $p->dibatalkan() ? 'line-through' : 'text-stone-900' }}">{{ $p->number }}</td>
-                            <td class="whitespace-nowrap">@tanggal($p->purchase_date)</td>
-                            <td >
-                                {{ $p->supplier?->name }}
-                                @if ($p->supplier_invoice_number) <p class="text-xs text-stone-500">Faktur {{ $p->supplier_invoice_number }}</p> @endif
-                            </td>
-                            <td class="text-right">@rupiah($p->grand_total)</td>
-                            <td class="text-right">@rupiah($p->paid_amount)</td>
-                            <td class="px-4 py-3 text-right {{ ! $p->dibatalkan() && (float) $p->balance > 0 ? 'font-medium text-brand-700' : '' }}">@rupiah($p->balance)</td>
-                            <td >
-                                @if ($p->dibatalkan())
-                                    <span class="rounded-full bg-stone-200 px-2.5 py-0.5 text-xs font-medium text-stone-700">Dibatalkan</span>
-                                @else
-                                    @include('partials.badge-pembayaran', ['status' => $p->payment_status])
-                                @endif
-                            </td>
-                            <td class="text-right"><a href="{{ route('purchases.show', $p) }}" class="text-brand-700 hover:underline">Detail</a></td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="8" class="px-4 py-10 text-center text-stone-500">Belum ada pembelian yang cocok dengan filter ini.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-
-        @if ($pembelian->hasPages())
-            <div class="border-t border-stone-200 p-4">{{ $pembelian->links() }}</div>
-        @endif
-    </div>
+        @forelse ($pembelian as $p)
+            <tr @class(['opacity-60' => $p->dibatalkan()])>
+                <x-ui.table.td>
+                    <a href="{{ route('purchases.show', $p) }}" class="font-medium text-slate-900 hover:text-primary-700 hover:underline">{{ $p->number }}</a>
+                    <p class="text-xs text-slate-500">
+                        {{ $p->purchaseOrder ? 'Dari '.$p->purchaseOrder->number : 'Pembelian langsung' }}@if ($p->supplier_invoice_number) · {{ $p->supplier_invoice_number }}@endif
+                    </p>
+                </x-ui.table.td>
+                <x-ui.table.td numeric muted>{{ Format::tanggal($p->purchase_date) }}</x-ui.table.td>
+                <x-ui.table.td>{{ $p->supplier?->name }}</x-ui.table.td>
+                <x-ui.table.td muted>{{ $p->warehouse?->name }}</x-ui.table.td>
+                <x-ui.table.td align="right" numeric>@rupiah($p->grand_total)</x-ui.table.td>
+                <x-ui.table.td align="right" numeric :class="! $p->dibatalkan() && (float) $p->balance > 0 ? 'font-medium text-slate-900' : 'text-slate-400'">@rupiah($p->balance)</x-ui.table.td>
+                <x-ui.table.td>
+                    @if ($p->dibatalkan())
+                        <x-ui.badge :color="$p->status->color()" dot>{{ $p->status->label() }}</x-ui.badge>
+                    @else
+                        @include('partials.badge-pembayaran', ['status' => $p->payment_status])
+                    @endif
+                </x-ui.table.td>
+            </tr>
+        @empty
+            <x-ui.table.empty colspan="7" icon="document-text" title="Belum ada faktur yang cocok" description="Ubah filter, terima barang dari purchase order, atau catat pembelian langsung." />
+        @endforelse
+    </x-ui.table>
 </x-app-layout>

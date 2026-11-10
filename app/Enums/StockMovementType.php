@@ -11,6 +11,8 @@ enum StockMovementType: string
     case Adjustment = 'adjustment';
     case Damaged = 'damaged';
     case Lost = 'lost';
+    case TransferOut = 'transfer_out';
+    case TransferIn = 'transfer_in';
 
     public function label(): string
     {
@@ -22,6 +24,8 @@ enum StockMovementType: string
             self::Adjustment => 'Penyesuaian Stok',
             self::Damaged => 'Barang Rusak',
             self::Lost => 'Barang Hilang',
+            self::TransferOut => 'Transfer Keluar',
+            self::TransferIn => 'Transfer Masuk',
         };
     }
 

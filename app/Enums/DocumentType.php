@@ -3,10 +3,14 @@
 namespace App\Enums;
 
 use App\Models\Cuti;
+use App\Models\GoodsReceipt;
 use App\Models\Payment;
 use App\Models\Purchase;
+use App\Models\PurchaseOrder;
+use App\Models\PurchaseReturn;
 use App\Models\Sale;
 use App\Models\StockOpname;
+use App\Models\StockTransfer;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -23,6 +27,10 @@ enum DocumentType: string
     case SupplierPayment = 'supplier_payment';
     case CustomerPayment = 'customer_payment';
     case StockOpname = 'stock_opname';
+    case StockTransfer = 'stock_transfer';
+    case PurchaseOrder = 'purchase_order';
+    case GoodsReceipt = 'goods_receipt';
+    case PurchaseReturn = 'purchase_return';
     case Leave = 'leave';
 
     public function label(): string
@@ -33,6 +41,10 @@ enum DocumentType: string
             self::SupplierPayment => 'Pembayaran hutang supplier',
             self::CustomerPayment => 'Penerimaan piutang pelanggan',
             self::StockOpname => 'Stok opname',
+            self::StockTransfer => 'Transfer stok',
+            self::PurchaseOrder => 'Purchase order',
+            self::GoodsReceipt => 'Penerimaan barang',
+            self::PurchaseReturn => 'Retur pembelian',
             self::Leave => 'Pengajuan cuti & izin',
         };
     }
@@ -45,6 +57,10 @@ enum DocumentType: string
             self::SupplierPayment => 'PAY-{YYYY}{MM}{DD}-{####}',
             self::CustomerPayment => 'RCV-{YYYY}{MM}{DD}-{####}',
             self::StockOpname => 'OPN-{YYYY}{MM}{DD}-{####}',
+            self::StockTransfer => 'TRF-{YYYY}{MM}{DD}-{####}',
+            self::PurchaseOrder => 'PO-{YYYY}{MM}{DD}-{####}',
+            self::GoodsReceipt => 'GRN-{YYYY}{MM}{DD}-{####}',
+            self::PurchaseReturn => 'RTB-{YYYY}{MM}{DD}-{####}',
             self::Leave => 'CT-{#####}',
         };
     }
@@ -62,6 +78,10 @@ enum DocumentType: string
             self::Purchase => Purchase::class,
             self::SupplierPayment, self::CustomerPayment => Payment::class,
             self::StockOpname => StockOpname::class,
+            self::StockTransfer => StockTransfer::class,
+            self::PurchaseOrder => PurchaseOrder::class,
+            self::GoodsReceipt => GoodsReceipt::class,
+            self::PurchaseReturn => PurchaseReturn::class,
             self::Leave => Cuti::class,
         };
     }

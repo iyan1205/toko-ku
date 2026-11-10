@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 class Sale extends Model
 {
     protected $fillable = [
-        'number', 'customer_id', 'user_id', 'sold_at', 'subtotal', 'item_discount', 'discount',
+        'number', 'warehouse_id', 'customer_id', 'user_id', 'sold_at', 'subtotal', 'item_discount', 'discount',
         'grand_total', 'tendered_amount', 'change_amount', 'payment_method', 'note',
     ];
 
@@ -40,6 +40,11 @@ class Sale extends Model
             'status' => PurchaseStatus::class,
             'voided_at' => 'datetime',
         ];
+    }
+
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class)->withTrashed();
     }
 
     public function customer(): BelongsTo
