@@ -50,7 +50,7 @@ return [
                 // Sesi & retur: view/create = milik sendiri; approve = semua, verifikasi setoran, dan persetujuan retur.
                 'sessions' => ['label' => 'Sesi/shift kasir', 'actions' => ['view', 'create', 'approve', 'export']],
                 'returns' => ['label' => 'Retur penjualan', 'actions' => ['view', 'create', 'approve', 'export']],
-                'customers' => ['label' => 'Pelanggan', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
+                'customers' => ['label' => 'Pelanggan', 'actions' => ['view', 'create', 'update', 'delete', 'import', 'export']],
                 'receivables' => ['label' => 'Piutang pelanggan', 'actions' => ['view', 'create', 'export']],
             ],
         ],
@@ -74,7 +74,7 @@ return [
         'purchasing' => [
             'label' => 'Pembelian',
             'features' => [
-                'suppliers' => ['label' => 'Supplier', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
+                'suppliers' => ['label' => 'Supplier', 'actions' => ['view', 'create', 'update', 'delete', 'import', 'export']],
                 'orders' => ['label' => 'Purchase order', 'actions' => ['view', 'create', 'update', 'delete', 'approve', 'print', 'export']],
                 'invoices' => ['label' => 'Faktur pembelian', 'actions' => ['view', 'create', 'void', 'export']],
                 'receipts' => ['label' => 'Penerimaan barang', 'actions' => ['view', 'create', 'void', 'export']],
@@ -146,6 +146,8 @@ return [
                 'numbering' => ['label' => 'Penomoran dokumen', 'actions' => ['view', 'update']],
                 'approvals' => ['label' => 'Alur persetujuan', 'actions' => ['view', 'create', 'update', 'delete']],
                 'backup' => ['label' => 'Backup', 'actions' => ['view', 'create']],
+                // Sistem: update = jalankan ulang / kosongkan job gagal.
+                'system' => ['label' => 'Sistem (scheduler & antrean)', 'actions' => ['view', 'update']],
             ],
         ],
     ],

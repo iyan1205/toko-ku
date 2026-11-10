@@ -5,6 +5,7 @@ Toko-ku adalah aplikasi manajemen toko (POS + back office) berbasis Laravel.
 Modul: Dashboard, Kasir, Inventori, Pembelian, Laporan, Akuntansi, SDM, Pengguna & Hak Akses, Pengaturan.
 Akuntansi dan SDM dibangun bertahap; strukturnya harus disiapkan sejak sekarang.
 Spesifikasi lengkap: docs/REDESIGN-TOKOKU.md. Hasil audit, keputusan, dan rencana fase: docs/AUDIT.md.
+Rencana Fase 8–19: docs/ROADMAP-ENTERPRISE-TOKOKU.md. Status modul: docs/ROADMAP.md. Deploy, queue, scheduler: docs/DEPLOY.md.
 
 ## Aturan kerja
 - Jangan merusak fitur yang sudah berjalan. Sebelum mengubah, baca dulu kode yang ada.
@@ -31,6 +32,14 @@ Spesifikasi lengkap: docs/REDESIGN-TOKOKU.md. Hasil audit, keputusan, dan rencan
 - Penjualan dari Kasir dikirim ke `SaleService` dengan `payments[]` (satu baris per metode). Hitungan uang memakai bilangan bulat sen (`App\Support\Uang`), dan pratinjau di layar memakai `resources/js/pos/hitung.js` dengan aturan pembulatan yang sama.
 - Jurnal akuntansi hanya lewat `App\Services\Accounting\JournalService` (debit = kredit, tidak bisa diubah; koreksi dengan jurnal pembalik). Akun untuk jurnal otomatis diatur di `config/accounting.php`.
 - Event antar modul (misal `GoodsReceived`) memakai `ShouldDispatchAfterCommit`, supaya listener (Akuntansi) hanya menerima transaksi yang benar-benar tersimpan.
+
+## Fondasi (Fase 8)
+- Model transaksi memakai trait `BelongsToBranch` (company_id/branch_id terisi otomatis, data disaring ke cabang aktif). Query internal lintas cabang memakai `withoutGlobalScope(BranchScope::class)`; query builder dengan join menyaring sendiri lewat `CurrentBranch::scopeIds()`.
+- Transaksi yang membukukan stok, kas, hutang-piutang, atau jurnal: rule `OpenPeriod` di Form Request dan `FiscalPeriodService::ensureOpen($tanggal)` di service.
+- Persetujuan hanya lewat `ApprovalService` (trait `HasApproval`, daftar dokumen di `config/approval.php`); jangan membuat alur persetujuan sendiri.
+- Dokumen baru memakai status baku `HasDocumentStatus` (draft/submitted/approved/posted/cancelled); dokumen posted tidak diubah, koreksi lewat pembatalan/jurnal balik.
+- Lampiran: trait `HasAttachments` + `config/attachments.php` + `<x-ui.attachments>`. Notifikasi: turunan `App\Notifications\AppNotification` + `config/notification-types.php`. Impor massal: turunan `App\Imports\ImportDefinition` + `config/imports.php`.
+- Proses berat (email, ekspor besar) lewat queue. Halaman yang memakai queue harus tetap berjalan bila worker belum hidup (lihat `QueueHealth`).
 
 ## Keputusan pemilik (08 Nov 2026, rincian di docs/AUDIT.md bagian 7)
 - Admin boleh membuka Kasir (izin `create-sale`, nanti `pos.transactions.create`).

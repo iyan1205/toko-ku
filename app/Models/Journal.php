@@ -6,6 +6,7 @@ use App\Enums\DocumentStatus;
 use App\Enums\DocumentType;
 use App\Models\Concerns\BelongsToBranch;
 use App\Models\Concerns\HasApproval;
+use App\Models\Concerns\HasAttachments;
 use App\Models\Concerns\HasDocumentStatus;
 use App\Services\Accounting\JournalService;
 use App\Support\DocumentLink;
@@ -29,7 +30,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  */
 class Journal extends Model
 {
-    use BelongsToBranch, HasApproval, HasDocumentStatus;
+    use BelongsToBranch, HasApproval, HasAttachments, HasDocumentStatus;
 
     protected $fillable = ['number', 'journal_date', 'description', 'source_type', 'source_id', 'source_event', 'reversal_of_id', 'total', 'user_id'];
 

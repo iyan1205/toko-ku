@@ -7,6 +7,7 @@ use App\Models\Journal;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Purchase;
+use App\Models\PurchaseOrder;
 use App\Models\PurchaseReturn;
 use App\Models\Sale;
 use App\Models\SaleReturn;
@@ -18,11 +19,13 @@ use App\Policies\RolePolicy;
 use App\Services\Accounting\FiscalPeriodService;
 use App\Services\Settings\PaymentMethodService;
 use App\Support\CurrentBranch;
+use App\Support\QueueHealth;
 use App\Support\SettingStore;
 use App\View\Composers\NavigationComposer;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Role;
@@ -47,10 +50,11 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Product::class, ProductPolicy::class);
         Gate::policy(Role::class, RolePolicy::class);
 
-        // reference_type di stock_movements (dan payable_type di payments) memakai nama pendek.
+        // reference_type di stock_movements (dan payable_type di payments, approvable_type, attachable_type) memakai nama pendek.
         Relation::morphMap([
             'stock_opname' => StockOpname::class,
             'purchase' => Purchase::class,
+            'purchase_order' => PurchaseOrder::class,
             'sale' => Sale::class,
             'stock_transfer' => StockTransfer::class,
             'goods_receipt' => GoodsReceipt::class,
@@ -59,6 +63,9 @@ class AppServiceProvider extends ServiceProvider
             'payment' => Payment::class,
             'journal' => Journal::class,
         ]);
+
+        // Tanda hidup queue worker untuk Pengaturan → Sistem dan ekspor besar (lihat QueueHealth).
+        Queue::looping(fn () => QueueHealth::workerBeat());
 
         // Menu sidebar, breadcrumb, notifikasi stok, dan nama toko untuk layout aplikasi & kasir.
         View::composer(['layouts.app', 'layouts.pos'], NavigationComposer::class);

@@ -174,6 +174,8 @@
         </div>
     </div>
 
+    <x-ui.attachments :document="$order" class="mt-6" />
+
     @can('purchasing.orders.approve')
         <x-ui.void-dialog name="batal-po" :action="route('purchase-orders.cancel', $order)" :title="'Batalkan '.$order->number.'?'">
             PO dibatalkan dan barangnya tidak bisa diterima lagi. Dokumen tetap tersimpan.

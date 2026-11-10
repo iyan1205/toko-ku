@@ -16,6 +16,7 @@ use App\Http\Controllers\Settings\PaymentMethodController;
 use App\Http\Controllers\Settings\PosSettingController;
 use App\Http\Controllers\Settings\ReceiptSettingController;
 use App\Http\Controllers\Settings\StoreProfileController;
+use App\Http\Controllers\Settings\SystemStatusController;
 use App\Http\Controllers\Settings\TaxController;
 use Illuminate\Support\Facades\Route;
 
@@ -60,6 +61,10 @@ Route::prefix('pengaturan')->name('settings.')->group(function () {
 
     Route::get('penomoran', [DocumentNumberingController::class, 'edit'])->middleware('permission:settings.numbering.view')->name('numbering.edit');
     Route::put('penomoran', [DocumentNumberingController::class, 'update'])->middleware('permission:settings.numbering.update')->name('numbering.update');
+
+    Route::get('sistem', [SystemStatusController::class, 'index'])->middleware('permission:settings.system.view')->name('system.index');
+    Route::post('sistem/job-gagal/coba-lagi', [SystemStatusController::class, 'retry'])->middleware('permission:settings.system.update')->name('system.retry');
+    Route::post('sistem/job-gagal/kosongkan', [SystemStatusController::class, 'flush'])->middleware('permission:settings.system.update')->name('system.flush');
 
     Route::get('backup', [BackupController::class, 'index'])->middleware('permission:settings.backup.view')->name('backups.index');
     Route::post('backup', [BackupController::class, 'store'])->middleware(['permission:settings.backup.create', 'throttle:5,1'])->name('backups.store');

@@ -20,6 +20,10 @@ class ActivityLogController extends Controller
         'penjualan' => 'Penjualan',
         'pembelian' => 'Pembelian',
         'sdm' => 'SDM',
+        'akuntansi' => 'Akuntansi',
+        'persetujuan' => 'Persetujuan',
+        'dokumen' => 'Lampiran dokumen',
+        'impor' => 'Impor data',
         'pengaturan' => 'Pengaturan',
     ];
 

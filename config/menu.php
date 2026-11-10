@@ -29,6 +29,11 @@ return [
                 'route' => 'dashboard', 'permission' => null,
                 'description' => 'Ringkasan penjualan, stok, dan aktivitas toko.',
             ],
+            [
+                'key' => 'approvals', 'label' => 'Persetujuan Saya', 'icon' => 'check-badge',
+                'route' => 'approvals.index', 'active' => 'approvals.*', 'permission' => null,
+                'description' => 'Dokumen yang menunggu persetujuan Anda, pengajuan Anda, dan keputusan yang sudah Anda buat.',
+            ],
         ],
     ],
 
@@ -210,6 +215,8 @@ return [
                         'description' => 'Dokumen yang perlu disetujui (misal PO di atas Rp 5.000.000), tahapnya, dan siapa penyetujunya.'],
                     ['key' => 'settings-numbering', 'label' => 'Penomoran Dokumen', 'route' => 'settings.numbering.edit', 'active' => 'settings.numbering.*', 'permission' => 'settings.numbering.view',
                         'description' => 'Format nomor dokumen, misal INV/2026/11/0001.'],
+                    ['key' => 'settings-system', 'label' => 'Sistem', 'route' => 'settings.system.index', 'active' => 'settings.system.*', 'permission' => 'settings.system.view',
+                        'description' => 'Status scheduler dan queue worker, antrean email & ekspor, dan job yang gagal.'],
                     ['key' => 'settings-backup', 'label' => 'Backup', 'route' => 'settings.backups.index', 'active' => 'settings.backups.*', 'permission' => 'settings.backup.view',
                         'description' => 'Buat dan unduh cadangan database.'],
                 ],

@@ -5,6 +5,8 @@ use App\Http\Controllers\ComingSoonController;
 use App\Http\Controllers\CurrentBranchController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Dev\UiKitController;
+use App\Http\Controllers\Documents\AttachmentController;
+use App\Http\Controllers\ExportFileController;
 use App\Http\Controllers\NotificationCenterController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
@@ -51,6 +53,20 @@ Route::middleware('auth')->group(function () {
         Route::post('tarik', [ApprovalController::class, 'cancel'])->name('cancel');
     });
 
+    // Lampiran dokumen: izin lihat/ubah dicek di controller sesuai jenis dokumennya (config/attachments.php).
+    Route::post('lampiran/{type}/{id}', [AttachmentController::class, 'store'])
+        ->whereIn('type', array_keys(config('attachments.types')))->whereNumber('id')
+        ->middleware('throttle:60,1')->name('attachments.store');
+    Route::prefix('lampiran/{attachment}')->whereNumber('attachment')->name('attachments.')->group(function () {
+        Route::get('/', [AttachmentController::class, 'show'])->name('show');
+        Route::get('unduh', [AttachmentController::class, 'download'])->name('download');
+        Route::delete('/', [AttachmentController::class, 'destroy'])->name('destroy');
+    });
+
+    // Ekspor Saya: berkas ekspor data besar (queue) milik sendiri.
+    Route::get('ekspor-saya', [ExportFileController::class, 'index'])->name('exports.index');
+    Route::get('ekspor-saya/{export}/unduh', [ExportFileController::class, 'download'])->whereNumber('export')->name('exports.download');
+
     // Pilihan cabang aktif di topbar (disimpan di session). Semua pengguna login boleh memilih.
     Route::put('cabang-aktif', CurrentBranchController::class)->name('current-branch.update');
 
@@ -68,6 +84,7 @@ Route::middleware('auth')->group(function () {
     require __DIR__.'/modules/sdm.php';
     require __DIR__.'/modules/users.php';
     require __DIR__.'/modules/settings.php';
+    require __DIR__.'/modules/imports.php';
 });
 
 require __DIR__.'/auth.php';

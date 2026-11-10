@@ -3,6 +3,9 @@
     <x-slot name="header">Supplier</x-slot>
     <x-slot name="description">Pemasok barang beserta total pembelian dan sisa hutangnya.</x-slot>
     <x-slot name="actions">
+        @can('purchasing.suppliers.import')
+            <x-ui.button variant="secondary" icon="arrow-up-tray" :href="route('imports.suppliers.create')">Impor</x-ui.button>
+        @endcan
         @can('purchasing.suppliers.export')
             <x-ui.export-menu :href="route('suppliers.export')" />
         @endcan

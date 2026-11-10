@@ -69,6 +69,8 @@
         </x-ui.table>
     </div>
 
+    <x-ui.attachments :document="$receipt" class="mt-6" />
+
     @if (! $receipt->dibatalkan() && auth()->user()->can('purchasing.receipts.void'))
         <x-ui.void-dialog name="batal-penerimaan" :action="route('goods-receipts.void', $receipt)" :title="'Batalkan '.$receipt->number.'?'">
             Stok dikurangi dari {{ $receipt->warehouse->name }}, jumlah diterima di PO berkurang, dan faktur {{ $receipt->purchase?->number }} dibatalkan

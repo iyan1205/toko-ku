@@ -2,14 +2,20 @@
 
 namespace App\Exports;
 
+use App\Jobs\GenerateListExport;
+use App\Models\ExportFile;
+use App\Models\User;
 use App\Services\Settings\StoreProfileService;
+use App\Support\CurrentBranch;
 use App\Support\Format;
+use App\Support\QueueHealth;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Closure;
 use DateTimeInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -34,6 +40,10 @@ use Symfony\Component\HttpFoundation\Response;
  *   $list->download('xlsx'|'pdf');    // tombol Ekspor
  *
  * Urutan: ?sort=kunci&dir=asc|desc. Hanya kunci di sorts() yang dipakai (whitelist); kunci lain diabaikan.
+ *
+ * Data besar (lebih dari QUEUE_THRESHOLD baris) diekspor lewat queue bila queue worker hidup
+ * (App\Support\QueueHealth): berkas dibuat GenerateListExport dan peminta diberi notifikasi.
+ * Tanpa worker, ekspor tetap langsung seperti biasa.
  */
 abstract class ListExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapping, WithStyles, WithTitle
 {
@@ -43,6 +53,9 @@ abstract class ListExport implements FromQuery, ShouldAutoSize, WithHeadings, Wi
 
     /** PDF dibatasi agar tetap cepat dibuat; Excel memuat semua baris. */
     public const PDF_LIMIT = 1000;
+
+    /** Di atas jumlah baris ini ekspor dibuat di latar belakang (queue). */
+    public const QUEUE_THRESHOLD = 3000;
 
     protected ?string $sort = null;
 
@@ -128,9 +141,34 @@ abstract class ListExport implements FromQuery, ShouldAutoSize, WithHeadings, Wi
 
     public function download(string $format): Response
     {
+        if (QueueHealth::canQueue() && ($user = request()->user()) && $this->query()->count() > self::QUEUE_THRESHOLD) {
+            return $this->queueFor($user, $format);
+        }
+
         return $format === 'pdf'
             ? $this->downloadPdf()
             : Excel::download($this, $this->filename().'.xlsx');
+    }
+
+    /** Buat berkas di latar belakang; peminta diberi notifikasi saat siap (Ekspor Saya). */
+    public function queueFor(User $user, string $format): RedirectResponse
+    {
+        $export = new ExportFile;
+        $export->forceFill([
+            'user_id' => $user->getKey(),
+            'title' => $this->documentTitle(),
+            'export_class' => static::class,
+            'format' => $format,
+            'filters' => $this->filters,
+            'branch_ids' => app(CurrentBranch::class)->scopeIds(),
+            'status' => ExportFile::QUEUED,
+            'disk' => 'local',
+            'file_name' => $this->filename().'.'.$format,
+        ])->save();
+
+        GenerateListExport::dispatch($export);
+
+        return back()->with('success', "Data {$this->documentTitle()} cukup besar, jadi berkasnya dibuat di latar belakang. Anda diberi notifikasi saat siap diunduh (Ekspor Saya).");
     }
 
     /** @return list<string> */
@@ -176,6 +214,12 @@ abstract class ListExport implements FromQuery, ShouldAutoSize, WithHeadings, Wi
 
     protected function downloadPdf(): Response
     {
+        return $this->renderPdf()->download($this->filename().'.pdf');
+    }
+
+    /** PDF dengan kop toko dan ringkasan filter (dipakai unduhan langsung dan job ekspor). */
+    public function renderPdf(): \Barryvdh\DomPDF\PDF
+    {
         $columns = $this->columns();
         $rows = $this->query()->limit(self::PDF_LIMIT + 1)->get();
 
@@ -192,7 +236,7 @@ abstract class ListExport implements FromQuery, ShouldAutoSize, WithHeadings, Wi
             'limit' => self::PDF_LIMIT,
         ])->setPaper('a4', count($columns) > 6 ? 'landscape' : 'portrait');
 
-        return $pdf->download($this->filename().'.pdf');
+        return $pdf;
     }
 
     /** @param array{type?: string} $column */

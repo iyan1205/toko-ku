@@ -170,10 +170,9 @@
                             class="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                             aria-label="Notifikasi{{ $labelLonceng !== '' ? ': '.$labelLonceng : '' }}">
                         <x-ui.icon name="bell" class="h-5 w-5" />
-                        @if ($angkaLonceng > 0)
-                            <span class="absolute right-1 top-1 grid h-4 min-w-[1rem] place-items-center rounded-full bg-danger-500 px-1 text-[10px] font-semibold leading-none text-white"
-                                  x-text="Math.min(belumDibaca + {{ (int) ($restockCount ?? 0) }}, 99)">{{ min($angkaLonceng, 99) }}</span>
-                        @endif
+                        <span @class(['absolute right-1 top-1 grid h-4 min-w-[1rem] place-items-center rounded-full bg-danger-500 px-1 text-[10px] font-semibold leading-none text-white'])
+                              x-show="belumDibaca + {{ (int) ($restockCount ?? 0) }} > 0" @if ($angkaLonceng === 0) x-cloak @endif
+                              x-text="Math.min(belumDibaca + {{ (int) ($restockCount ?? 0) }}, 99)">{{ min($angkaLonceng, 99) }}</span>
                     </button>
                 </x-slot:trigger>
 
@@ -249,6 +248,8 @@
             </div>
             <div class="py-1">
                 <x-ui.dropdown-item :href="route('profile.edit')" icon="user-circle">Profil saya</x-ui.dropdown-item>
+                <x-ui.dropdown-item :href="route('notifications.index')" icon="bell">Notifikasi</x-ui.dropdown-item>
+                <x-ui.dropdown-item :href="route('exports.index')" icon="document-arrow-down">Ekspor saya</x-ui.dropdown-item>
                 @can('settings.store.view')
                     <x-ui.dropdown-item :href="route('settings.edit')" icon="cog-6-tooth">Pengaturan toko</x-ui.dropdown-item>
                 @endcan

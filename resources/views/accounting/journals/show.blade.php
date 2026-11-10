@@ -109,6 +109,8 @@
         <x-ui.approval-panel :document="$journal" class="mt-6" />
     @endif
 
+    <x-ui.attachments :document="$journal" class="mt-6" />
+
     @if ($bisaKelola && ! $status->isLocked())
         <x-ui.void-dialog name="batal-jurnal" :action="route('journals.cancel', $journal)" :title="'Batalkan '.$journal->number.'?'" confirm="Ya, batalkan" label="Alasan pembatalan">
             Jurnal belum diposting, jadi saldo akun tidak berubah. Pengajuan persetujuan yang berjalan ikut ditarik. Nomor jurnal tidak dipakai ulang.

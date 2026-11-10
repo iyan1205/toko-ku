@@ -595,6 +595,18 @@ Dikerjakan sebelum 5b dan Fase 6 karena mengubah `StockService`, yang dipakai pe
 - Tulis `docs/ROADMAP.md`.
 - Test: validasi jurnal seimbang, listener membuat jurnal yang benar, listener tidak jalan bila dimatikan.
 
+### Fase 8 — Fondasi enterprise · XL
+**Status 10 Nov 2026: selesai, menunggu pengecekan pemilik.** Rincian di [ROADMAP.md](ROADMAP.md); operasional di [DEPLOY.md](DEPLOY.md).
+- Organisasi: `companies`, `branches.company_id`, `company_id`/`branch_id` di 12 tabel transaksi (diisi dari gudang/dokumen asal), `users.all_branches` + `branch_user`, trait `BelongsToBranch` + `BranchScope`, pilihan "Semua cabang".
+- Persetujuan: `approval_flows`, `approval_steps`, `approval_requests` (tahap disalin), `approvals` (riwayat), `ApprovalService`, trait `HasApproval`, halaman Persetujuan Saya dan Pengaturan → Alur Persetujuan. Dipakai PO (status baru `submitted`) dan jurnal manual.
+- Notifikasi: `notifications`, `notification_preferences`, `AppNotification` (lonceng sync, email queue), lonceng baru di topbar.
+- Lampiran: `attachments`, trait `HasAttachments`, komponen `x-ui.attachments`.
+- Status dokumen: enum `DocumentStatus`, trait `HasDocumentStatus`; `journals.status` (jurnal lama = posted).
+- Kunci periode: `fiscal_periods`, `FiscalPeriodService`, rule `OpenPeriod`, halaman Kunci Periode.
+- Impor/ekspor: `import_batches`, `export_files`, `ImportDefinition` (Pelanggan, Supplier), ekspor besar lewat `GenerateListExport`.
+- Queue & scheduler: `QueueHealth`, Pengaturan → Sistem, tugas pembersihan terjadwal, `docs/DEPLOY.md`.
+- Seluruh suite 747/747 lulus.
+
 ### Urutan dan ketergantungan
 ```
 0.5 Persiapan → 1 Fondasi UI → 2 Layout & Menu → 3 Hak Akses → 4 Pengaturan & Dashboard

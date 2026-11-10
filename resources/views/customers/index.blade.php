@@ -3,6 +3,9 @@
     <x-slot name="header">Pelanggan</x-slot>
     <x-slot name="description">Pelanggan terdaftar beserta total belanja dan saldo piutangnya.</x-slot>
     <x-slot name="actions">
+        @can('pos.customers.import')
+            <x-ui.button variant="secondary" icon="arrow-up-tray" :href="route('imports.customers.create')">Impor</x-ui.button>
+        @endcan
         @can('pos.customers.export')
             <x-ui.export-menu :href="route('customers.export')" />
         @endcan

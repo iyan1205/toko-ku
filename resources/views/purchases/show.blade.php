@@ -179,6 +179,8 @@
         </div>
     </div>
 
+    <x-ui.attachments :document="$pembelian" class="mt-6" />
+
     @if ($bisaBatal)
         <x-ui.void-dialog name="batal-faktur" :action="route('purchases.void', $pembelian)" :title="'Batalkan '.$pembelian->number.'?'">
             Stok dikurangi dari {{ $pembelian->warehouse?->name }} dan pembayarannya ikut dibatalkan. Ditolak bila barangnya sudah

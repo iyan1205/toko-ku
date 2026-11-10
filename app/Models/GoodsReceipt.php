@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PurchaseStatus;
 use App\Models\Concerns\BelongsToBranch;
+use App\Models\Concerns\HasAttachments;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  */
 class GoodsReceipt extends Model
 {
-    use BelongsToBranch;
+    use BelongsToBranch, HasAttachments;
 
     protected $fillable = [
         'number', 'purchase_order_id', 'supplier_id', 'warehouse_id', 'received_date',
