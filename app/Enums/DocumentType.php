@@ -5,6 +5,7 @@ namespace App\Enums;
 use App\Models\CashSession;
 use App\Models\Cuti;
 use App\Models\GoodsReceipt;
+use App\Models\Journal;
 use App\Models\Payment;
 use App\Models\Purchase;
 use App\Models\PurchaseOrder;
@@ -36,6 +37,7 @@ enum DocumentType: string
     case CashSession = 'cash_session';
     case SaleReturn = 'sale_return';
     case CustomerRefund = 'customer_refund';
+    case Journal = 'journal';
     case Leave = 'leave';
 
     public function label(): string
@@ -53,6 +55,7 @@ enum DocumentType: string
             self::CashSession => 'Sesi kasir',
             self::SaleReturn => 'Retur penjualan',
             self::CustomerRefund => 'Pengembalian uang ke pelanggan',
+            self::Journal => 'Jurnal umum',
             self::Leave => 'Pengajuan cuti & izin',
         };
     }
@@ -72,6 +75,7 @@ enum DocumentType: string
             self::CashSession => 'SES-{YYYY}{MM}{DD}-{####}',
             self::SaleReturn => 'RTJ-{YYYY}{MM}{DD}-{####}',
             self::CustomerRefund => 'RFD-{YYYY}{MM}{DD}-{####}',
+            self::Journal => 'JU-{YYYY}{MM}{DD}-{####}',
             self::Leave => 'CT-{#####}',
         };
     }
@@ -95,6 +99,7 @@ enum DocumentType: string
             self::PurchaseReturn => PurchaseReturn::class,
             self::CashSession => CashSession::class,
             self::SaleReturn => SaleReturn::class,
+            self::Journal => Journal::class,
             self::Leave => Cuti::class,
         };
     }

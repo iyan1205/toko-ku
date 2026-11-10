@@ -29,6 +29,7 @@ Spesifikasi lengkap: docs/REDESIGN-TOKOKU.md. Hasil audit, keputusan, dan rencan
 - Perubahan stok selalu lewat `StockService::catat()` dengan gudang (`Warehouse`); tanpa gudang = Gudang Utama. Cek konsistensi dengan `php artisan stok:periksa`.
 - Tabel daftar dibangun dari satu kelas turunan `App\Exports\ListExport` (query, filter, sort, kolom), dipakai bersama oleh halaman, ekspor Excel, dan ekspor PDF.
 - Penjualan dari Kasir dikirim ke `SaleService` dengan `payments[]` (satu baris per metode). Hitungan uang memakai bilangan bulat sen (`App\Support\Uang`), dan pratinjau di layar memakai `resources/js/pos/hitung.js` dengan aturan pembulatan yang sama.
+- Jurnal akuntansi hanya lewat `App\Services\Accounting\JournalService` (debit = kredit, tidak bisa diubah; koreksi dengan jurnal pembalik). Akun untuk jurnal otomatis diatur di `config/accounting.php`.
 - Event antar modul (misal `GoodsReceived`) memakai `ShouldDispatchAfterCommit`, supaya listener (Akuntansi) hanya menerima transaksi yang benar-benar tersimpan.
 
 ## Keputusan pemilik (08 Nov 2026, rincian di docs/AUDIT.md bagian 7)

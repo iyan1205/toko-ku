@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Models\GoodsReceipt;
+use App\Models\Journal;
+use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchaseReturn;
@@ -52,6 +54,8 @@ class AppServiceProvider extends ServiceProvider
             'goods_receipt' => GoodsReceipt::class,
             'purchase_return' => PurchaseReturn::class,
             'sale_return' => SaleReturn::class,
+            'payment' => Payment::class,
+            'journal' => Journal::class,
         ]);
 
         // Menu sidebar, breadcrumb, notifikasi stok, dan nama toko untuk layout aplikasi & kasir.

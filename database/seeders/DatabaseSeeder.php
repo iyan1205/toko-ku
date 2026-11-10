@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             MasterDataSeeder::class,
             KepegawaianSeeder::class,
+            ChartOfAccountsSeeder::class,
         ]);
     }
 }

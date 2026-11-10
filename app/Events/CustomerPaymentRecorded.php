@@ -19,5 +19,7 @@ class CustomerPaymentRecorded implements ShouldDispatchAfterCommit
     public function __construct(
         public readonly Payment $payment,
         public readonly Sale $sale,
+        /** true = dibayar bersamaan dengan transaksinya (sudah termasuk jurnal transaksi tersebut). */
+        public readonly bool $atCheckout = false,
     ) {}
 }

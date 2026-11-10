@@ -567,6 +567,23 @@ Dikerjakan sebelum 5b dan Fase 6 karena mengubah `StockService`, yang dipakai pe
 - Test: `PenjualanTest`, `HeldSaleTest`, `PembayaranTest` tetap hijau, ditambah split payment, sesi kasir, retur, dan event.
 
 ### Fase 7 — Kerangka Akuntansi & SDM · L
+**Status 10 Nov 2026: selesai, menunggu pengecekan pemilik.** Ringkasan apa yang sudah dan belum dibangun ada di [ROADMAP.md](ROADMAP.md).
+- Akuntansi:
+  - Tabel `accounts` (bertingkat, akun sistem), `journals` dan `journal_lines`.
+  - 43 akun standar, dipasang lewat `ChartOfAccountsSeeder` atau tombol "Pasang COA standar".
+  - `JournalService`: debit = kredit, satu sisi per baris, akun aktif dan bukan induk, jurnal pembalik.
+  - Halaman: Bagan Akun dan Jurnal Umum (daftar, jurnal manual, detail, pembalik), plus Pengaturan → Akuntansi.
+- Jurnal otomatis:
+  - Dibuat untuk penjualan, barang diterima/pembelian langsung, pelunasan piutang, pembayaran hutang, retur penjualan dan pembelian, serta pembatalan (jurnal pembalik).
+  - Pembayaran saat transaksi masuk jurnal transaksinya (penanda `atCheckout` di event pembayaran), jadi kas tidak tercatat dua kali.
+  - Bisa dimatikan lewat `setting('accounting.auto_journal')`. Kegagalannya tidak mengganggu transaksi dan tercatat di Log Aktivitas.
+- SDM:
+  - Tabel `departments`, `positions`, `employees` (`user_id` nullable unik).
+  - Halaman: Karyawan (daftar, form, ekspor) serta Departemen & Jabatan.
+  - Absensi, Jadwal, dan Cuti tetap memakai `user_id`.
+- Menu: Bagan Akun, Jurnal Umum, Karyawan, dan Departemen & Jabatan aktif. Buku Besar, Kas & Bank, Laporan Keuangan, Tutup Buku, dan Penggajian tetap "Segera Hadir".
+- Seluruh suite 701/701 lulus.
+
 - Akuntansi: `accounts` (COA bertingkat), `journals` + `journal_lines` (debit = kredit divalidasi di service), seeder COA retail Indonesia.
   - Listener `SaleCompleted` membuat jurnal penjualan + HPP dari `sale_items.cost_price` yang sudah tersimpan.
   - Listener `GoodsReceived` membuat jurnal persediaan + hutang.

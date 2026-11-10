@@ -7,6 +7,7 @@
 | Di-include dari routes/web.php di dalam grup middleware auth.
 */
 
+use App\Http\Controllers\Settings\AccountingSettingController;
 use App\Http\Controllers\Settings\BackupController;
 use App\Http\Controllers\Settings\BranchController;
 use App\Http\Controllers\Settings\DocumentNumberingController;
@@ -39,6 +40,9 @@ Route::prefix('pengaturan')->name('settings.')->group(function () {
 
     Route::get('kasir', [PosSettingController::class, 'edit'])->middleware('permission:settings.pos.view')->name('pos.edit');
     Route::put('kasir', [PosSettingController::class, 'update'])->middleware('permission:settings.pos.update')->name('pos.update');
+
+    Route::get('akuntansi', [AccountingSettingController::class, 'edit'])->middleware('permission:settings.accounting.view')->name('accounting.edit');
+    Route::put('akuntansi', [AccountingSettingController::class, 'update'])->middleware('permission:settings.accounting.update')->name('accounting.update');
 
     Route::get('struk', [ReceiptSettingController::class, 'edit'])->middleware('permission:settings.receipts.view')->name('receipts.edit');
     Route::put('struk', [ReceiptSettingController::class, 'update'])->middleware('permission:settings.receipts.update')->name('receipts.update');

@@ -164,6 +164,7 @@ class SaleService
                     $kasir,
                     $sekarang->toDateString(),
                     $sesi,
+                    atCheckout: true,
                 );
             }
 

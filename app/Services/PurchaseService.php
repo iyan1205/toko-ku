@@ -94,6 +94,7 @@ class PurchaseService
                     'Pembayaran saat pembelian',
                     $user,
                     $data['purchase_date'],
+                    atCheckout: true,
                 );
             }
 

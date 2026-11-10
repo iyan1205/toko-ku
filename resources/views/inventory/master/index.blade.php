@@ -1,8 +1,16 @@
 {{--
     Data master sederhana (kategori, satuan): cari, urutkan, ekspor, tambah/ubah lewat dialog.
     Variabel: $judul, $tunggal, $prefix (nama route), $izin (awalan izin, misal inventory.categories).
+    Opsional (bawaan untuk kategori/satuan): $hitungLabel, $hitungKolom, $hitungSort, $keterangan, $ikon,
+    $tabs (list of [label, url, active]) untuk berpindah antar-halaman sejenis (misal Departemen/Jabatan).
 --}}
 @php
+    $hitungLabel ??= 'Jumlah produk';
+    $hitungKolom ??= 'products_count';
+    $hitungSort ??= 'products';
+    $keterangan ??= $judul.' yang masih dipakai produk tidak bisa dihapus.';
+    $ikon ??= 'tag';
+    $tabs ??= [];
     $baris = $items->mapWithKeys(fn ($i) => [$i->id => ['name' => $i->name, 'description' => $i->description]]);
     $state = [
         'editId' => old('_edit_id'),
@@ -16,7 +24,7 @@
 
 <x-app-layout>
     <x-slot name="header">{{ $judul }}</x-slot>
-    <x-slot name="description">{{ $judul }} yang masih dipakai produk tidak bisa dihapus.</x-slot>
+    <x-slot name="description">{{ $keterangan }}</x-slot>
     <x-slot name="actions">
         @can($izin.'.export')
             <x-ui.export-menu :href="route($prefix.'.export')" />
@@ -33,6 +41,17 @@
             ubah(id) { this.editId = id; this.nama = this.baris[id].name; this.deskripsi = this.baris[id].description ?? ''; this.$dispatch('open-modal', 'master') }
          }"
          x-on:master-tambah.window="tambah()">
+        @if ($tabs !== [])
+            <nav class="mb-4 flex gap-1 border-b border-slate-200" aria-label="Halaman terkait">
+                @foreach ($tabs as $tab)
+                    <a href="{{ $tab['url'] }}" @class([
+                        '-mb-px border-b-2 px-4 py-2 text-sm font-medium',
+                        'border-primary-600 text-primary-700' => $tab['active'],
+                        'border-transparent text-slate-500 hover:text-slate-700' => ! $tab['active'],
+                    ]) @if ($tab['active']) aria-current="page" @endif>{{ $tab['label'] }}</a>
+                @endforeach
+            </nav>
+        @endif
         <x-ui.table :paginator="$items">
             <x-slot:toolbar>
                 <x-ui.filter-bar :placeholder="'Cari nama atau deskripsi '.$tunggal" />
@@ -41,7 +60,7 @@
             <x-slot:head>
                 <x-ui.table.th sort="name">Nama</x-ui.table.th>
                 <x-ui.table.th>Deskripsi</x-ui.table.th>
-                <x-ui.table.th align="right" sort="products">Jumlah produk</x-ui.table.th>
+                <x-ui.table.th align="right" :sort="$hitungSort">{{ $hitungLabel }}</x-ui.table.th>
                 <x-ui.table.th align="right"><span class="sr-only">Aksi</span></x-ui.table.th>
             </x-slot:head>
 
@@ -49,7 +68,7 @@
                 <tr>
                     <x-ui.table.td><span class="font-medium text-slate-900">{{ $i->name }}</span></x-ui.table.td>
                     <x-ui.table.td muted>{{ $i->description ?: '—' }}</x-ui.table.td>
-                    <x-ui.table.td align="right" numeric>{{ $i->products_count }}</x-ui.table.td>
+                    <x-ui.table.td align="right" numeric>{{ $i->getAttribute($hitungKolom) }}</x-ui.table.td>
                     <x-ui.table.td align="right">
                         <div class="flex items-center justify-end gap-1">
                             @can($izin.'.update')
@@ -63,7 +82,7 @@
                     </x-ui.table.td>
                 </tr>
             @empty
-                <x-ui.table.empty colspan="4" icon="tag" :title="'Belum ada '.$tunggal.' yang cocok'" :description="'Ubah kata kunci, atau tambah '.$tunggal.' baru.'" />
+                <x-ui.table.empty colspan="4" :icon="$ikon" :title="'Belum ada '.$tunggal.' yang cocok'" :description="'Ubah kata kunci, atau tambah '.$tunggal.' baru.'" />
             @endforelse
         </x-ui.table>
 

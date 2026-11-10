@@ -43,6 +43,7 @@ Route::middleware('auth')->group(function () {
     require __DIR__.'/modules/pos.php';
     require __DIR__.'/modules/inventory.php';
     require __DIR__.'/modules/purchasing.php';
+    require __DIR__.'/modules/accounting.php';
     require __DIR__.'/modules/reports.php';
     require __DIR__.'/modules/sdm.php';
     require __DIR__.'/modules/users.php';

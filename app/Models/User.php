@@ -6,6 +6,7 @@ use App\Enums\RoleName;
 use App\Models\Concerns\RecordsActivity;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -83,5 +84,11 @@ class User extends Authenticatable
     protected function activityLogAttributes(): array
     {
         return ['name', 'email', 'phone', 'is_active'];
+    }
+
+    /** Data karyawan yang tertaut ke akun ini (SDM), bila ada. */
+    public function employee(): HasOne
+    {
+        return $this->hasOne(Employee::class);
     }
 }

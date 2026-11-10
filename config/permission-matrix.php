@@ -86,8 +86,9 @@ return [
         'accounting' => [
             'label' => 'Akuntansi',
             'features' => [
-                'coa' => ['label' => 'Bagan akun (COA)', 'actions' => ['view', 'create', 'update', 'delete'], 'planned' => true],
-                'journals' => ['label' => 'Jurnal umum', 'actions' => ['view', 'create', 'update', 'delete', 'approve', 'export'], 'planned' => true],
+                'coa' => ['label' => 'Bagan akun (COA)', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
+                // Jurnal tidak bisa diubah/dihapus; void = membuat jurnal pembalik untuk jurnal manual.
+                'journals' => ['label' => 'Jurnal umum', 'actions' => ['view', 'create', 'void', 'export']],
                 'ledger' => ['label' => 'Buku besar', 'actions' => ['view', 'export'], 'planned' => true],
                 'cash-bank' => ['label' => 'Kas & bank', 'actions' => ['view', 'create', 'update', 'export'], 'planned' => true],
                 'reports' => ['label' => 'Laporan keuangan', 'actions' => ['view', 'export'], 'planned' => true],
@@ -98,8 +99,8 @@ return [
         'sdm' => [
             'label' => 'SDM',
             'features' => [
-                'employees' => ['label' => 'Karyawan', 'actions' => ['view', 'create', 'update', 'delete', 'export'], 'planned' => true],
-                'departments' => ['label' => 'Departemen & jabatan', 'actions' => ['view', 'create', 'update', 'delete'], 'planned' => true],
+                'employees' => ['label' => 'Karyawan', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
+                'departments' => ['label' => 'Departemen & jabatan', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
                 'attendances' => ['label' => 'Absensi', 'actions' => ['view', 'record', 'create', 'update', 'delete', 'export']],
                 'schedules' => ['label' => 'Jadwal kerja', 'actions' => ['view', 'update']],
                 'shifts' => ['label' => 'Shift kerja', 'actions' => ['view', 'create', 'update', 'delete']],
@@ -138,6 +139,7 @@ return [
                 'taxes' => ['label' => 'Pajak', 'actions' => ['view', 'update']],
                 'payment-methods' => ['label' => 'Metode pembayaran', 'actions' => ['view', 'update']],
                 'pos' => ['label' => 'Kasir', 'actions' => ['view', 'update']],
+                'accounting' => ['label' => 'Akuntansi (jurnal otomatis)', 'actions' => ['view', 'update']],
                 'receipts' => ['label' => 'Struk & printer', 'actions' => ['view', 'update']],
                 'numbering' => ['label' => 'Penomoran dokumen', 'actions' => ['view', 'update']],
                 'backup' => ['label' => 'Backup', 'actions' => ['view', 'create']],

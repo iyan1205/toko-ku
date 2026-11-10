@@ -61,7 +61,8 @@ class MenuSidebarTest extends TestCase
             ->get(route('dashboard'))
             ->assertOk()
             ->assertSee('Akuntansi')
-            ->assertSee(route('coming-soon', 'accounting-coa'))
+            ->assertSee(route('accounts.index'))
+            ->assertSee(route('coming-soon', 'accounting-ledger'))
             ->assertSee('Segera Hadir');
     }
 

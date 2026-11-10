@@ -38,6 +38,7 @@ class PaymentService
         ?string $catatan,
         User $user,
         ?string $tanggal = null,
+        bool $atCheckout = false,
     ): Payment {
         if ($sen <= 0) {
             throw new AturanBisnisException('Jumlah pembayaran harus lebih dari nol.');
@@ -47,7 +48,7 @@ class PaymentService
             throw new AturanBisnisException('Metode Piutang tidak berlaku untuk pembayaran ke supplier.');
         }
 
-        return DB::transaction(function () use ($pembelian, $sen, $metode, $catatan, $user, $tanggal) {
+        return DB::transaction(function () use ($pembelian, $sen, $metode, $catatan, $user, $tanggal, $atCheckout) {
             // Kunci pembelian: dua pembayaran bersamaan tidak boleh sama-sama lolos dari batas sisa hutang.
             $terkunci = Purchase::whereKey($pembelian->getKey())->lockForUpdate()->firstOrFail();
 
@@ -88,7 +89,7 @@ class PaymentService
             // Sinkronkan instance milik pemanggil agar tidak menampilkan angka basi.
             $pembelian->setRawAttributes($terkunci->getAttributes(), true);
 
-            SupplierPaymentRecorded::dispatch($pembayaran, $terkunci);
+            SupplierPaymentRecorded::dispatch($pembayaran, $terkunci, $atCheckout);
 
             return $pembayaran;
         });
@@ -109,6 +110,7 @@ class PaymentService
         User $user,
         ?string $tanggal = null,
         ?CashSession $session = null,
+        bool $atCheckout = false,
     ): Payment {
         if ($sen <= 0) {
             throw new AturanBisnisException('Jumlah pembayaran harus lebih dari nol.');
@@ -118,7 +120,7 @@ class PaymentService
             throw new AturanBisnisException('Piutang bukan metode pembayaran. Pilih metode yang dipakai pelanggan membayar.');
         }
 
-        return DB::transaction(function () use ($penjualan, $sen, $metode, $catatan, $user, $tanggal, $session) {
+        return DB::transaction(function () use ($penjualan, $sen, $metode, $catatan, $user, $tanggal, $session, $atCheckout) {
             $terkunci = Sale::whereKey($penjualan->getKey())->lockForUpdate()->firstOrFail();
 
             if ($terkunci->status !== PurchaseStatus::Completed) {
@@ -163,7 +165,7 @@ class PaymentService
 
             $penjualan->setRawAttributes($terkunci->getAttributes(), true);
 
-            CustomerPaymentRecorded::dispatch($pembayaran, $terkunci);
+            CustomerPaymentRecorded::dispatch($pembayaran, $terkunci, $atCheckout);
 
             return $pembayaran;
         });
