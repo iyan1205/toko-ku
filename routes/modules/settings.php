@@ -2,12 +2,13 @@
 
 /*
 | Pengaturan: profil toko, cabang, pajak, metode pembayaran, kasir, struk & printer,
-| penomoran dokumen, dan backup. Nilai disimpan di tabel settings (helper setting()),
+| penomoran dokumen, alur persetujuan, dan backup. Nilai disimpan di tabel settings (helper setting()),
 | kecuali cabang (branches) dan metode pembayaran (payment_methods).
 | Di-include dari routes/web.php di dalam grup middleware auth.
 */
 
 use App\Http\Controllers\Settings\AccountingSettingController;
+use App\Http\Controllers\Settings\ApprovalFlowController;
 use App\Http\Controllers\Settings\BackupController;
 use App\Http\Controllers\Settings\BranchController;
 use App\Http\Controllers\Settings\DocumentNumberingController;
@@ -47,6 +48,15 @@ Route::prefix('pengaturan')->name('settings.')->group(function () {
     Route::get('struk', [ReceiptSettingController::class, 'edit'])->middleware('permission:settings.receipts.view')->name('receipts.edit');
     Route::put('struk', [ReceiptSettingController::class, 'update'])->middleware('permission:settings.receipts.update')->name('receipts.update');
     Route::get('struk/pratinjau', [ReceiptSettingController::class, 'preview'])->middleware('permission:settings.receipts.view')->name('receipts.preview');
+
+    Route::resource('alur-persetujuan', ApprovalFlowController::class)
+        ->parameters(['alur-persetujuan' => 'approvalFlow'])
+        ->names('approval-flows')
+        ->except('show')
+        ->middlewareFor('index', 'permission:settings.approvals.view')
+        ->middlewareFor(['create', 'store'], 'permission:settings.approvals.create')
+        ->middlewareFor(['edit', 'update'], 'permission:settings.approvals.update')
+        ->middlewareFor('destroy', 'permission:settings.approvals.delete');
 
     Route::get('penomoran', [DocumentNumberingController::class, 'edit'])->middleware('permission:settings.numbering.view')->name('numbering.edit');
     Route::put('penomoran', [DocumentNumberingController::class, 'update'])->middleware('permission:settings.numbering.update')->name('numbering.update');

@@ -206,6 +206,8 @@ return [
                         'description' => 'Nyalakan atau matikan jurnal otomatis dari penjualan dan pembelian.'],
                     ['key' => 'settings-receipts', 'label' => 'Struk & Printer', 'route' => 'settings.receipts.edit', 'active' => 'settings.receipts.*', 'permission' => 'settings.receipts.view',
                         'description' => 'Tata letak struk, pratinjau, dan pengaturan printer.'],
+                    ['key' => 'settings-approvals', 'label' => 'Alur Persetujuan', 'route' => 'settings.approval-flows.index', 'active' => 'settings.approval-flows.*', 'permission' => 'settings.approvals.view',
+                        'description' => 'Dokumen yang perlu disetujui (misal PO di atas Rp 5.000.000), tahapnya, dan siapa penyetujunya.'],
                     ['key' => 'settings-numbering', 'label' => 'Penomoran Dokumen', 'route' => 'settings.numbering.edit', 'active' => 'settings.numbering.*', 'permission' => 'settings.numbering.view',
                         'description' => 'Format nomor dokumen, misal INV/2026/11/0001.'],
                     ['key' => 'settings-backup', 'label' => 'Backup', 'route' => 'settings.backups.index', 'active' => 'settings.backups.*', 'permission' => 'settings.backup.view',

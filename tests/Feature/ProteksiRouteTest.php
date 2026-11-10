@@ -16,11 +16,14 @@ class ProteksiRouteTest extends TestCase
     /**
      * Route login tanpa middleware permission, dengan alasan:
      * dashboard (isi sesuai izin), pencarian & segera-hadir & ui-kit (izin dicek di controller),
-     * profil (data milik sendiri), pilihan cabang aktif (preferensi tampilan milik sendiri), logout.
+     * profil & notifikasi (data milik sendiri), pilihan cabang aktif (preferensi tampilan milik sendiri),
+     * persetujuan (penyetuju tiap tahap diperiksa ApprovalService), logout.
      */
     private const TANPA_MIDDLEWARE_IZIN = [
         'dashboard', 'search', 'coming-soon', 'dev.ui-kit',
-        'profile.edit', 'profile.update', 'profile.password', 'current-branch.update', 'logout',
+        'profile.edit', 'profile.update', 'profile.password', 'profile.notifications', 'current-branch.update', 'logout',
+        'notifications.index', 'notifications.feed', 'notifications.read-all', 'notifications.open', 'notifications.read',
+        'approvals.index', 'approvals.approve', 'approvals.reject', 'approvals.cancel',
     ];
 
     public function test_semua_route_yang_butuh_login_dijaga_middleware_permission(): void

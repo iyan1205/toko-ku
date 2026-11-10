@@ -3,6 +3,7 @@
 namespace App\Exports\Accounting;
 
 use App\Enums\AccountType;
+use App\Enums\DocumentStatus;
 use App\Enums\NormalBalance;
 use App\Exports\ListExport;
 use App\Models\Account;
@@ -33,8 +34,9 @@ class AccountsExport extends ListExport
 
         return Account::query()
             ->with('parent:id,code,name,parent_id')
-            ->withSum('lines as debit_total', 'debit')
-            ->withSum('lines as credit_total', 'credit')
+            // Saldo = jurnal posted saja (draf dan yang dibatalkan tidak dihitung), di cabang aktif.
+            ->withSum(['lines as debit_total' => fn (Builder $q) => $q->whereHas('journal', fn (Builder $j) => $j->where('status', DocumentStatus::Posted->value))], 'debit')
+            ->withSum(['lines as credit_total' => fn (Builder $q) => $q->whereHas('journal', fn (Builder $j) => $j->where('status', DocumentStatus::Posted->value))], 'credit')
             ->when($f['cari'] ?? null, fn (Builder $q, string $kata) => $q->where(fn (Builder $w) => $w
                 ->where('code', 'like', "%{$kata}%")->orWhere('name', 'like', "%{$kata}%")))
             ->when($f['tipe'] ?? null, fn (Builder $q, string $v) => $q->where('type', $v))

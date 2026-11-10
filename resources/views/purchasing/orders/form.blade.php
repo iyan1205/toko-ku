@@ -1,5 +1,6 @@
 {{--
-    Purchase order baru / ubah draft. Simpan sebagai draft, atau langsung setujui (butuh izin approve).
+    Purchase order baru / ubah draft. Simpan sebagai draft, langsung setujui (butuh izin approve), atau
+    ajukan ke alur persetujuan. PO yang cocok dengan alur persetujuan selalu diajukan, tidak disetujui langsung.
     PO tidak mengubah stok maupun hutang; keduanya tercatat saat barang diterima.
 --}}
 @php
@@ -72,6 +73,8 @@
             <x-ui.button type="submit" variant="secondary" icon="document" x-on:click="$refs.aksi.value = 'draft'" x-bind:disabled="kirim || items.length === 0">Simpan draft</x-ui.button>
             @if ($bolehSetujui)
                 <x-ui.button type="submit" icon="check" x-on:click="$refs.aksi.value = 'approve'" x-bind:disabled="kirim || items.length === 0">Simpan &amp; setujui</x-ui.button>
+            @else
+                <x-ui.button type="submit" icon="paper-airplane" x-on:click="$refs.aksi.value = 'submit'" x-bind:disabled="kirim || items.length === 0">Simpan &amp; ajukan</x-ui.button>
             @endif
         </div>
     </form>

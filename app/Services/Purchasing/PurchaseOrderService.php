@@ -10,6 +10,7 @@ use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Services\Approval\ApprovalService;
 use App\Services\Settings\DocumentNumberService;
 use App\Support\DocumentTotals;
 use App\Support\Uang;
@@ -21,12 +22,17 @@ use Illuminate\Validation\ValidationException;
  *
  *   - Draft bisa diubah dan dihapus. PO tidak mengubah stok maupun hutang.
  *   - Disetujui (izin purchasing.orders.approve): barang bisa diterima lewat Penerimaan Barang.
+ *   - Bila ada alur persetujuan yang cocok (misal total > Rp 5.000.000), PO tidak bisa disetujui
+ *     langsung: diajukan (submit) lalu disetujui per tahap lewat ApprovalService.
  *   - Dibatalkan: hanya bila belum ada barang yang diterima.
  *   - Ditutup: PO yang sudah diterima sebagian dan sisanya tidak akan dikirim supplier.
  */
 class PurchaseOrderService
 {
-    public function __construct(private readonly DocumentNumberService $numbers) {}
+    public function __construct(
+        private readonly DocumentNumberService $numbers,
+        private readonly ApprovalService $approvals,
+    ) {}
 
     /**
      * @param array{
@@ -35,11 +41,11 @@ class PurchaseOrderService
      *   discount?:mixed, tax?:mixed, other_cost?:mixed
      * } $data
      */
-    public function create(array $data, User $user, bool $approve = false): PurchaseOrder
+    public function create(array $data, User $user, bool $approve = false, bool $submit = false): PurchaseOrder
     {
         $hitung = $this->hitung($data);
 
-        return DB::transaction(function () use ($data, $hitung, $user, $approve) {
+        return DB::transaction(function () use ($data, $hitung, $user, $approve, $submit) {
             $order = new PurchaseOrder(['number' => $this->numbers->next(DocumentType::PurchaseOrder, $data['order_date']), 'user_id' => $user->getKey()]);
             $order->forceFill(['status' => PurchaseOrderStatus::Draft]);
             $this->fill($order, $data, $hitung);
@@ -48,16 +54,16 @@ class PurchaseOrderService
                 ->withProperties(['supplier' => $order->supplier->name, 'total' => $order->grand_total])
                 ->log("Purchase order {$order->number} dibuat");
 
-            return $approve ? $this->approve($order, $user) : $order->load('items');
+            return $this->finish($order, $user, $approve, $submit);
         });
     }
 
     /** Ganti isi draft. */
-    public function update(PurchaseOrder $order, array $data, User $user, bool $approve = false): PurchaseOrder
+    public function update(PurchaseOrder $order, array $data, User $user, bool $approve = false, bool $submit = false): PurchaseOrder
     {
         $hitung = $this->hitung($data);
 
-        return DB::transaction(function () use ($order, $data, $hitung, $user, $approve) {
+        return DB::transaction(function () use ($order, $data, $hitung, $user, $approve, $submit) {
             $terkunci = $this->lock($order);
             $this->ensureStatus($terkunci, [PurchaseOrderStatus::Draft], 'diubah');
 
@@ -68,7 +74,7 @@ class PurchaseOrderService
                 ->withProperties(['total' => $terkunci->grand_total])
                 ->log("Purchase order {$terkunci->number} diubah");
 
-            return $approve ? $this->approve($terkunci, $user) : $terkunci->load('items');
+            return $this->finish($terkunci, $user, $approve, $submit);
         });
     }
 
@@ -80,6 +86,10 @@ class PurchaseOrderService
 
             if (! $terkunci->items()->exists()) {
                 throw new AturanBisnisException('Purchase order tanpa barang tidak bisa disetujui.');
+            }
+
+            if (($flow = $this->approvals->flowFor($terkunci)) !== null) {
+                throw new AturanBisnisException("Purchase order {$terkunci->number} perlu persetujuan berjenjang ({$flow->name}). Ajukan persetujuan.");
             }
 
             $terkunci->forceFill([
@@ -95,6 +105,23 @@ class PurchaseOrderService
         });
     }
 
+    /** Ajukan draft ke alur persetujuan yang cocok. Tahap 1 diberi notifikasi. */
+    public function submit(PurchaseOrder $order, User $user, ?string $note = null): PurchaseOrder
+    {
+        return DB::transaction(function () use ($order, $user, $note) {
+            $terkunci = $this->lock($order);
+            $this->ensureStatus($terkunci, [PurchaseOrderStatus::Draft], 'diajukan');
+
+            if (! $terkunci->items()->exists()) {
+                throw new AturanBisnisException('Purchase order tanpa barang tidak bisa diajukan.');
+            }
+
+            $this->approvals->submit($terkunci, $user, $note);
+
+            return $terkunci->refresh()->load('items');
+        });
+    }
+
     /** Batalkan PO yang belum menerima barang apa pun. */
     public function cancel(PurchaseOrder $order, string $alasan, User $user): PurchaseOrder
     {
@@ -102,7 +129,11 @@ class PurchaseOrderService
 
         return DB::transaction(function () use ($order, $alasan, $user) {
             $terkunci = $this->lock($order);
-            $this->ensureStatus($terkunci, [PurchaseOrderStatus::Draft, PurchaseOrderStatus::Approved], 'dibatalkan');
+            $this->ensureStatus($terkunci, [PurchaseOrderStatus::Draft, PurchaseOrderStatus::Submitted, PurchaseOrderStatus::Approved], 'dibatalkan');
+
+            if (($pending = $terkunci->pendingApproval()) !== null) {
+                $this->approvals->cancel($pending, $user, $alasan, force: true);
+            }
 
             if ($terkunci->hasActiveReceipts()) {
                 throw new AturanBisnisException("Purchase order {$terkunci->number} sudah menerima barang. Tutup PO bila sisanya tidak akan dikirim.");
@@ -145,6 +176,21 @@ class PurchaseOrderService
 
             return $terkunci;
         });
+    }
+
+    /**
+     * Setelah disimpan: biarkan draft, setujui langsung, atau ajukan bila ada alur yang cocok
+     * ("Simpan & setujui" untuk PO yang perlu persetujuan berjenjang otomatis menjadi pengajuan).
+     */
+    private function finish(PurchaseOrder $order, User $user, bool $approve, bool $submit): PurchaseOrder
+    {
+        if (($approve || $submit) && $this->approvals->requiresApproval($order)) {
+            $this->approvals->submit($order, $user);
+
+            return $order->refresh()->load('items');
+        }
+
+        return $approve ? $this->approve($order, $user) : $order->load('items');
     }
 
     /** Hapus draft yang tidak jadi dipakai. */

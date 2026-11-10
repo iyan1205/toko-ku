@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PurchaseOrderStatus;
 use App\Enums\PurchaseStatus;
 use App\Models\Concerns\BelongsToBranch;
+use App\Models\Concerns\HasApproval;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,10 +17,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * faktur/hutang sendiri. Status dan kolom persetujuan hanya diubah PurchaseOrderService.
  *
  * grand_total = subtotal - item_discount - discount + tax + other_cost (subtotal = sebelum diskon baris).
+ *
+ * Persetujuan berjenjang (HasApproval, dokumen "purchase_order"): bila ada alur yang cocok, draft
+ * diajukan → menunggu persetujuan → disetujui oleh penyetuju tahap terakhir. Ditolak/ditarik → draft.
  */
 class PurchaseOrder extends Model
 {
-    use BelongsToBranch;
+    use BelongsToBranch, HasApproval;
 
     protected $fillable = [
         'number', 'supplier_id', 'warehouse_id', 'order_date', 'expected_date',
@@ -113,5 +117,55 @@ class PurchaseOrder extends Model
             ->when($f['status'] ?? null, fn (Builder $q, $v) => $q->where('status', $v))
             ->when($f['dari'] ?? null, fn (Builder $q, $v) => $q->whereDate('order_date', '>=', $v))
             ->when($f['sampai'] ?? null, fn (Builder $q, $v) => $q->whereDate('order_date', '<=', $v));
+    }
+
+    public function approvalDocumentType(): string
+    {
+        return 'purchase_order';
+    }
+
+    public function approvalTitle(): string
+    {
+        return "{$this->number} · {$this->supplier?->name}";
+    }
+
+    public function approvalUrl(): string
+    {
+        return route('purchase-orders.show', $this);
+    }
+
+    public function approvalAmount(): string
+    {
+        return (string) $this->grand_total;
+    }
+
+    public function onApprovalSubmitted(ApprovalRequest $request): void
+    {
+        $this->forceFill(['status' => PurchaseOrderStatus::Submitted])->save();
+    }
+
+    /** Semua tahap disetujui: PO disetujui atas nama penyetuju terakhir, barang bisa diterima. */
+    public function onApprovalApproved(ApprovalRequest $request, User $by): void
+    {
+        $this->forceFill([
+            'status' => PurchaseOrderStatus::Approved,
+            'approved_at' => now(),
+            'approved_by' => $by->getKey(),
+        ])->save();
+
+        activity('pembelian')->performedOn($this)->causedBy($by)->event('approved')
+            ->log("Purchase order {$this->number} disetujui");
+    }
+
+    public function onApprovalRejected(ApprovalRequest $request, User $by, string $note): void
+    {
+        $this->forceFill(['status' => PurchaseOrderStatus::Draft])->save();
+    }
+
+    public function onApprovalCancelled(ApprovalRequest $request, ?User $by): void
+    {
+        if ($this->status === PurchaseOrderStatus::Submitted) {
+            $this->forceFill(['status' => PurchaseOrderStatus::Draft])->save();
+        }
     }
 }

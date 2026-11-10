@@ -7,7 +7,8 @@ use Illuminate\Validation\Rule;
 
 /**
  * Simpan purchase order. aksi=draft menyimpan saja; aksi=approve langsung menyetujui dan
- * butuh izin purchasing.orders.approve. Angka dihitung ulang oleh PurchaseOrderService.
+ * butuh izin purchasing.orders.approve; aksi=submit mengajukan ke alur persetujuan. PO yang cocok
+ * dengan alur persetujuan selalu diajukan. Angka dihitung ulang oleh PurchaseOrderService.
  */
 class PurchaseOrderRequest extends FormRequest
 {
@@ -34,7 +35,7 @@ class PurchaseOrderRequest extends FormRequest
         $uang = ['numeric', 'min:0', 'max:99999999999.99', 'decimal:0,2'];
 
         return [
-            'aksi' => ['required', Rule::in(['draft', 'approve'])],
+            'aksi' => ['required', Rule::in(['draft', 'approve', 'submit'])],
             'supplier_id' => ['required', 'integer', Rule::exists('suppliers', 'id')->whereNull('deleted_at')],
             'warehouse_id' => ['required', 'integer', Rule::exists('warehouses', 'id')->where('is_active', true)->whereNull('deleted_at')],
             'order_date' => ['required', 'date'],

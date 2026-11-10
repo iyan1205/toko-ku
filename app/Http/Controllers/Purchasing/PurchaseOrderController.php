@@ -11,6 +11,7 @@ use App\Http\Requests\Purchasing\PurchaseOrderRequest;
 use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use App\Models\Warehouse;
+use App\Services\Approval\ApprovalService;
 use App\Services\Inventory\ProductSearch;
 use App\Services\Purchasing\PurchaseOrderService;
 use App\Services\Settings\StoreProfileService;
@@ -60,19 +61,19 @@ class PurchaseOrderController extends Controller
         ));
     }
 
+    /** aksi: draft | approve (butuh izin approve) | submit (ajukan ke alur persetujuan). */
     public function store(PurchaseOrderRequest $request): RedirectResponse
     {
-        $setujui = $request->input('aksi') === 'approve';
-        $order = $this->orders->create($request->validated(), $request->user(), $setujui);
+        [$setujui, $ajukan] = $this->aksi($request);
+        $order = $this->orders->create($request->validated(), $request->user(), $setujui, $ajukan);
 
-        return redirect()->route('purchase-orders.show', $order)->with('success', $setujui
-            ? "Purchase order {$order->number} disimpan dan disetujui. Barang bisa diterima saat tiba."
-            : "Draft purchase order {$order->number} tersimpan.");
+        return redirect()->route('purchase-orders.show', $order)->with('success', $this->savedMessage($order, $ajukan));
     }
 
-    public function show(PurchaseOrder $purchaseOrder): View
+    public function show(PurchaseOrder $purchaseOrder, ApprovalService $approvals): View
     {
         return view('purchasing.orders.show', [
+            'approvalFlow' => $purchaseOrder->isDraft() ? $approvals->flowFor($purchaseOrder) : null,
             'order' => $purchaseOrder->load([
                 'supplier', 'warehouse', 'user', 'approvedBy', 'closedBy', 'cancelledBy', 'items',
                 'receipts' => fn ($q) => $q->with(['warehouse:id,name', 'purchase:id,number,grand_total,balance,payment_status'])->withCount('items'),
@@ -95,12 +96,19 @@ class PurchaseOrderController extends Controller
 
     public function update(PurchaseOrderRequest $request, PurchaseOrder $purchaseOrder): RedirectResponse
     {
-        $setujui = $request->input('aksi') === 'approve';
-        $this->orders->update($purchaseOrder, $request->validated(), $request->user(), $setujui);
+        [$setujui, $ajukan] = $this->aksi($request);
+        $order = $this->orders->update($purchaseOrder, $request->validated(), $request->user(), $setujui, $ajukan);
 
-        return redirect()->route('purchase-orders.show', $purchaseOrder)->with('success', $setujui
-            ? "Purchase order {$purchaseOrder->number} diperbarui dan disetujui."
-            : "Draft purchase order {$purchaseOrder->number} diperbarui.");
+        return redirect()->route('purchase-orders.show', $order)->with('success', $this->savedMessage($order, $ajukan));
+    }
+
+    /** Ajukan draft ke alur persetujuan (Pengaturan → Alur Persetujuan). */
+    public function submit(Request $request, PurchaseOrder $purchaseOrder): RedirectResponse
+    {
+        $data = $request->validate(['catatan' => ['nullable', 'string', 'max:255']]);
+        $order = $this->orders->submit($purchaseOrder, $request->user(), $data['catatan'] ?? null);
+
+        return redirect()->route('purchase-orders.show', $order)->with('success', $this->savedMessage($order, true));
     }
 
     public function destroy(Request $request, PurchaseOrder $purchaseOrder): RedirectResponse
@@ -144,6 +152,25 @@ class PurchaseOrderController extends Controller
             'order' => $purchaseOrder->load(['supplier', 'warehouse', 'user', 'approvedBy', 'items']),
             'store' => $store->ambil(),
         ])->setPaper('a4')->stream("{$purchaseOrder->number}.pdf");
+    }
+
+    /** @return array{0: bool, 1: bool} [setujui, ajukan]. Izin approve untuk aksi=approve dicek PurchaseOrderRequest. */
+    private function aksi(Request $request): array
+    {
+        $aksi = $request->input('aksi');
+
+        return [$aksi === 'approve', $aksi === 'submit'];
+    }
+
+    private function savedMessage(PurchaseOrder $order, bool $ajukan): string
+    {
+        return match ($order->status) {
+            PurchaseOrderStatus::Approved => "Purchase order {$order->number} disimpan dan disetujui. Barang bisa diterima saat tiba.",
+            PurchaseOrderStatus::Submitted => "Purchase order {$order->number} perlu persetujuan berjenjang dan sudah diajukan. Penyetuju diberi notifikasi.",
+            default => $ajukan
+                ? "Draft purchase order {$order->number} tersimpan. PO ini tidak memerlukan alur persetujuan; minta pengguna dengan izin menyetujui."
+                : "Draft purchase order {$order->number} tersimpan.",
+        };
     }
 
     /** @return array<string, mixed> */

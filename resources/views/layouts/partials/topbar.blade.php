@@ -1,7 +1,9 @@
 {{--
     Topbar layouts.app: tombol menu/ciut, breadcrumb, pencarian global, cabang, notifikasi, profil.
 --}}
-@php($user = auth()->user())
+@php
+    $user = auth()->user();
+@endphp
 
 <header class="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-2 border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:gap-3 sm:px-6 print:hidden">
     {{-- Layar kecil: buka drawer --}}
@@ -84,7 +86,9 @@
             Daftar berisi cabang aktif yang boleh diakses; "Semua cabang" bila lebih dari satu.
         --}}
         @if ($branchOptions->isNotEmpty())
-            @php($namaCabang = $currentBranch?->name ?? 'Semua cabang')
+            @php
+                $namaCabang = $currentBranch?->name ?? 'Semua cabang';
+            @endphp
             <x-ui.dropdown class="hidden xl:inline-block" width="w-64">
                 <x-slot:trigger>
                     <button type="button" x-bind:aria-expanded="open" aria-label="Cabang aktif: {{ $namaCabang }}"
@@ -143,49 +147,83 @@
             </x-ui.dropdown>
         @endif
 
-        {{-- Notifikasi: produk perlu diisi ulang (hanya untuk yang boleh melihat stok). Daftar diambil saat dibuka. --}}
-        @if ($restockCount !== null)
-            <div x-data="notifikasiStok(@js(route('notifications')))">
-                <x-ui.dropdown width="w-80">
-                    <x-slot:trigger>
-                        <button type="button" x-bind:aria-expanded="open" x-on:click="ambil()"
-                                class="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-                                aria-label="Notifikasi{{ $restockCount > 0 ? ': '.$restockCount.' produk perlu diisi ulang' : '' }}">
-                            <x-ui.icon name="bell" class="h-5 w-5" />
-                            @if ($restockCount > 0)
-                                <span class="absolute right-1 top-1 grid h-4 min-w-[1rem] place-items-center rounded-full bg-danger-500 px-1 text-[10px] font-semibold leading-none text-white">{{ min($restockCount, 99) }}</span>
-                            @endif
-                        </button>
-                    </x-slot:trigger>
+        {{--
+            Lonceng: notifikasi pengguna (persetujuan, hasil persetujuan, ekspor) dan, bagi yang boleh
+            melihat stok, produk yang perlu diisi ulang. Daftar diambil saat lonceng dibuka.
+        --}}
+        @php
+            $labelLonceng = collect([
+                $unreadNotifications > 0 ? $unreadNotifications.' notifikasi belum dibaca' : null,
+                $restockCount ? $restockCount.' produk perlu diisi ulang' : null,
+            ])->filter()->implode(', ');
+            $angkaLonceng = $unreadNotifications + ($restockCount ?? 0);
+        @endphp
+        <div x-data="pusatNotifikasi({{ \Illuminate\Support\Js::from([
+                'feedUrl' => route('notifications.feed'),
+                'stokUrl' => $restockCount ? route('notifications') : null,
+                'bacaSemuaUrl' => route('notifications.read-all'),
+                'belumDibaca' => $unreadNotifications,
+            ]) }})">
+            <x-ui.dropdown width="w-80 sm:w-96">
+                <x-slot:trigger>
+                    <button type="button" x-bind:aria-expanded="open" x-on:click="ambil()"
+                            class="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                            aria-label="Notifikasi{{ $labelLonceng !== '' ? ': '.$labelLonceng : '' }}">
+                        <x-ui.icon name="bell" class="h-5 w-5" />
+                        @if ($angkaLonceng > 0)
+                            <span class="absolute right-1 top-1 grid h-4 min-w-[1rem] place-items-center rounded-full bg-danger-500 px-1 text-[10px] font-semibold leading-none text-white"
+                                  x-text="Math.min(belumDibaca + {{ (int) ($restockCount ?? 0) }}, 99)">{{ min($angkaLonceng, 99) }}</span>
+                        @endif
+                    </button>
+                </x-slot:trigger>
 
-                    <div class="border-b border-slate-100 px-4 py-3">
-                        <p class="text-sm font-semibold text-slate-900">Notifikasi</p>
-                    </div>
+                <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+                    <p class="text-sm font-semibold text-slate-900">Notifikasi</p>
+                    <button type="button" x-show="belumDibaca > 0" x-cloak x-on:click="bacaSemua()"
+                            class="text-xs font-medium text-primary-600 hover:text-primary-700">Tandai semua dibaca</button>
+                </div>
 
-                    @if ($restockCount === 0)
-                        <p class="px-4 py-6 text-center text-sm text-slate-500">Tidak ada notifikasi. Stok semua produk aman.</p>
-                    @else
-                        <p class="px-4 pb-1 pt-3 text-xs font-medium text-slate-500">Stok menipis atau habis · {{ $restockCount }} produk</p>
-                        <div x-show="memuat" class="px-4 py-2"><x-ui.skeleton lines="3" /></div>
-                        <p x-show="gagal" x-cloak class="px-4 py-3 text-sm text-danger-600">Gagal memuat. Coba buka lagi.</p>
-                        <template x-for="item in items" :key="item.url">
-                            <a x-bind:href="item.url" role="menuitem"
-                               class="flex items-center justify-between gap-3 px-4 py-2 text-sm hover:bg-slate-50 focus:bg-slate-50 focus:outline-none">
-                                <span class="min-w-0">
-                                    <span class="block truncate font-medium text-slate-900" x-text="item.title"></span>
-                                    <span class="block truncate text-xs text-slate-500" x-text="item.subtitle"></span>
-                                </span>
-                                <span x-show="item.status === 'habis'"><x-ui.badge color="danger">Habis</x-ui.badge></span>
-                                <span x-show="item.status === 'menipis'"><x-ui.badge color="warning">Menipis</x-ui.badge></span>
-                            </a>
-                        </template>
-                        <div class="mt-1 border-t border-slate-100 px-4 py-2.5">
-                            <a href="{{ route('stock.index', ['stok' => 'menipis']) }}" class="text-sm font-medium text-primary-600 hover:text-primary-700">Lihat semua stok menipis</a>
+                <div class="max-h-[60vh] overflow-y-auto">
+                    <div x-show="memuat" class="px-4 py-3"><x-ui.skeleton lines="3" /></div>
+                    <p x-show="gagal" x-cloak class="px-4 py-3 text-sm text-danger-600">Gagal memuat. Coba buka lagi.</p>
+                    <p x-show="termuat && items.length === 0" x-cloak class="px-4 py-6 text-center text-sm text-slate-500">Belum ada notifikasi untuk Anda.</p>
+                    <template x-for="item in items" :key="item.id">
+                        <a x-bind:href="item.url" role="menuitem"
+                           class="flex items-start gap-3 px-4 py-2.5 text-sm hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
+                           x-bind:class="item.read ? '' : 'bg-primary-50/40'">
+                            <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full" x-bind:class="item.read ? 'bg-transparent' : 'bg-primary-500'"></span>
+                            <span class="min-w-0">
+                                <span class="block truncate text-slate-900" x-bind:class="item.read ? 'font-medium' : 'font-semibold'" x-text="item.title"></span>
+                                <span class="line-clamp-2 block text-xs text-slate-500" x-text="item.body"></span>
+                                <span class="mt-0.5 block text-[11px] text-slate-400" x-text="item.time"></span>
+                            </span>
+                        </a>
+                    </template>
+
+                    @if ($restockCount)
+                        <div class="mt-1 border-t border-slate-100">
+                            <p class="px-4 pb-1 pt-3 text-xs font-medium text-slate-500">Stok menipis atau habis · {{ $restockCount }} produk</p>
+                            <template x-for="item in stok" :key="item.url">
+                                <a x-bind:href="item.url" role="menuitem"
+                                   class="flex items-center justify-between gap-3 px-4 py-2 text-sm hover:bg-slate-50 focus:bg-slate-50 focus:outline-none">
+                                    <span class="min-w-0">
+                                        <span class="block truncate font-medium text-slate-900" x-text="item.title"></span>
+                                        <span class="block truncate text-xs text-slate-500" x-text="item.subtitle"></span>
+                                    </span>
+                                    <span x-show="item.status === 'habis'"><x-ui.badge color="danger">Habis</x-ui.badge></span>
+                                    <span x-show="item.status === 'menipis'"><x-ui.badge color="warning">Menipis</x-ui.badge></span>
+                                </a>
+                            </template>
+                            <a href="{{ route('stock.index', ['stok' => 'menipis']) }}" class="block px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-700">Lihat semua stok menipis</a>
                         </div>
                     @endif
-                </x-ui.dropdown>
-            </div>
-        @endif
+                </div>
+
+                <div class="border-t border-slate-100 px-4 py-2.5">
+                    <a href="{{ route('notifications.index') }}" class="text-sm font-medium text-primary-600 hover:text-primary-700">Lihat semua notifikasi</a>
+                </div>
+            </x-ui.dropdown>
+        </div>
 
         {{-- Profil & keluar --}}
         <x-ui.dropdown width="w-64">

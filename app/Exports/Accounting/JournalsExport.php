@@ -2,6 +2,7 @@
 
 namespace App\Exports\Accounting;
 
+use App\Enums\DocumentStatus;
 use App\Exports\ListExport;
 use App\Models\Account;
 use App\Models\Journal;
@@ -47,6 +48,7 @@ class JournalsExport extends ListExport
             ['label' => 'Tanggal', 'value' => fn (Journal $j) => $j->journal_date, 'type' => 'date'],
             ['label' => 'Keterangan', 'value' => fn (Journal $j) => $j->description],
             ['label' => 'Sumber', 'value' => fn (Journal $j) => $j->sourceLabel()],
+            ['label' => 'Status', 'value' => fn (Journal $j) => $j->documentStatus()->label()],
             ['label' => 'Total', 'value' => fn (Journal $j) => $j->total, 'type' => 'money'],
             ['label' => 'Dibuat Oleh', 'value' => fn (Journal $j) => $j->user?->name],
         ];
@@ -60,6 +62,7 @@ class JournalsExport extends ListExport
             'Pencarian' => $f['cari'] ?? null,
             'Sumber' => self::SOURCES[$f['sumber'] ?? ''] ?? null,
             'Akun' => isset($f['akun']) ? Account::withTrashed()->find($f['akun'])?->label() : null,
+            'Status' => isset($f['status']) ? DocumentStatus::tryFrom($f['status'])?->label() : null,
             'Periode' => isset($f['dari']) || isset($f['sampai']) ? trim(($f['dari'] ?? '…').' s.d. '.($f['sampai'] ?? '…')) : null,
         ]);
     }

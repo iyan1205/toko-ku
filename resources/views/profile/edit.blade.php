@@ -33,5 +33,44 @@
                 </x-slot:footer>
             </x-ui.form-section>
         </form>
+
+        <form method="POST" action="{{ route('profile.notifications') }}">
+            @csrf
+            @method('PUT')
+            <x-ui.form-section title="Notifikasi" description="Pilih notifikasi yang muncul di lonceng dan yang dikirim ke email {{ $user->email }}.">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                <th class="pb-2 pr-4">Jenis</th>
+                                <th class="w-28 pb-2 text-center">Di aplikasi</th>
+                                <th class="w-28 pb-2 text-center">Email</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @foreach ($notificationTypes as $kunci => $jenis)
+                                <tr>
+                                    <td class="py-3 pr-4">
+                                        <p class="font-medium text-slate-900">{{ $jenis['label'] }}</p>
+                                        <p class="text-xs text-slate-500">{{ $jenis['description'] }}</p>
+                                    </td>
+                                    @foreach (['database' => 'di aplikasi', 'mail' => 'lewat email'] as $kanal => $teks)
+                                        <td class="py-3 text-center">
+                                            <input type="hidden" name="preferences[{{ $kunci }}][{{ $kanal }}]" value="0">
+                                            <input type="checkbox" name="preferences[{{ $kunci }}][{{ $kanal }}]" value="1" @checked($notificationChoices[$kunci][$kanal] ?? false)
+                                                   aria-label="{{ $jenis['label'] }} {{ $teks }}"
+                                                   class="rounded border-slate-300 text-primary-600 focus:ring-primary-500">
+                                        </td>
+                                    @endforeach
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                <x-slot:footer>
+                    <x-ui.button type="submit">Simpan preferensi</x-ui.button>
+                </x-slot:footer>
+            </x-ui.form-section>
+        </form>
     </div>
 </x-app-layout>

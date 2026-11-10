@@ -144,6 +144,7 @@ return [
                 'accounting' => ['label' => 'Akuntansi (jurnal otomatis)', 'actions' => ['view', 'update']],
                 'receipts' => ['label' => 'Struk & printer', 'actions' => ['view', 'update']],
                 'numbering' => ['label' => 'Penomoran dokumen', 'actions' => ['view', 'update']],
+                'approvals' => ['label' => 'Alur persetujuan', 'actions' => ['view', 'create', 'update', 'delete']],
                 'backup' => ['label' => 'Backup', 'actions' => ['view', 'create']],
             ],
         ],

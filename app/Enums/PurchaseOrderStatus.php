@@ -2,10 +2,14 @@
 
 namespace App\Enums;
 
-/** Alur purchase order: draft → disetujui → diterima sebagian → selesai, atau dibatalkan. */
+/**
+ * Alur purchase order: draft → disetujui → diterima sebagian → selesai, atau dibatalkan.
+ * Bila ada alur persetujuan yang cocok (Pengaturan → Alur Persetujuan): draft → menunggu persetujuan → disetujui.
+ */
 enum PurchaseOrderStatus: string
 {
     case Draft = 'draft';
+    case Submitted = 'submitted';
     case Approved = 'approved';
     case Partial = 'partial';
     case Completed = 'completed';
@@ -15,6 +19,7 @@ enum PurchaseOrderStatus: string
     {
         return match ($this) {
             self::Draft => 'Draft',
+            self::Submitted => 'Menunggu persetujuan',
             self::Approved => 'Disetujui',
             self::Partial => 'Diterima sebagian',
             self::Completed => 'Selesai',
@@ -27,6 +32,7 @@ enum PurchaseOrderStatus: string
     {
         return match ($this) {
             self::Draft => 'neutral',
+            self::Submitted => 'warning',
             self::Approved => 'info',
             self::Partial => 'warning',
             self::Completed => 'success',

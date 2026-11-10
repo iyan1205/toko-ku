@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Http\Requests\UpdatePasswordRequest;
+use App\Services\Notifications\NotificationPreferenceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,9 +16,13 @@ use Illuminate\View\View;
  */
 class ProfileController extends Controller
 {
-    public function edit(Request $request): View
+    public function edit(Request $request, NotificationPreferenceService $notifications): View
     {
-        return view('profile.edit', ['user' => $request->user()]);
+        return view('profile.edit', [
+            'user' => $request->user(),
+            'notificationTypes' => $notifications->types(),
+            'notificationChoices' => $notifications->for($request->user()),
+        ]);
     }
 
     public function update(ProfileUpdateRequest $request): RedirectResponse

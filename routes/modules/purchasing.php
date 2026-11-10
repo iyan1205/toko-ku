@@ -42,6 +42,7 @@ Route::resource('purchase-order', PurchaseOrderController::class)
 
 Route::prefix('purchase-order/{purchaseOrder}')->name('purchase-orders.')->whereNumber('purchaseOrder')->group(function () {
     Route::post('setujui', [PurchaseOrderController::class, 'approve'])->middleware('permission:purchasing.orders.approve')->name('approve');
+    Route::post('ajukan', [PurchaseOrderController::class, 'submit'])->middleware('permission:purchasing.orders.create|purchasing.orders.update')->name('submit');
     Route::post('batal', [PurchaseOrderController::class, 'cancel'])->middleware('permission:purchasing.orders.approve')->name('cancel');
     Route::post('tutup', [PurchaseOrderController::class, 'close'])->middleware('permission:purchasing.orders.approve')->name('close');
     Route::get('cetak', [PurchaseOrderController::class, 'print'])->middleware('permission:purchasing.orders.print')->name('print');

@@ -1,7 +1,10 @@
-{{-- Detail jurnal: baris debit/kredit, dokumen asal, dan jurnal pembalik. --}}
+{{-- Detail jurnal: status, baris debit/kredit, dokumen asal, persetujuan, dan jurnal pembalik. --}}
 @use('App\Support\Format')
+@use('App\Enums\DocumentStatus')
 @php
     $bisaBalik = $journal->canBeReversedManually() && auth()->user()->can('accounting.journals.void');
+    $bisaKelola = $journal->isManual() && auth()->user()->can('accounting.journals.create');
+    $status = $journal->documentStatus();
     $baris = 'flex justify-between gap-4';
 @endphp
 
@@ -9,10 +12,32 @@
     <x-slot name="header">Jurnal {{ $journal->number }}</x-slot>
     <x-slot name="description">{{ Format::tanggal($journal->journal_date) }} · {{ $journal->description }}</x-slot>
     <x-slot name="actions">
+        @if ($bisaKelola && $journal->isEditable())
+            <x-ui.button variant="ghost" icon="x-mark" x-data x-on:click="$dispatch('open-modal', 'batal-jurnal')">Batalkan</x-ui.button>
+            <x-ui.button variant="secondary" icon="pencil-square" :href="route('journals.edit', $journal)">Ubah draf</x-ui.button>
+            <form method="POST" action="{{ route('journals.post', $journal) }}">
+                @csrf
+                <x-ui.button type="submit" :icon="$approvalFlow ? 'paper-airplane' : 'check'">{{ $approvalFlow ? 'Ajukan persetujuan' : 'Posting' }}</x-ui.button>
+            </form>
+        @elseif ($bisaKelola && in_array($status, [DocumentStatus::Submitted, DocumentStatus::Approved], true))
+            <x-ui.button variant="ghost" icon="x-mark" x-data x-on:click="$dispatch('open-modal', 'batal-jurnal')">Batalkan</x-ui.button>
+        @endif
         @if ($bisaBalik)
             <x-ui.button variant="danger" icon="arrow-uturn-left" x-data x-on:click="$dispatch('open-modal', 'balik-jurnal')">Balik jurnal</x-ui.button>
         @endif
     </x-slot>
+
+    @if ($status === DocumentStatus::Draft)
+        <x-ui.alert type="info" class="mb-6" title="Draf: belum masuk saldo akun">
+            {{ $approvalFlow ? "Jurnal ini perlu persetujuan ({$approvalFlow->name}). Ajukan persetujuan; jurnal diposting otomatis setelah disetujui." : 'Klik Posting bila isinya sudah benar.' }}
+        </x-ui.alert>
+    @elseif ($status === DocumentStatus::Submitted)
+        <x-ui.alert type="warning" class="mb-6" title="Menunggu persetujuan">Jurnal masuk saldo akun setelah semua tahap persetujuan selesai.</x-ui.alert>
+    @elseif ($status === DocumentStatus::Cancelled)
+        <x-ui.alert type="danger" class="mb-6" title="Dibatalkan sebelum diposting">
+            Oleh {{ $journal->cancelledBy?->name ?? '-' }}, {{ Format::tanggal($journal->cancelled_at, true) }}. Alasan: {{ $journal->cancel_reason }}
+        </x-ui.alert>
+    @endif
 
     @if ($journal->reversal)
         <x-ui.alert type="warning" class="mb-6" title="Jurnal ini sudah dibalik">
@@ -29,6 +54,7 @@
         <x-ui.card title="Rincian">
             <dl class="grid gap-3 text-sm">
                 <div class="{{ $baris }}"><dt class="text-slate-500">Tanggal</dt><dd class="text-slate-900">{{ Format::tanggal($journal->journal_date) }}</dd></div>
+                <div class="{{ $baris }}"><dt class="text-slate-500">Status</dt><dd><x-ui.badge :color="$status->color()" dot>{{ $status->label() }}</x-ui.badge></dd></div>
                 <div class="{{ $baris }}"><dt class="text-slate-500">Sumber</dt><dd><x-ui.badge :color="$journal->isManual() ? 'primary' : 'neutral'">{{ $journal->sourceLabel() }}</x-ui.badge></dd></div>
                 @if (! $journal->isManual())
                     <div class="{{ $baris }}"><dt class="text-slate-500">Dokumen</dt>
@@ -44,6 +70,9 @@
                 <div class="{{ $baris }}"><dt class="text-slate-500">Total</dt><dd class="font-medium tabular-nums text-slate-900">@rupiah($journal->total)</dd></div>
                 <div class="{{ $baris }}"><dt class="text-slate-500">Dibuat oleh</dt><dd class="text-right text-slate-900">{{ $journal->user?->name ?? 'Sistem' }}</dd></div>
                 <div class="{{ $baris }}"><dt class="text-slate-500">Dicatat</dt><dd class="text-slate-900">{{ Format::tanggal($journal->created_at, true) }}</dd></div>
+                @if ($journal->posted_at && $journal->isManual())
+                    <div class="{{ $baris }}"><dt class="text-slate-500">Diposting</dt><dd class="text-right text-slate-900">{{ Format::tanggal($journal->posted_at, true) }}<span class="block text-xs text-slate-500">{{ $journal->postedBy?->name }}</span></dd></div>
+                @endif
             </dl>
         </x-ui.card>
 
@@ -75,6 +104,16 @@
             </x-slot:footer>
         </x-ui.table>
     </div>
+
+    @if ($journal->isManual())
+        <x-ui.approval-panel :document="$journal" class="mt-6" />
+    @endif
+
+    @if ($bisaKelola && ! $status->isLocked())
+        <x-ui.void-dialog name="batal-jurnal" :action="route('journals.cancel', $journal)" :title="'Batalkan '.$journal->number.'?'" confirm="Ya, batalkan" label="Alasan pembatalan">
+            Jurnal belum diposting, jadi saldo akun tidak berubah. Pengajuan persetujuan yang berjalan ikut ditarik. Nomor jurnal tidak dipakai ulang.
+        </x-ui.void-dialog>
+    @endif
 
     @if ($bisaBalik)
         <x-ui.void-dialog name="balik-jurnal" :action="route('journals.reverse', $journal)" :title="'Balik '.$journal->number.'?'" confirm="Ya, balik jurnal" label="Alasan pembalikan">

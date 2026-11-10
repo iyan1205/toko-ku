@@ -9,7 +9,8 @@
     @endcan
 
     <x-ui.alert class="mb-6">
-        Stok dan transaksi belum dipisah per cabang. Pemisahan stok dilakukan per gudang, dan gudang nanti bisa ditautkan ke cabang.
+        Transaksi dicatat per cabang mengikuti gudangnya (atur di Inventori → Gudang/Lokasi). Pengguna melihat data cabang aktif di topbar;
+        cabang yang boleh diakses tiap pengguna diatur di Pengguna &amp; Hak Akses → Pengguna.
     </x-ui.alert>
 
     <x-ui.table :sticky="false">

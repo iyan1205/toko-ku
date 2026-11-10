@@ -22,11 +22,25 @@
             @can('purchasing.orders.update')
                 <x-ui.button variant="secondary" icon="pencil-square" :href="route('purchase-orders.edit', $order)">Ubah</x-ui.button>
             @endcan
+            @if ($approvalFlow)
+                @canany(['purchasing.orders.create', 'purchasing.orders.update'])
+                    <form method="POST" action="{{ route('purchase-orders.submit', $order) }}" x-data="{ kirim: false }" x-on:submit="kirim = true">
+                        @csrf
+                        <x-ui.button type="submit" icon="paper-airplane" x-bind:disabled="kirim">Ajukan persetujuan</x-ui.button>
+                    </form>
+                @endcanany
+            @else
+                @can('purchasing.orders.approve')
+                    <form method="POST" action="{{ route('purchase-orders.approve', $order) }}" x-data="{ kirim: false }" x-on:submit="kirim = true">
+                        @csrf
+                        <x-ui.button type="submit" icon="check" x-bind:disabled="kirim">Setujui</x-ui.button>
+                    </form>
+                @endcan
+            @endif
+        @endif
+        @if ($status === PurchaseOrderStatus::Submitted)
             @can('purchasing.orders.approve')
-                <form method="POST" action="{{ route('purchase-orders.approve', $order) }}" x-data="{ kirim: false }" x-on:submit="kirim = true">
-                    @csrf
-                    <x-ui.button type="submit" icon="check" x-bind:disabled="kirim">Setujui</x-ui.button>
-                </form>
+                <x-ui.button variant="ghost" icon="x-circle" class="text-danger-600 hover:text-danger-700" x-data x-on:click="$dispatch('open-modal', 'batal-po')">Batalkan</x-ui.button>
             @endcan
         @endif
         @if ($status->canReceive())
@@ -52,8 +66,18 @@
             Oleh {{ $order->closedBy?->name }} pada {{ Format::tanggal($order->closed_at, true) }}. Alasan: {{ $order->cancel_reason }}.
         </x-ui.alert>
     @elseif ($status === PurchaseOrderStatus::Draft)
-        <x-ui.alert class="mb-6">Draft belum dikirim ke supplier. Setujui PO agar barangnya bisa diterima.</x-ui.alert>
+        <x-ui.alert class="mb-6">
+            @if ($approvalFlow)
+                Draft belum dikirim ke supplier. PO ini perlu persetujuan berjenjang ({{ $approvalFlow->name }}): ajukan persetujuan, lalu barang bisa diterima setelah disetujui.
+            @else
+                Draft belum dikirim ke supplier. Setujui PO agar barangnya bisa diterima.
+            @endif
+        </x-ui.alert>
+    @elseif ($status === PurchaseOrderStatus::Submitted)
+        <x-ui.alert type="warning" class="mb-6" title="Menunggu persetujuan">PO belum bisa diubah atau diterima sampai semua tahap persetujuan selesai.</x-ui.alert>
     @endif
+
+    <x-ui.approval-panel :document="$order" class="mb-6" />
 
     <div class="grid gap-6 lg:grid-cols-3">
         <x-ui.card title="Rincian">

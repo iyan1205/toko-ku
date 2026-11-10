@@ -26,11 +26,17 @@ Route::prefix('akuntansi')->group(function () {
         ->middlewareFor(['edit', 'update'], 'permission:accounting.coa.update')
         ->middlewareFor('destroy', 'permission:accounting.coa.delete');
 
-    // ---- Jurnal umum: tidak ada ubah/hapus; koreksi lewat jurnal pembalik. ----
+    // ---- Jurnal umum: draf bisa diubah/diajukan/dibatalkan; jurnal posted dikoreksi lewat jurnal pembalik. ----
     Route::get('jurnal/ekspor', [JournalController::class, 'export'])->middleware('permission:accounting.journals.export')->name('journals.export');
     Route::middleware('permission:accounting.journals.create')->group(function () {
         Route::get('jurnal/buat', [JournalController::class, 'create'])->name('journals.create');
         Route::post('jurnal', [JournalController::class, 'store'])->name('journals.store');
+        Route::prefix('jurnal/{journal}')->whereNumber('journal')->group(function () {
+            Route::get('ubah', [JournalController::class, 'edit'])->name('journals.edit');
+            Route::put('/', [JournalController::class, 'update'])->name('journals.update');
+            Route::post('posting', [JournalController::class, 'post'])->name('journals.post');
+            Route::post('batal', [JournalController::class, 'cancel'])->name('journals.cancel');
+        });
     });
     Route::middleware('permission:accounting.journals.view')->group(function () {
         Route::get('jurnal', [JournalController::class, 'index'])->name('journals.index');

@@ -12,7 +12,7 @@ use Illuminate\View\View;
 
 /**
  * Data navigasi untuk layouts.app dan layouts.pos, dihitung sekali per halaman:
- * menu sidebar, menu aktif (breadcrumb), jumlah notifikasi stok, nama toko, dan cabang aktif.
+ * menu sidebar, menu aktif (breadcrumb), jumlah notifikasi (belum dibaca + stok menipis), nama toko, dan cabang aktif.
  */
 class NavigationComposer
 {
@@ -37,6 +37,7 @@ class NavigationComposer
             'menuTree' => $tree,
             'menuCurrent' => Menu::current($tree),
             'restockCount' => $this->restockCount($user),
+            'unreadNotifications' => $user?->unreadNotifications()->count() ?? 0,
             'branchOptions' => $this->currentBranch->options(),
             'currentBranch' => $this->currentBranch->get(),
             'canChooseAllBranches' => $this->currentBranch->canChooseAll(),
