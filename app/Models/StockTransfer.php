@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\PurchaseStatus;
+use App\Models\Concerns\BelongsToBranch;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,6 +17,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  */
 class StockTransfer extends Model
 {
+    use BelongsToBranch;
+
     protected $fillable = ['number', 'from_warehouse_id', 'to_warehouse_id', 'transfer_date', 'note', 'user_id'];
 
     protected function casts(): array
@@ -75,5 +78,11 @@ class StockTransfer extends Model
             ->when($f['status'] ?? null, fn (Builder $q, $v) => $q->where('status', $v))
             ->when($f['dari'] ?? null, fn (Builder $q, $v) => $q->whereDate('transfer_date', '>=', $v))
             ->when($f['sampai'] ?? null, fn (Builder $q, $v) => $q->whereDate('transfer_date', '<=', $v));
+    }
+
+    /** Transfer milik cabang gudang asal. */
+    protected function branchWarehouseColumn(): string
+    {
+        return 'from_warehouse_id';
     }
 }

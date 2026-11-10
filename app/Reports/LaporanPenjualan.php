@@ -7,6 +7,7 @@ use App\Enums\PurchaseStatus;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\User;
+use App\Support\CurrentBranch;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -209,8 +210,12 @@ final class LaporanPenjualan
     /** Baris penjualan (join ke dokumennya) yang selesai pada rentang tanggal. */
     private function baris(): Builder
     {
+        $cabang = app(CurrentBranch::class)->scopeIds();
+
+        // Join tidak melewati BranchScope milik Sale: saring cabangnya di sini.
         return SaleItem::query()
             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
+            ->when($cabang !== null, fn (Builder $q) => $q->whereIn('sales.branch_id', $cabang))
             ->where('sales.status', PurchaseStatus::Completed->value)
             ->whereBetween('sales.sold_at', [$this->dari, $this->sampai])
             ->when($this->kasirId, fn (Builder $q, int $id) => $q->where('sales.user_id', $id));

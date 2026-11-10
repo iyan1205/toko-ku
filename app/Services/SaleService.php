@@ -16,6 +16,7 @@ use App\Models\Product;
 use App\Models\Sale;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Services\Accounting\FiscalPeriodService;
 use App\Services\Pos\CashSessionService;
 use App\Services\Settings\DocumentNumberService;
 use App\Services\Settings\TaxSettingsService;
@@ -60,6 +61,8 @@ class SaleService
      */
     public function buat(array $data, User $kasir): Sale
     {
+        app(FiscalPeriodService::class)->ensureOpen(now());
+
         // Dua kasir yang menyimpan di detik yang sama bisa menghitung nomor yang sama. Batas unik database
         // menolak salah satunya; ulangi (nomor dihitung ulang) alih-alih menampilkan error ke kasir.
         for ($percobaan = 1; ; $percobaan++) {
@@ -189,6 +192,8 @@ class SaleService
      */
     public function batalkan(Sale $penjualan, string $alasan, User $user): Sale
     {
+        // Pembalik stok, pembayaran, dan jurnal dibukukan pada tanggal pembatalan.
+        app(FiscalPeriodService::class)->ensureOpen(now());
         $alasan = trim($alasan);
 
         if (mb_strlen($alasan) < 5) {

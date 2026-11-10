@@ -2,6 +2,8 @@
 @php
     $edit = $user->exists;
     $peranSaatIni = old('role', $edit ? $user->roles->pluck('name')->first() : \App\Enums\RoleName::Kasir->value);
+    $semuaCabang = (bool) old('all_branches', $edit ? ($user->all_branches ?? true) : false);
+    $cabangDipilih = array_map('intval', (array) old('branches', $edit ? $user->branches->modelKeys() : [$cabang->firstWhere('is_default', true)?->id]));
 @endphp
 
 <x-app-layout>
@@ -54,6 +56,40 @@
             </fieldset>
 
             <x-ui.checkbox name="is_active" label="Akun aktif dan boleh login" :checked="$user->is_active ?? true" unchecked-value="0" />
+
+            @if ($cabang->count() > 1)
+                <fieldset x-data="{ semua: @js($semuaCabang) }">
+                    <legend class="text-sm font-medium text-slate-700">Akses cabang</legend>
+                    <p class="mt-1 text-xs text-slate-500">Data transaksi (penjualan, pembelian, stok, jurnal) hanya terlihat untuk cabang yang boleh diakses.</p>
+                    <label class="mt-3 flex items-start gap-3">
+                        <input type="hidden" name="all_branches" value="0">
+                        <input type="checkbox" name="all_branches" value="1" x-model="semua"
+                               class="mt-0.5 rounded border-slate-300 text-primary-600 focus:ring-primary-500">
+                        <span>
+                            <span class="block text-sm text-slate-900">Semua cabang</span>
+                            <span class="block text-xs text-slate-500">Termasuk cabang yang ditambahkan nanti.</span>
+                        </span>
+                    </label>
+                    <div x-show="! semua" x-cloak class="mt-3 grid gap-2 sm:grid-cols-2">
+                        @foreach ($cabang as $c)
+                            <label class="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm has-[:checked]:border-primary-500 has-[:checked]:bg-primary-50/60">
+                                <input type="checkbox" name="branches[]" value="{{ $c->id }}" @checked(in_array($c->id, $cabangDipilih, true))
+                                       x-bind:disabled="semua"
+                                       class="rounded border-slate-300 text-primary-600 focus:ring-primary-500">
+                                <span class="min-w-0 flex-1 truncate text-slate-900">{{ $c->name }}</span>
+                                @if ($c->is_default)
+                                    <span class="text-[11px] text-slate-400">Utama</span>
+                                @elseif (! $c->is_active)
+                                    <span class="text-[11px] text-slate-400">Nonaktif</span>
+                                @endif
+                            </label>
+                        @endforeach
+                    </div>
+                    @error('branches')
+                        <p class="mt-1.5 text-sm text-danger-600">{{ $message }}</p>
+                    @enderror
+                </fieldset>
+            @endif
 
             <x-slot:footer>
                 <x-ui.button :href="route('users.index')" variant="secondary">Batal</x-ui.button>

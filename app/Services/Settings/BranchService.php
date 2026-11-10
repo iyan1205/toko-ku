@@ -4,6 +4,8 @@ namespace App\Services\Settings;
 
 use App\Exceptions\AturanBisnisException;
 use App\Models\Branch;
+use App\Models\Company;
+use App\Support\CurrentBranch;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -17,11 +19,14 @@ class BranchService
     {
         return DB::transaction(function () use ($data) {
             $branch = new Branch($data);
+            $branch->company_id = Company::default()->getKey();
             $branch->save();
 
             if ($data['is_default'] ?? false) {
                 $this->makeDefault($branch);
             }
+
+            app(CurrentBranch::class)->flush();
 
             return $branch;
         });
@@ -41,6 +46,8 @@ class BranchService
                 $this->makeDefault($branch);
             }
 
+            app(CurrentBranch::class)->flush();
+
             return $branch;
         });
     }
@@ -52,6 +59,7 @@ class BranchService
         }
 
         $branch->delete();
+        app(CurrentBranch::class)->flush();
     }
 
     /** Jadikan cabang utama; cabang utama sebelumnya menjadi cabang biasa. Cabang utama selalu aktif. */

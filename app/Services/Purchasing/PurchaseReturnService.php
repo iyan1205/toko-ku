@@ -15,6 +15,7 @@ use App\Models\PurchaseItem;
 use App\Models\PurchaseReturn;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Services\Accounting\FiscalPeriodService;
 use App\Services\Settings\DocumentNumberService;
 use App\Services\StockService;
 use App\Support\Format;
@@ -48,6 +49,8 @@ class PurchaseReturnService
      */
     public function create(Purchase $purchase, array $data, User $user, bool $approve = false): PurchaseReturn
     {
+        app(FiscalPeriodService::class)->ensureOpen($data['return_date']);
+
         return DB::transaction(function () use ($purchase, $data, $user, $approve) {
             $faktur = Purchase::whereKey($purchase->getKey())->lockForUpdate()->firstOrFail();
             $this->ensureReturnable($faktur);
@@ -96,6 +99,9 @@ class PurchaseReturnService
 
     public function approve(PurchaseReturn $return, User $user): PurchaseReturn
     {
+        // Stok keluar, pengurangan hutang, dan jurnal retur dibukukan pada tanggal persetujuan.
+        app(FiscalPeriodService::class)->ensureOpen(now());
+
         return DB::transaction(function () use ($return, $user) {
             // Faktur dikunci dulu: semua persetujuan retur & pembayaran faktur yang sama berjalan bergiliran.
             $faktur = Purchase::whereKey($return->purchase_id)->lockForUpdate()->firstOrFail();

@@ -6,6 +6,7 @@ use App\Enums\RoleName;
 use App\Models\Concerns\RecordsActivity;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -36,6 +37,7 @@ class User extends Authenticatable
             'last_login_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'all_branches' => 'boolean',
         ];
     }
 
@@ -84,6 +86,12 @@ class User extends Authenticatable
     protected function activityLogAttributes(): array
     {
         return ['name', 'email', 'phone', 'is_active'];
+    }
+
+    /** Cabang yang boleh diakses bila all_branches = false (lihat App\Support\CurrentBranch). */
+    public function branches(): BelongsToMany
+    {
+        return $this->belongsToMany(Branch::class);
     }
 
     /** Data karyawan yang tertaut ke akun ini (SDM), bila ada. */

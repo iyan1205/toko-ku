@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\PaymentMethod;
+use App\Rules\OpenPeriod;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -39,7 +40,7 @@ class PurchaseRequest extends FormRequest
                     fn ($q) => $q->where('supplier_id', $this->input('supplier_id'))->where('status', 'completed')
                 ),
             ],
-            'purchase_date' => ['required', 'date', 'before_or_equal:today'],
+            'purchase_date' => ['required', 'date', 'before_or_equal:today', new OpenPeriod],
             'due_date' => ['nullable', 'date', 'after_or_equal:purchase_date'],
 
             'items' => ['required', 'array', 'min:1', 'max:100'],

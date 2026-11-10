@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ResetUserPasswordRequest;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
+use App\Models\Branch;
 use App\Models\User;
 use App\Services\Access\UserService;
 use Illuminate\Database\Eloquent\Collection;
@@ -53,6 +54,7 @@ class UserController extends Controller
         return view('access.users.form', [
             'user' => new User(['is_active' => true]),
             'peran' => $this->assignableRoles($request->user()),
+            'cabang' => $this->branches(),
         ]);
     }
 
@@ -69,8 +71,9 @@ class UserController extends Controller
         Gate::authorize('update', $user);
 
         return view('access.users.form', [
-            'user' => $user->load('roles'),
+            'user' => $user->load(['roles', 'branches:id']),
             'peran' => $this->assignableRoles($request->user()),
+            'cabang' => $this->branches(),
         ]);
     }
 
@@ -123,5 +126,15 @@ class UserController extends Controller
             ->when(! $actor->isSuperAdmin(), fn ($q) => $q->where('name', '!=', RoleName::SuperAdmin->value))
             ->orderBy('id')
             ->get(['id', 'name', 'description']);
+    }
+
+    /**
+     * Cabang untuk pilihan akses. Bagian akses cabang hanya tampil bila ada lebih dari satu.
+     *
+     * @return Collection<int, Branch>
+     */
+    private function branches(): Collection
+    {
+        return Branch::query()->ordered()->get(['id', 'name', 'is_default', 'is_active']);
     }
 }

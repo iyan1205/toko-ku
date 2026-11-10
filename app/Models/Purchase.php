@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PaymentStatus;
 use App\Enums\PurchaseStatus;
+use App\Models\Concerns\BelongsToBranch;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,7 +24,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  */
 class Purchase extends Model
 {
-    use HasFactory;
+    use BelongsToBranch, HasFactory;
 
     protected $fillable = [
         'number', 'warehouse_id', 'supplier_id', 'purchase_order_id', 'supplier_invoice_number', 'purchase_date', 'due_date',

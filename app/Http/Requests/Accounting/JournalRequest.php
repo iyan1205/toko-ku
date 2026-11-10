@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Accounting;
 
+use App\Rules\OpenPeriod;
 use Illuminate\Foundation\Http\FormRequest;
 
 /** Bentuk data jurnal manual. Aturan debit = kredit dan akun diperiksa JournalService. */
@@ -18,7 +19,7 @@ class JournalRequest extends FormRequest
         $uang = ['nullable', 'numeric', 'min:0', 'max:99999999999.99', 'decimal:0,2'];
 
         return [
-            'journal_date' => ['required', 'date', 'before_or_equal:today'],
+            'journal_date' => ['required', 'date', 'before_or_equal:today', new OpenPeriod],
             'description' => ['required', 'string', 'max:255'],
             'lines' => ['required', 'array', 'min:2', 'max:50'],
             'lines.*.account_id' => ['nullable', 'integer'],

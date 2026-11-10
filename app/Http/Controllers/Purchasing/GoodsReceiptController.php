@@ -29,7 +29,7 @@ class GoodsReceiptController extends Controller
         return view('purchasing.receipts.index', [
             'receipts' => GoodsReceiptsExport::fromRequest($request, $this->filter($request))->paginate(15),
             'suppliers' => Supplier::orderBy('name')->get(['id', 'name']),
-            'gudang' => Warehouse::query()->ordered()->get(['id', 'name']),
+            'gudang' => Warehouse::query()->inCurrentBranch()->ordered()->get(['id', 'name']),
             'menunggu' => PurchaseOrder::query()->whereIn('status', [PurchaseOrderStatus::Approved->value, PurchaseOrderStatus::Partial->value])->count(),
         ]);
     }
@@ -66,7 +66,7 @@ class GoodsReceiptController extends Controller
 
         return view('purchasing.receipts.create', [
             'order' => $order,
-            'gudang' => Warehouse::query()->active()->ordered()->get(['id', 'name']),
+            'gudang' => Warehouse::query()->active()->inCurrentBranch()->ordered()->get(['id', 'name']),
         ]);
     }
 

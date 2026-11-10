@@ -11,6 +11,7 @@ use App\Models\StockOpname;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Models\WarehouseStock;
+use App\Services\Accounting\FiscalPeriodService;
 use App\Services\Settings\DocumentNumberService;
 use App\Support\Format;
 use Illuminate\Support\Collection;
@@ -81,6 +82,7 @@ class StockOpnameService
     {
         return DB::transaction(function () use ($opname, $user, $fromForm) {
             $terkunci = $this->lockDraft($opname);
+            app(FiscalPeriodService::class)->ensureOpen($terkunci->opname_date);
             $gudang = $terkunci->warehouse;
             $items = $terkunci->items()->orderBy('product_id')->get();
 

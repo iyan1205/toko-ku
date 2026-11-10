@@ -21,6 +21,10 @@ class StoreUserRequest extends FormRequest
             'email' => strtolower(trim((string) $this->input('email'))),
             'is_active' => $this->boolean('is_active'),
         ]);
+
+        if ($this->has('all_branches')) {
+            $this->merge(['all_branches' => $this->boolean('all_branches')]);
+        }
     }
 
     public function rules(): array
@@ -32,6 +36,10 @@ class StoreUserRequest extends FormRequest
             'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
             'role' => ['required', 'string', new AssignableRole($this->user())],
             'is_active' => ['boolean'],
+            // Akses cabang: hanya dikirim formulir bila toko punya lebih dari satu cabang.
+            'all_branches' => ['sometimes', 'boolean'],
+            'branches' => [Rule::requiredIf(fn () => $this->has('all_branches') && ! $this->boolean('all_branches')), 'array'],
+            'branches.*' => ['integer', Rule::exists('branches', 'id')->whereNull('deleted_at')],
         ];
     }
 
@@ -49,6 +57,7 @@ class StoreUserRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'branches.required' => 'Pilih minimal satu cabang, atau centang Semua cabang.',
             'phone.regex' => 'Nomor HP hanya boleh berisi angka, spasi, tanda + dan -.',
             'email.unique' => 'Email ini sudah terdaftar.',
         ];

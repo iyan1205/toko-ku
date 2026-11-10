@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\StockTransfer;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Services\Accounting\FiscalPeriodService;
 use App\Services\Settings\DocumentNumberService;
 use App\Services\StockService;
 use App\Support\Uang;
@@ -36,6 +37,7 @@ class StockTransferService
      */
     public function create(array $data, User $user): StockTransfer
     {
+        app(FiscalPeriodService::class)->ensureOpen($data['transfer_date']);
         $baris = $this->lines($data['items'] ?? []);
 
         return DB::transaction(function () use ($data, $baris, $user) {
@@ -94,6 +96,8 @@ class StockTransferService
         if (mb_strlen($alasan) < 5) {
             throw ValidationException::withMessages(['alasan' => 'Alasan pembatalan minimal 5 karakter.']);
         }
+
+        app(FiscalPeriodService::class)->ensureOpen(now());
 
         return DB::transaction(function () use ($transfer, $alasan, $user) {
             $terkunci = StockTransfer::whereKey($transfer->getKey())->lockForUpdate()->with(['items', 'fromWarehouse', 'toWarehouse'])->firstOrFail();

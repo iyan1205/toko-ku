@@ -15,6 +15,7 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Services\Accounting\FiscalPeriodService;
 use App\Services\PurchaseService;
 use App\Services\Settings\DocumentNumberService;
 use App\Services\StockService;
@@ -53,6 +54,8 @@ class GoodsReceiptService
      */
     public function create(PurchaseOrder $order, array $data, User $user): GoodsReceipt
     {
+        app(FiscalPeriodService::class)->ensureOpen($data['received_date']);
+
         return DB::transaction(function () use ($order, $data, $user) {
             $po = $this->orders->lock($order);
 
@@ -149,6 +152,7 @@ class GoodsReceiptService
     public function void(GoodsReceipt $receipt, string $alasan, User $user): GoodsReceipt
     {
         $alasan = $this->purchases->alasan($alasan);
+        app(FiscalPeriodService::class)->ensureOpen(now());
 
         return DB::transaction(function () use ($receipt, $alasan, $user) {
             // Urutan kunci sama dengan create(): PO dulu, lalu dokumen lain, lalu stok.

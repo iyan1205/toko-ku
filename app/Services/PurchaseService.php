@@ -17,6 +17,7 @@ use App\Models\Purchase;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Services\Accounting\FiscalPeriodService;
 use App\Services\Settings\DocumentNumberService;
 use App\Support\DocumentTotals;
 use App\Support\Uang;
@@ -55,6 +56,7 @@ class PurchaseService
      */
     public function buat(array $data, User $user): Purchase
     {
+        app(FiscalPeriodService::class)->ensureOpen($data['purchase_date']);
         $hitung = $this->hitung($data);
 
         return DB::transaction(function () use ($data, $hitung, $user) {
@@ -138,6 +140,7 @@ class PurchaseService
     public function batalkan(Purchase $pembelian, string $alasan, User $user): Purchase
     {
         $alasan = $this->alasan($alasan);
+        app(FiscalPeriodService::class)->ensureOpen(now());
 
         return DB::transaction(function () use ($pembelian, $alasan, $user) {
             $terkunci = Purchase::whereKey($pembelian->getKey())->lockForUpdate()->with(['items', 'goodsReceipt'])->firstOrFail();

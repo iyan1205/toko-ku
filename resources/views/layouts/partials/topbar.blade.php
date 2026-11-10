@@ -79,14 +79,18 @@
             </div>
         </div>
 
-        {{-- Cabang aktif (disimpan di session). Daftar berisi cabang yang aktif; cabang utama paling atas. --}}
-        @if ($currentBranch)
+        {{--
+            Cabang aktif (disimpan di session): data transaksi disaring ke cabang ini (BranchScope).
+            Daftar berisi cabang aktif yang boleh diakses; "Semua cabang" bila lebih dari satu.
+        --}}
+        @if ($branchOptions->isNotEmpty())
+            @php($namaCabang = $currentBranch?->name ?? 'Semua cabang')
             <x-ui.dropdown class="hidden xl:inline-block" width="w-64">
                 <x-slot:trigger>
-                    <button type="button" x-bind:aria-expanded="open" aria-label="Cabang aktif: {{ $currentBranch->name }}"
+                    <button type="button" x-bind:aria-expanded="open" aria-label="Cabang aktif: {{ $namaCabang }}"
                             class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
                         <x-ui.icon name="building-office-2" variant="m" class="h-4 w-4 text-slate-400" />
-                        <span class="max-w-[10rem] truncate">{{ $currentBranch->name }}</span>
+                        <span class="max-w-[10rem] truncate">{{ $namaCabang }}</span>
                         <x-ui.icon name="chevron-down" variant="m" class="h-4 w-4 text-slate-400" />
                     </button>
                 </x-slot:trigger>
@@ -95,19 +99,35 @@
                     <p class="mt-0.5 truncate text-xs text-slate-400">{{ $storeName }}</p>
                 </div>
                 <div class="py-1">
+                    @if ($canChooseAllBranches)
+                        <form method="POST" action="{{ route('current-branch.update') }}">
+                            @csrf
+                            @method('PUT')
+                            <input type="hidden" name="branch_id" value="semua">
+                            <button type="submit" role="menuitem" @disabled($currentBranch === null)
+                                    class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none disabled:cursor-default disabled:hover:bg-transparent">
+                                <span class="grid h-4 w-4 place-items-center">
+                                    @if ($currentBranch === null)
+                                        <x-ui.icon name="check" variant="m" class="h-4 w-4 text-primary-600" />
+                                    @endif
+                                </span>
+                                <span @class(['min-w-0 flex-1 truncate', 'font-medium text-slate-900' => $currentBranch === null])>Semua cabang</span>
+                            </button>
+                        </form>
+                    @endif
                     @foreach ($branchOptions as $branch)
                         <form method="POST" action="{{ route('current-branch.update') }}">
                             @csrf
                             @method('PUT')
                             <input type="hidden" name="branch_id" value="{{ $branch->id }}">
-                            <button type="submit" role="menuitem" @disabled($branch->is($currentBranch))
+                            <button type="submit" role="menuitem" @disabled($currentBranch && $branch->is($currentBranch))
                                     class="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 focus:bg-slate-50 focus:outline-none disabled:cursor-default disabled:hover:bg-transparent">
                                 <span class="grid h-4 w-4 place-items-center">
-                                    @if ($branch->is($currentBranch))
+                                    @if ($currentBranch && $branch->is($currentBranch))
                                         <x-ui.icon name="check" variant="m" class="h-4 w-4 text-primary-600" />
                                     @endif
                                 </span>
-                                <span @class(['min-w-0 flex-1 truncate', 'font-medium text-slate-900' => $branch->is($currentBranch)])>{{ $branch->name }}</span>
+                                <span @class(['min-w-0 flex-1 truncate', 'font-medium text-slate-900' => $currentBranch && $branch->is($currentBranch)])>{{ $branch->name }}</span>
                                 @if ($branch->is_default)
                                     <span class="text-[11px] text-slate-400">Utama</span>
                                 @endif

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Purchasing;
 
+use App\Rules\OpenPeriod;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -24,7 +25,7 @@ class PurchaseReturnRequest extends FormRequest
             'aksi' => ['required', Rule::in(['draft', 'approve'])],
             'purchase_id' => ['required', 'integer', Rule::exists('purchases', 'id')->where('status', 'completed')],
             'warehouse_id' => ['required', 'integer', Rule::exists('warehouses', 'id')->where('is_active', true)->whereNull('deleted_at')],
-            'return_date' => ['required', 'date', 'before_or_equal:today'],
+            'return_date' => ['required', 'date', 'before_or_equal:today', new OpenPeriod],
             'reason' => ['required', 'string', 'min:5', 'max:255'],
             'items' => ['required', 'array'],
             'items.*' => ['nullable', 'numeric', 'min:0', 'max:99999.999', 'decimal:0,3'],

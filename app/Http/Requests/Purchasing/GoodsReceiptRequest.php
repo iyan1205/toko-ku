@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Purchasing;
 
+use App\Rules\OpenPeriod;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -25,7 +26,7 @@ class GoodsReceiptRequest extends FormRequest
 
         return [
             'warehouse_id' => ['required', 'integer', Rule::exists('warehouses', 'id')->where('is_active', true)->whereNull('deleted_at')],
-            'received_date' => ['required', 'date', 'before_or_equal:today'],
+            'received_date' => ['required', 'date', 'before_or_equal:today', new OpenPeriod],
             'due_date' => ['required', 'date', 'after_or_equal:received_date'],
             'delivery_note_number' => ['nullable', 'string', 'max:50'],
             // Faktur yang sama dari supplier yang sama hanya boleh tercatat sekali.

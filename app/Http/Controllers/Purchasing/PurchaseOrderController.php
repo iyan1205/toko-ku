@@ -37,7 +37,7 @@ class PurchaseOrderController extends Controller
             'list' => $list,
             'orders' => $list->paginate(15),
             'suppliers' => Supplier::orderBy('name')->get(['id', 'name']),
-            'gudang' => Warehouse::query()->ordered()->get(['id', 'name']),
+            'gudang' => Warehouse::query()->inCurrentBranch()->ordered()->get(['id', 'name']),
         ]);
     }
 
@@ -53,7 +53,7 @@ class PurchaseOrderController extends Controller
         return view('purchasing.orders.form', $this->formData(
             new PurchaseOrder([
                 'supplier_id' => $request->integer('supplier') ?: null,
-                'warehouse_id' => Warehouse::default()->id,
+                'warehouse_id' => Warehouse::forCurrentBranch()->id,
                 'order_date' => now(),
             ]),
             $search->formLines(old('items', [])),
@@ -169,7 +169,7 @@ class PurchaseOrderController extends Controller
             'order' => $order,
             'items' => $lines,
             'suppliers' => Supplier::orderBy('name')->get(['id', 'name']),
-            'gudang' => Warehouse::query()->active()->ordered()->get(['id', 'name']),
+            'gudang' => Warehouse::query()->active()->inCurrentBranch()->ordered()->get(['id', 'name']),
         ];
     }
 }

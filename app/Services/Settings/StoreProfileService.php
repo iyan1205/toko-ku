@@ -2,6 +2,7 @@
 
 namespace App\Services\Settings;
 
+use App\Models\Company;
 use App\Models\Setting;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -90,6 +91,10 @@ class StoreProfileService
         }
 
         $sesudah = $this->ambil();
+
+        // Nama perusahaan utama mengikuti nama toko.
+        Company::query()->where('is_default', true)->update(['name' => mb_substr($sesudah['nama_toko'], 0, 150)]);
+
         $berubah = array_keys(array_diff_assoc(
             array_map('strval', array_diff_key($sesudah, ['logo_url' => true])),
             array_map('strval', array_diff_key($sebelum, ['logo_url' => true])),

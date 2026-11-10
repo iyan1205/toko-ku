@@ -42,7 +42,7 @@ class PosController extends Controller
             'session' => $session,
             'sessionRequired' => $this->sessions->isRequired(),
             'warehouse' => $warehouse,
-            'warehouses' => Warehouse::query()->active()->ordered()->get(['id', 'code', 'name']),
+            'warehouses' => Warehouse::query()->active()->inCurrentBranch()->ordered()->get(['id', 'code', 'name']),
             'categories' => Category::query()
                 ->whereHas('products', fn (Builder $q) => $q->aktif()->jual())
                 ->withCount(['products' => fn (Builder $q) => $q->aktif()->jual()])

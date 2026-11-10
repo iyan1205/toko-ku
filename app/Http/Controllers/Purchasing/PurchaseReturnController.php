@@ -31,7 +31,7 @@ class PurchaseReturnController extends Controller
         return view('purchasing.returns.index', [
             'returns' => PurchaseReturnsExport::fromRequest($request, $this->filter($request))->paginate(15),
             'suppliers' => Supplier::orderBy('name')->get(['id', 'name']),
-            'gudang' => Warehouse::query()->ordered()->get(['id', 'name']),
+            'gudang' => Warehouse::query()->inCurrentBranch()->ordered()->get(['id', 'name']),
         ]);
     }
 
@@ -63,7 +63,7 @@ class PurchaseReturnController extends Controller
 
         return view('purchasing.returns.create', [
             'faktur' => $faktur,
-            'gudang' => Warehouse::query()->active()->ordered()->get(['id', 'name']),
+            'gudang' => Warehouse::query()->active()->inCurrentBranch()->ordered()->get(['id', 'name']),
         ]);
     }
 

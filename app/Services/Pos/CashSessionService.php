@@ -11,6 +11,7 @@ use App\Models\CashSession;
 use App\Models\Payment;
 use App\Models\Sale;
 use App\Models\SaleReturn;
+use App\Models\Scopes\BranchScope;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Services\Settings\DocumentNumberService;
@@ -43,7 +44,7 @@ class CashSessionService
     /** Sesi yang sedang terbuka milik pengguna ini, atau null. */
     public function current(User $user): ?CashSession
     {
-        return CashSession::query()->open()->where('user_id', $user->getKey())->with('warehouse')->latest('id')->first();
+        return CashSession::query()->withoutGlobalScope(BranchScope::class)->open()->where('user_id', $user->getKey())->with('warehouse')->latest('id')->first();
     }
 
     /**
@@ -52,11 +53,7 @@ class CashSessionService
      */
     public function branchWarehouse(): Warehouse
     {
-        $branch = $this->currentBranch->get();
-
-        return ($branch ? Warehouse::query()->active()->where('branch_id', $branch->getKey())
-            ->orderByDesc('is_default')->orderBy('name')->first() : null)
-            ?? Warehouse::default();
+        return Warehouse::forCurrentBranch();
     }
 
     /**
@@ -85,7 +82,7 @@ class CashSessionService
             // Kunci baris pengguna: dua tab yang membuka sesi bersamaan tidak boleh sama-sama lolos.
             User::whereKey($user->getKey())->lockForUpdate()->firstOrFail();
 
-            $berjalan = CashSession::query()->open()->where('user_id', $user->getKey())->first();
+            $berjalan = CashSession::query()->withoutGlobalScope(BranchScope::class)->open()->where('user_id', $user->getKey())->first();
             if ($berjalan) {
                 throw new AturanBisnisException("Anda masih punya sesi kasir terbuka ({$berjalan->number}). Tutup sesi itu dulu.");
             }
@@ -132,7 +129,7 @@ class CashSessionService
         }
 
         $refund = (new SaleReturn)->getMorphClass();
-        $baris = Payment::query()->where('cash_session_id', $session->getKey())->whereNull('voided_at')
+        $baris = Payment::query()->withoutGlobalScope(BranchScope::class)->where('cash_session_id', $session->getKey())->whereNull('voided_at')
             ->selectRaw('method, CASE WHEN payable_type = ? THEN 1 ELSE 0 END AS keluar, SUM(amount) AS jumlah', [$refund])
             ->groupBy('method', 'keluar')
             ->get();
@@ -147,7 +144,7 @@ class CashSessionService
         // Tunai selalu tampil, walau belum ada transaksi tunai: itulah yang dihitung di laci.
         $metode = [PaymentMethod::Cash->value => $metode[PaymentMethod::Cash->value] ?? ['in' => 0, 'out' => 0]] + $metode;
 
-        $penjualan = Sale::query()->where('cash_session_id', $session->getKey());
+        $penjualan = Sale::query()->withoutGlobalScope(BranchScope::class)->where('cash_session_id', $session->getKey());
         $tunai = $metode[PaymentMethod::Cash->value];
 
         return [
@@ -164,7 +161,7 @@ class CashSessionService
             'sales_count' => (clone $penjualan)->where('status', PurchaseStatus::Completed->value)->count(),
             'sales_total' => Uang::keDesimal(Uang::sen((clone $penjualan)->where('status', PurchaseStatus::Completed->value)->sum('grand_total'))),
             'voided_count' => (clone $penjualan)->where('status', PurchaseStatus::Voided->value)->count(),
-            'returns_count' => Payment::query()->where('cash_session_id', $session->getKey())->where('payable_type', $refund)->count(),
+            'returns_count' => Payment::query()->withoutGlobalScope(BranchScope::class)->where('cash_session_id', $session->getKey())->where('payable_type', $refund)->count(),
         ];
     }
 
@@ -177,7 +174,7 @@ class CashSessionService
 
         return DB::transaction(function () use ($session, $closingCash, $note, $by) {
             // Penjualan yang sedang disimpan mengunci sesi yang sama, jadi rekap tidak terlewat satu transaksi.
-            $terkunci = CashSession::whereKey($session->getKey())->lockForUpdate()->firstOrFail();
+            $terkunci = CashSession::withoutGlobalScope(BranchScope::class)->whereKey($session->getKey())->lockForUpdate()->firstOrFail();
 
             if (! $terkunci->isOpen()) {
                 throw new AturanBisnisException("Sesi {$terkunci->number} sudah ditutup.");
@@ -215,7 +212,7 @@ class CashSessionService
     public function verify(CashSession $session, ?string $note, User $by): CashSession
     {
         return DB::transaction(function () use ($session, $note, $by) {
-            $terkunci = CashSession::whereKey($session->getKey())->lockForUpdate()->firstOrFail();
+            $terkunci = CashSession::withoutGlobalScope(BranchScope::class)->whereKey($session->getKey())->lockForUpdate()->firstOrFail();
 
             if ($terkunci->isOpen()) {
                 throw new AturanBisnisException("Sesi {$terkunci->number} masih terbuka. Tutup dulu sebelum diverifikasi.");
@@ -244,6 +241,6 @@ class CashSessionService
      */
     public function lockCurrent(User $user): ?CashSession
     {
-        return CashSession::query()->open()->where('user_id', $user->getKey())->lockForUpdate()->latest('id')->first();
+        return CashSession::query()->withoutGlobalScope(BranchScope::class)->open()->where('user_id', $user->getKey())->lockForUpdate()->latest('id')->first();
     }
 }

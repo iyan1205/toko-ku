@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\PaymentMethod;
+use App\Models\Concerns\BelongsToBranch;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -14,6 +15,8 @@ use LogicException;
  */
 class Payment extends Model
 {
+    use BelongsToBranch;
+
     private const KOLOM_VOID = ['voided_at', 'voided_by', 'void_reason', 'updated_at'];
 
     protected $fillable = ['number', 'payable_type', 'payable_id', 'amount', 'method', 'paid_at', 'note', 'user_id', 'cash_session_id'];
@@ -65,5 +68,11 @@ class Payment extends Model
     public function dibatalkan(): bool
     {
         return $this->voided_at !== null;
+    }
+
+    /** Pembayaran ikut cabang dokumen yang dibayar. */
+    protected function branchSource(): ?array
+    {
+        return [$this->payable_type, $this->payable_id];
     }
 }

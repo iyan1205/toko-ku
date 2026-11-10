@@ -14,7 +14,7 @@
     <x-slot name="header">Transfer stok baru</x-slot>
     <x-slot name="description">Stok keluar dari gudang asal dan masuk ke gudang tujuan saat disimpan.</x-slot>
 
-    @if ($gudang->count() < 2)
+    @if ($gudangTujuan->count() < 2)
         <x-ui.alert type="warning" class="mb-6" title="Butuh minimal dua gudang aktif">
             Tambahkan gudang lain di menu Gudang/Lokasi sebelum memindahkan stok.
         </x-ui.alert>
@@ -37,7 +37,7 @@
             <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 <x-ui.select name="from_warehouse_id" label="Dari gudang" required :options="$gudang->pluck('name', 'id')" :selected="$dari" x-model="gudang" />
                 <x-ui.select name="to_warehouse_id" label="Ke gudang" required placeholder="Pilih gudang tujuan"
-                             :options="$gudang->pluck('name', 'id')" :selected="old('to_warehouse_id')" />
+                             :options="$gudangTujuan->pluck('name', 'id')" :selected="old('to_warehouse_id')" />
                 <x-ui.input name="transfer_date" label="Tanggal" type="date" :value="now()->format('Y-m-d')" :max="now()->format('Y-m-d')" required />
                 <x-ui.input name="note" label="Catatan" maxlength="255" placeholder="Opsional, misal: isi ulang rak toko" />
             </div>

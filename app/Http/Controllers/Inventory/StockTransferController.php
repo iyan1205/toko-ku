@@ -28,20 +28,23 @@ class StockTransferController extends Controller
     {
         return view('inventory.transfers.index', [
             'transfers' => StockTransfersExport::fromRequest($request, $this->filter($request))->paginate(15),
-            'gudang' => Warehouse::query()->ordered()->get(['id', 'name']),
+            'gudang' => Warehouse::query()->inCurrentBranch()->ordered()->get(['id', 'name']),
         ]);
     }
 
     public function create(Request $request): View
     {
-        $gudang = Warehouse::query()->active()->ordered()->get(['id', 'name', 'is_default']);
+        // Gudang asal = gudang cabang aktif; gudang tujuan boleh cabang mana pun.
+        $semuaGudang = Warehouse::query()->active()->ordered()->get(['id', 'name', 'is_default', 'branch_id']);
+        $gudang = Warehouse::query()->active()->inCurrentBranch()->ordered()->get(['id', 'name', 'is_default']);
 
         // Baris dari old input setelah validasi gagal; stok dimuat ulang oleh formulir.
         $items = app(ProductSearch::class)->formLines(old('items', []));
 
         return view('inventory.transfers.create', [
             'gudang' => $gudang,
-            'dari' => old('from_warehouse_id', $request->integer('dari') ?: $gudang->firstWhere('is_default', true)?->id),
+            'gudangTujuan' => $semuaGudang,
+            'dari' => old('from_warehouse_id', $request->integer('dari') ?: ($gudang->firstWhere('is_default', true) ?? $gudang->first())?->id),
             'items' => $items,
         ]);
     }

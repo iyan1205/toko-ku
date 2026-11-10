@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Purchasing;
 
 use App\Enums\PaymentMethod;
+use App\Rules\OpenPeriod;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -20,7 +21,7 @@ class SupplierPaymentRequest extends FormRequest
         return [
             'amount' => ['required', 'numeric', 'gt:0', 'max:99999999999.99', 'decimal:0,2'],
             'method' => ['required', Rule::in(array_map(fn (PaymentMethod $m) => $m->value, PaymentMethod::untukPembelian()))],
-            'paid_at' => ['required', 'date', 'before_or_equal:today'],
+            'paid_at' => ['required', 'date', 'before_or_equal:today', new OpenPeriod],
             'note' => ['nullable', 'string', 'max:255'],
         ];
     }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Inventory;
 
+use App\Rules\OpenPeriod;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -21,7 +22,7 @@ class StockTransferRequest extends FormRequest
         return [
             'from_warehouse_id' => ['required', 'integer', $activeWarehouse],
             'to_warehouse_id' => ['required', 'integer', 'different:from_warehouse_id', $activeWarehouse],
-            'transfer_date' => ['required', 'date', 'before_or_equal:today'],
+            'transfer_date' => ['required', 'date', 'before_or_equal:today', new OpenPeriod],
             'note' => ['nullable', 'string', 'max:255'],
             'items' => ['required', 'array', 'min:1', 'max:200'],
             'items.*.product_id' => ['required', 'integer', Rule::exists('products', 'id')->whereNull('deleted_at')],

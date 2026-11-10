@@ -17,6 +17,7 @@ use App\Models\SaleItem;
 use App\Models\SaleReturn;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Services\Accounting\FiscalPeriodService;
 use App\Services\PaymentService;
 use App\Services\Settings\DocumentNumberService;
 use App\Services\StockService;
@@ -62,6 +63,8 @@ class SaleReturnService
             $jumlah = $this->quantities($items, $data['items'] ?? []);
             $tanggal = now()->toDateString();
 
+            app(FiscalPeriodService::class)->ensureOpen($tanggal);
+
             $retur = SaleReturn::create([
                 'number' => $this->numbers->next(DocumentType::SaleReturn, $tanggal),
                 'sale_id' => $penjualan->getKey(),
@@ -104,6 +107,9 @@ class SaleReturnService
 
     public function approve(SaleReturn $return, User $user, PaymentMethod $refundMethod = PaymentMethod::Cash): SaleReturn
     {
+        // Stok, pengembalian uang, dan jurnal retur dibukukan pada tanggal persetujuan.
+        app(FiscalPeriodService::class)->ensureOpen(now());
+
         return DB::transaction(function () use ($return, $user, $refundMethod) {
             // Penjualan dikunci dulu: semua persetujuan retur & pelunasan transaksi yang sama berjalan bergiliran.
             $penjualan = Sale::whereKey($return->sale_id)->lockForUpdate()->firstOrFail();

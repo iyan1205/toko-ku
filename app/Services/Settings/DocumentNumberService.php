@@ -4,6 +4,7 @@ namespace App\Services\Settings;
 
 use App\Enums\DocumentType;
 use App\Enums\NumberingReset;
+use App\Models\Scopes\BranchScope;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
@@ -174,6 +175,9 @@ class DocumentNumberService
         $query = in_array(SoftDeletes::class, class_uses_recursive($model), true)
             ? $model::withTrashed()
             : $model::query();
+
+        // Nomor unik di semua cabang.
+        $query->withoutGlobalScope(BranchScope::class);
 
         return $query->where($type->column(), $number)->exists();
     }

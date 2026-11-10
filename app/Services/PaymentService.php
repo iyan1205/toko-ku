@@ -16,6 +16,7 @@ use App\Models\Purchase;
 use App\Models\Sale;
 use App\Models\SaleReturn;
 use App\Models\User;
+use App\Services\Accounting\FiscalPeriodService;
 use App\Services\Settings\DocumentNumberService;
 use App\Support\Format;
 use App\Support\Uang;
@@ -47,6 +48,8 @@ class PaymentService
         if ($metode === PaymentMethod::Receivable) {
             throw new AturanBisnisException('Metode Piutang tidak berlaku untuk pembayaran ke supplier.');
         }
+
+        app(FiscalPeriodService::class)->ensureOpen($tanggal ?? now());
 
         return DB::transaction(function () use ($pembelian, $sen, $metode, $catatan, $user, $tanggal, $atCheckout) {
             // Kunci pembelian: dua pembayaran bersamaan tidak boleh sama-sama lolos dari batas sisa hutang.
@@ -119,6 +122,8 @@ class PaymentService
         if ($metode === PaymentMethod::Receivable || $metode === PaymentMethod::Mixed) {
             throw new AturanBisnisException('Piutang bukan metode pembayaran. Pilih metode yang dipakai pelanggan membayar.');
         }
+
+        app(FiscalPeriodService::class)->ensureOpen($tanggal ?? now());
 
         return DB::transaction(function () use ($penjualan, $sen, $metode, $catatan, $user, $tanggal, $session, $atCheckout) {
             $terkunci = Sale::whereKey($penjualan->getKey())->lockForUpdate()->firstOrFail();
@@ -193,6 +198,7 @@ class PaymentService
         }
 
         $tanggal = now()->toDateString();
+        app(FiscalPeriodService::class)->ensureOpen($tanggal);
 
         return Payment::create([
             'number' => $this->numbers->next(DocumentType::CustomerRefund, $tanggal),

@@ -12,6 +12,7 @@ use App\Models\Purchase;
 use App\Models\PurchaseReturn;
 use App\Models\Sale;
 use App\Models\SaleReturn;
+use App\Models\Scopes\BranchScope;
 use App\Models\User;
 use App\Support\Uang;
 use Illuminate\Database\Eloquent\Model;
@@ -187,7 +188,7 @@ class AutoJournalService
      */
     private function reverseDocument(Model $document, array $paymentIds, string $description, ?User $user): array
     {
-        $journals = Journal::query()
+        $journals = Journal::query()->withoutGlobalScope(BranchScope::class)
             ->whereNull('reversal_of_id')
             ->whereDoesntHave('reversal')
             ->where('source_event', 'created')

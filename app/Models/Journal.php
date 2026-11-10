@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToBranch;
 use App\Support\DocumentLink;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -19,6 +20,8 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  */
 class Journal extends Model
 {
+    use BelongsToBranch;
+
     protected $fillable = ['number', 'journal_date', 'description', 'source_type', 'source_id', 'source_event', 'reversal_of_id', 'total', 'user_id'];
 
     protected function casts(): array
@@ -109,5 +112,19 @@ class Journal extends Model
             ->when($f['akun'] ?? null, fn (Builder $q, $v) => $q->whereHas('lines', fn (Builder $l) => $l->where('account_id', $v)))
             ->when($f['dari'] ?? null, fn (Builder $q, $v) => $q->whereDate('journal_date', '>=', $v))
             ->when($f['sampai'] ?? null, fn (Builder $q, $v) => $q->whereDate('journal_date', '<=', $v));
+    }
+
+    /** Jurnal otomatis ikut cabang dokumen sumbernya; jurnal pembalik ikut jurnal yang dibalik. */
+    protected function branchSource(): ?array
+    {
+        return $this->source_type !== null
+            ? [$this->source_type, $this->source_id]
+            : ($this->reversal_of_id !== null ? [$this->getMorphClass(), $this->reversal_of_id] : null);
+    }
+
+    /** Jurnal otomatis dibuat sebagai akibat dokumen yang sudah lolos pemeriksaan cabang. */
+    protected function guardsBranchAccess(): bool
+    {
+        return false;
     }
 }

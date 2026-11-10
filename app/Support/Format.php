@@ -49,4 +49,10 @@ final class Format
 
         return Carbon::parse($tanggal)->format($denganJam ? 'd-m-Y H:i' : 'd-m-Y');
     }
+
+    /** Nama bulan dan tahun: "Oktober 2026". */
+    public static function bulan(DateTimeInterface|string $tanggal): string
+    {
+        return Carbon::parse($tanggal)->locale('id')->translatedFormat('F Y');
+    }
 }

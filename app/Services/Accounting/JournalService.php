@@ -6,6 +6,7 @@ use App\Enums\DocumentType;
 use App\Exceptions\AturanBisnisException;
 use App\Models\Account;
 use App\Models\Journal;
+use App\Models\Scopes\BranchScope;
 use App\Models\User;
 use App\Services\Settings\DocumentNumberService;
 use App\Support\Format;
@@ -50,6 +51,7 @@ class JournalService
 
         $rows = $this->validated($lines);
         $date = CarbonImmutable::parse($date)->toDateString();
+        app(FiscalPeriodService::class)->ensureOpen($date);
 
         return DB::transaction(function () use ($date, $description, $rows, $user, $source, $event, $reversalOf) {
             $journal = Journal::create([
@@ -96,7 +98,7 @@ class JournalService
         DateTimeInterface|string|null $date = null,
     ): Journal {
         return DB::transaction(function () use ($journal, $description, $user, $source, $event, $date) {
-            $locked = Journal::whereKey($journal->getKey())->lockForUpdate()->with(['lines', 'reversal'])->firstOrFail();
+            $locked = Journal::withoutGlobalScope(BranchScope::class)->whereKey($journal->getKey())->lockForUpdate()->with(['lines', 'reversal'])->firstOrFail();
 
             if ($locked->reversal_of_id !== null) {
                 throw new AturanBisnisException("Jurnal {$locked->number} adalah jurnal pembalik dan tidak bisa dibalik lagi.");
@@ -118,7 +120,7 @@ class JournalService
 
     public function find(Model $source, string $event): ?Journal
     {
-        return Journal::query()
+        return Journal::query()->withoutGlobalScope(BranchScope::class)
             ->where('source_type', $source->getMorphClass())
             ->where('source_id', $source->getKey())
             ->where('source_event', $event)

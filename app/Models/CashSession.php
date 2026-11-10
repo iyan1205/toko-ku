@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\CashSessionStatus;
+use App\Models\Concerns\BelongsToBranch;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +15,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class CashSession extends Model
 {
+    use BelongsToBranch;
+
     protected $fillable = ['number', 'user_id', 'warehouse_id', 'branch_id', 'opened_at', 'opening_cash', 'opening_note'];
 
     protected function casts(): array
@@ -39,11 +42,6 @@ class CashSession extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class)->withTrashed();
-    }
-
-    public function branch(): BelongsTo
-    {
-        return $this->belongsTo(Branch::class)->withTrashed();
     }
 
     public function closedBy(): BelongsTo

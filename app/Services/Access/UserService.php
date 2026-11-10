@@ -4,7 +4,9 @@ namespace App\Services\Access;
 
 use App\Enums\RoleName;
 use App\Exceptions\AturanBisnisException;
+use App\Models\Branch;
 use App\Models\User;
+use App\Support\CurrentBranch;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -14,7 +16,7 @@ use Illuminate\Support\Str;
  */
 class UserService
 {
-    /** @param array{name:string,email:string,phone?:?string,password:string,role:string,is_active?:bool} $data */
+    /** @param array{name:string,email:string,phone?:?string,password:string,role:string,is_active?:bool,all_branches?:bool,branches?:list<int>} $data */
     public function buat(array $data): User
     {
         return DB::transaction(function () use ($data) {
@@ -27,6 +29,7 @@ class UserService
             ]);
 
             $user->syncRoles($data['role']);
+            $this->aturCabang($user, $data);
 
             activity('pengguna')->performedOn($user)->event('role_assigned')
                 ->withProperties(['peran' => $data['role']])
@@ -36,7 +39,7 @@ class UserService
         });
     }
 
-    /** @param array{name:string,email:string,phone?:?string,password?:?string,role:string,is_active?:bool} $data */
+    /** @param array{name:string,email:string,phone?:?string,password?:?string,role:string,is_active?:bool,all_branches?:bool,branches?:list<int>} $data */
     public function perbarui(User $user, array $data, User $aktor): User
     {
         $aktif = $data['is_active'] ?? $user->is_active;
@@ -66,6 +69,7 @@ class UserService
 
             $user->save();
             $user->syncRoles($data['role']);
+            $this->aturCabang($user, $data);
 
             if ($peranBerubah) {
                 activity('pengguna')->performedOn($user)->event('role_changed')
@@ -137,5 +141,42 @@ class UserService
         if (! $adaLain) {
             throw new AturanBisnisException('Minimal harus ada satu Super Admin aktif.');
         }
+    }
+
+    /**
+     * Akses cabang: semua cabang (termasuk cabang baru), atau hanya cabang yang dipilih.
+     * Tidak diubah bila formulir tidak mengirimnya (toko dengan satu cabang).
+     *
+     * @param  array{all_branches?: bool, branches?: list<int>}  $data
+     */
+    private function aturCabang(User $user, array $data): void
+    {
+        if (! array_key_exists('all_branches', $data)) {
+            return;
+        }
+
+        $semua = (bool) $data['all_branches'];
+        $cabang = $semua ? [] : array_values(array_unique(array_map('intval', $data['branches'] ?? [])));
+        sort($cabang);
+
+        $sebelum = $this->labelCabang($user->all_branches ?? true, $user->branches()->pluck('branches.id')->map(fn ($id) => (int) $id)->sort()->values()->all());
+
+        $user->forceFill(['all_branches' => $semua])->save();
+        $user->branches()->sync($cabang);
+        app(CurrentBranch::class)->flush();
+
+        $sesudah = $this->labelCabang($semua, $cabang);
+
+        if ($sebelum !== $sesudah) {
+            activity('pengguna')->performedOn($user)->event('branch_access_changed')
+                ->withProperties(['old' => ['akses_cabang' => $sebelum], 'attributes' => ['akses_cabang' => $sesudah]])
+                ->log("Akses cabang {$user->name}: {$sesudah}");
+        }
+    }
+
+    /** @param list<int> $ids */
+    private function labelCabang(bool $semua, array $ids): string
+    {
+        return $semua ? 'Semua cabang' : (Branch::withTrashed()->whereIn('id', $ids)->orderBy('name')->pluck('name')->implode(', ') ?: '-');
     }
 }

@@ -33,7 +33,7 @@ class StockOpnameController extends Controller
     {
         return view('inventory.opnames.index', [
             'opname' => StockOpnamesExport::fromRequest($request, $this->filter($request))->paginate(15),
-            'gudang' => Warehouse::query()->ordered()->get(['id', 'name']),
+            'gudang' => Warehouse::query()->inCurrentBranch()->ordered()->get(['id', 'name']),
         ]);
     }
 
@@ -49,7 +49,7 @@ class StockOpnameController extends Controller
         $data = $request->validate([
             'gudang' => ['nullable', 'integer', Rule::exists('warehouses', 'id')->where('is_active', true)],
         ]);
-        $gudang = isset($data['gudang']) ? Warehouse::findOrFail($data['gudang']) : Warehouse::default();
+        $gudang = isset($data['gudang']) ? Warehouse::findOrFail($data['gudang']) : Warehouse::forCurrentBranch();
 
         return view('inventory.opnames.form', $this->formData($request, new StockOpname(['opname_date' => now()]), $gudang));
     }
@@ -149,7 +149,7 @@ class StockOpnameController extends Controller
         return [
             'opname' => $opname,
             'gudang' => $gudang,
-            'pilihanGudang' => Warehouse::query()->active()->ordered()->get(['id', 'name']),
+            'pilihanGudang' => Warehouse::query()->active()->inCurrentBranch()->ordered()->get(['id', 'name']),
             'produk' => $produk,
             'stokGudang' => $this->service->warehouseQuantities($gudang, $produk->modelKeys()),
             'hitungan' => $opname->exists ? $opname->items->keyBy('product_id') : collect(),

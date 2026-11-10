@@ -43,7 +43,7 @@ class CashSessionController extends Controller
             'cashiers' => Gate::allows('viewAll', CashSession::class)
                 ? User::withTrashed()->whereIn('id', CashSession::query()->select('user_id')->distinct())->orderBy('name')->get(['id', 'name'])
                 : collect(),
-            'warehouses' => Warehouse::query()->active()->ordered()->get(['id', 'name']),
+            'warehouses' => Warehouse::query()->active()->inCurrentBranch()->ordered()->get(['id', 'name']),
             'defaultWarehouse' => $this->sessions->branchWarehouse(),
         ]);
     }

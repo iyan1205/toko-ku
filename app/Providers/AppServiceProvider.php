@@ -15,6 +15,7 @@ use App\Models\StockTransfer;
 use App\Models\User;
 use App\Policies\ProductPolicy;
 use App\Policies\RolePolicy;
+use App\Services\Accounting\FiscalPeriodService;
 use App\Services\Settings\PaymentMethodService;
 use App\Support\CurrentBranch;
 use App\Support\SettingStore;
@@ -35,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(SettingStore::class);
         $this->app->scoped(PaymentMethodService::class);
         $this->app->scoped(CurrentBranch::class);
+        $this->app->scoped(FiscalPeriodService::class);
     }
 
     public function boot(): void

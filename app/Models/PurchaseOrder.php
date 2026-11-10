@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PurchaseOrderStatus;
 use App\Enums\PurchaseStatus;
+use App\Models\Concerns\BelongsToBranch;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +19,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class PurchaseOrder extends Model
 {
+    use BelongsToBranch;
+
     protected $fillable = [
         'number', 'supplier_id', 'warehouse_id', 'order_date', 'expected_date',
         'subtotal', 'item_discount', 'discount', 'tax', 'other_cost', 'grand_total', 'note', 'user_id',

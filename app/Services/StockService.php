@@ -9,6 +9,7 @@ use App\Models\StockMovement;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Models\WarehouseStock;
+use App\Services\Accounting\FiscalPeriodService;
 use App\Support\Format;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -104,6 +105,8 @@ class StockService
         if (! in_array($jenis, StockMovementType::manual(), true)) {
             throw new AturanBisnisException('Jenis mutasi ini tidak dapat dibuat manual.');
         }
+
+        app(FiscalPeriodService::class)->ensureOpen(now());
 
         $besar = abs(round((float) $jumlah, 3));
         $tambah = $jenis === StockMovementType::Adjustment && $arah === 'in';

@@ -110,6 +110,8 @@ return [
                         'description' => 'Daftar akun standar toko retail Indonesia.'],
                     ['key' => 'accounting-journals', 'label' => 'Jurnal Umum', 'route' => 'journals.index', 'active' => 'journals.*', 'permission' => 'accounting.journals.view',
                         'description' => 'Jurnal manual dan jurnal otomatis dari penjualan dan pembelian.'],
+                    ['key' => 'accounting-periods', 'label' => 'Kunci Periode', 'route' => 'fiscal-periods.index', 'active' => 'fiscal-periods.*', 'permission' => 'accounting.periods.view',
+                        'description' => 'Tutup bulan yang sudah final agar tidak ada transaksi baru atau perubahan bertanggal di bulan itu.'],
                     ['key' => 'accounting-ledger', 'label' => 'Buku Besar', 'status' => 'coming_soon', 'permission' => 'accounting.ledger.view',
                         'description' => 'Mutasi dan saldo per akun.'],
                     ['key' => 'accounting-cash-bank', 'label' => 'Kas & Bank', 'status' => 'coming_soon', 'permission' => 'accounting.cash-bank.view',

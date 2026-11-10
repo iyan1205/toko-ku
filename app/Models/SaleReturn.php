@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PaymentMethod;
 use App\Enums\SaleReturnStatus;
+use App\Models\Concerns\BelongsToBranch;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,6 +17,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  */
 class SaleReturn extends Model
 {
+    use BelongsToBranch;
+
     protected $fillable = ['number', 'sale_id', 'customer_id', 'warehouse_id', 'user_id', 'return_date', 'reason'];
 
     protected function casts(): array

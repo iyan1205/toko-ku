@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\StockMovementType;
+use App\Models\Concerns\BelongsToBranch;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,6 +16,8 @@ use LogicException;
  */
 class StockMovement extends Model
 {
+    use BelongsToBranch;
+
     public const UPDATED_AT = null;
 
     protected $fillable = [
@@ -68,5 +71,11 @@ class StockMovement extends Model
             ->when($f['jenis'] ?? null, fn (Builder $q, $v) => $q->where('type', $v))
             ->when($f['dari'] ?? null, fn (Builder $q, $v) => $q->whereDate('created_at', '>=', $v))
             ->when($f['sampai'] ?? null, fn (Builder $q, $v) => $q->whereDate('created_at', '<=', $v));
+    }
+
+    /** Kartu stok ikut cabang gudangnya, termasuk stok masuk dari transfer ke cabang lain. */
+    protected function guardsBranchAccess(): bool
+    {
+        return false;
     }
 }

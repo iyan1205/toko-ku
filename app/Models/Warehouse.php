@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\RecordsActivity;
+use App\Support\CurrentBranch;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -34,6 +35,18 @@ class Warehouse extends Model
         return static::query()->where('is_default', true)->firstOrFail();
     }
 
+    /**
+     * Gudang bawaan untuk dokumen baru di cabang aktif: gudang aktif milik cabang itu
+     * (gudang utama lebih dulu), atau gudang utama bila cabang tidak punya gudang.
+     */
+    public static function forCurrentBranch(): self
+    {
+        $branch = app(CurrentBranch::class)->get();
+
+        return ($branch ? static::query()->active()->where('branch_id', $branch->getKey())->ordered()->first() : null)
+            ?? static::default();
+    }
+
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class)->withTrashed();
@@ -47,6 +60,17 @@ class Warehouse extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    /**
+     * Gudang yang boleh dipilih di cabang aktif: milik cabang itu atau tidak terikat cabang.
+     * Tanpa saringan bila data cabang tidak disaring (satu cabang, atau boleh semua cabang).
+     */
+    public function scopeInCurrentBranch(Builder $query): Builder
+    {
+        $ids = app(CurrentBranch::class)->scopeIds();
+
+        return $query->when($ids !== null, fn (Builder $q) => $q->where(fn (Builder $w) => $w->whereNull('branch_id')->orWhereIn('branch_id', $ids)));
     }
 
     /** Gudang utama dulu, lalu urut nama. */

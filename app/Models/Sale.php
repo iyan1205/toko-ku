@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\PurchaseStatus;
+use App\Models\Concerns\BelongsToBranch;
 use App\Support\Format;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -23,6 +24,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  */
 class Sale extends Model
 {
+    use BelongsToBranch;
+
     protected $fillable = [
         'number', 'warehouse_id', 'cash_session_id', 'customer_id', 'user_id', 'sold_at', 'subtotal', 'item_discount', 'discount',
         'tax_rate', 'tax_inclusive', 'tax', 'grand_total', 'tendered_amount', 'change_amount', 'payment_method', 'note',

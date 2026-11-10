@@ -21,10 +21,11 @@ class UserFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
-            'phone' => '08' . fake()->numerify('##########'),
+            'phone' => '08'.fake()->numerify('##########'),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'is_active' => true,
+            'all_branches' => true,
             'remember_token' => Str::random(10),
         ];
     }

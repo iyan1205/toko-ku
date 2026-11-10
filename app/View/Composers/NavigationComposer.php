@@ -39,6 +39,7 @@ class NavigationComposer
             'restockCount' => $this->restockCount($user),
             'branchOptions' => $this->currentBranch->options(),
             'currentBranch' => $this->currentBranch->get(),
+            'canChooseAllBranches' => $this->currentBranch->canChooseAll(),
         ]);
     }
 

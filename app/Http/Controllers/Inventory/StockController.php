@@ -41,7 +41,7 @@ class StockController extends Controller
             'produk' => $list->paginate(20),
             'gudangKolom' => $list->warehouses(),
             'gudangDipilih' => $gudang,
-            'gudang' => Warehouse::query()->ordered()->get(['id', 'name', 'is_active']),
+            'gudang' => Warehouse::query()->inCurrentBranch()->ordered()->get(['id', 'name', 'is_active']),
             'kategori' => Category::orderBy('name')->get(['id', 'name']),
             'ringkasan' => [
                 'total' => Product::aktif()->count(),
@@ -68,7 +68,7 @@ class StockController extends Controller
         return view('inventory.stock.movements', [
             'mutasi' => StockMovementsExport::fromRequest($request, $filter)->paginate(20),
             'produkDipilih' => isset($filter['produk']) ? Product::withTrashed()->find($filter['produk']) : null,
-            'gudang' => Warehouse::query()->ordered()->get(['id', 'name']),
+            'gudang' => Warehouse::query()->inCurrentBranch()->ordered()->get(['id', 'name']),
             'jenis' => StockMovementType::cases(),
         ]);
     }
@@ -82,7 +82,7 @@ class StockController extends Controller
 
     public function createAdjustment(Request $request): View
     {
-        $gudang = Warehouse::query()->active()->ordered()->get(['id', 'name', 'is_default']);
+        $gudang = Warehouse::query()->active()->inCurrentBranch()->ordered()->get(['id', 'name', 'is_default']);
         $produk = Product::aktif()->with('unit:id,name')->orderBy('name')->get(['id', 'sku', 'name', 'stock', 'unit_id']);
 
         // Stok tiap produk per gudang aktif, untuk menampilkan "stok saat ini" di formulir.

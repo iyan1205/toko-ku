@@ -89,6 +89,8 @@ return [
                 'coa' => ['label' => 'Bagan akun (COA)', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
                 // Jurnal tidak bisa diubah/dihapus; void = membuat jurnal pembalik untuk jurnal manual.
                 'journals' => ['label' => 'Jurnal umum', 'actions' => ['view', 'create', 'void', 'export']],
+                // Kunci periode: update = menutup dan membuka kembali bulan.
+                'periods' => ['label' => 'Kunci periode', 'actions' => ['view', 'update']],
                 'ledger' => ['label' => 'Buku besar', 'actions' => ['view', 'export'], 'planned' => true],
                 'cash-bank' => ['label' => 'Kas & bank', 'actions' => ['view', 'create', 'update', 'export'], 'planned' => true],
                 'reports' => ['label' => 'Laporan keuangan', 'actions' => ['view', 'export'], 'planned' => true],

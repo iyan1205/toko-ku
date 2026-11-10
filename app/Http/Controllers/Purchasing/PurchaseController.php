@@ -40,7 +40,7 @@ class PurchaseController extends Controller
         return view('purchases.index', [
             'pembelian' => $list->paginate(15),
             'suppliers' => Supplier::orderBy('name')->get(['id', 'name']),
-            'gudang' => Warehouse::query()->ordered()->get(['id', 'name']),
+            'gudang' => Warehouse::query()->inCurrentBranch()->ordered()->get(['id', 'name']),
             'ringkasan' => [
                 'jumlah' => $aktif()->count(),
                 'total' => (float) $aktif()->sum('grand_total'),
@@ -61,8 +61,8 @@ class PurchaseController extends Controller
         return view('purchases.create', [
             'suppliers' => Supplier::orderBy('name')->get(['id', 'name']),
             'supplierDipilih' => $request->integer('supplier') ?: null,
-            'gudang' => Warehouse::query()->active()->ordered()->get(['id', 'name']),
-            'gudangUtama' => Warehouse::default()->id,
+            'gudang' => Warehouse::query()->active()->inCurrentBranch()->ordered()->get(['id', 'name']),
+            'gudangUtama' => Warehouse::forCurrentBranch()->id,
             'metode' => PaymentMethod::untukPembelian(),
             'items' => $search->formLines(old('items', [])),
         ]);

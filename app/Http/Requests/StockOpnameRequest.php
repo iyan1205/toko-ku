@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\OpenPeriod;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,7 +24,7 @@ class StockOpnameRequest extends FormRequest
             'aksi' => ['required', Rule::in(['draft', 'final'])],
             // Gudang hanya dipilih saat membuat; draft tidak bisa pindah gudang.
             'warehouse_id' => ['nullable', 'integer', Rule::exists('warehouses', 'id')->where('is_active', true)->whereNull('deleted_at')],
-            'opname_date' => ['required', 'date', 'before_or_equal:today'],
+            'opname_date' => ['required', 'date', 'before_or_equal:today', new OpenPeriod],
             'note' => ['nullable', 'string', 'max:255'],
             'items' => ['required', 'array', 'min:1', 'max:500'],
             'items.*.system_stock' => ['required', 'numeric'],
