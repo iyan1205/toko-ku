@@ -47,7 +47,8 @@ return new class extends Migration
             $table->decimal('line_total', 15, 2);
             $table->timestamps();
 
-            $table->unique(['purchase_return_id', 'purchase_item_id']);
+            // Nama eksplisit: nama bawaan Laravel tepat 64 karakter, batas maksimal MySQL.
+            $table->unique(['purchase_return_id', 'purchase_item_id'], 'purchase_return_items_return_item_unique');
         });
     }
 

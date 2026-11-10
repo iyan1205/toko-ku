@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -13,6 +14,15 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Percobaan pertama di MySQL gagal di tengah (nama index terlalu panjang) dan DDL MySQL tidak
+        // bisa di-rollback, sehingga kedua tabel sempat dibuat. Sisa itu dihapus hanya bila masih kosong;
+        // bila sudah berisi data, Schema::create() di bawah gagal dan tidak ada yang dihapus.
+        foreach (['goods_receipt_items', 'goods_receipts'] as $sisa) {
+            if (Schema::hasTable($sisa) && DB::table($sisa)->doesntExist()) {
+                Schema::drop($sisa);
+            }
+        }
+
         Schema::create('goods_receipts', function (Blueprint $table) {
             $table->id();
             $table->string('number', 30)->unique();
@@ -47,7 +57,8 @@ return new class extends Migration
             $table->decimal('line_total', 15, 2);
             $table->timestamps();
 
-            $table->unique(['goods_receipt_id', 'purchase_order_item_id']);
+            // Nama eksplisit: nama bawaan Laravel (66 karakter) melebihi batas MySQL 64 karakter.
+            $table->unique(['goods_receipt_id', 'purchase_order_item_id'], 'goods_receipt_items_receipt_po_item_unique');
         });
     }
 
