@@ -44,7 +44,7 @@ class MetodePembayaranTest extends TestCase
      */
     private function payload(array $ubah = [], ?array $urutan = null): array
     {
-        $kode = $urutan ?? array_map(fn (PaymentMethod $m) => $m->value, PaymentMethod::cases());
+        $kode = $urutan ?? array_map(fn (PaymentMethod $m) => $m->value, PaymentMethod::configurable());
 
         return ['methods' => array_map(fn (string $code) => [
             'code' => $code,
@@ -74,8 +74,22 @@ class MetodePembayaranTest extends TestCase
 
     public function test_bawaan_semua_metode_aktif_dengan_urutan_dan_nama_lama(): void
     {
-        $this->assertSame(PaymentMethod::cases(), PaymentMethod::untukPenjualan());
+        $this->assertSame(PaymentMethod::configurable(), PaymentMethod::untukPenjualan());
         $this->assertSame('QRIS', PaymentMethod::Qris->label());
+    }
+
+    public function test_campuran_bukan_metode_yang_bisa_diatur_atau_dipilih(): void
+    {
+        $this->assertNotContains(PaymentMethod::Mixed, PaymentMethod::untukPenjualan());
+        $this->assertNotContains(PaymentMethod::Mixed, PaymentMethod::untukPembelian());
+
+        $payload = $this->payload();
+        $payload['methods'][0]['code'] = PaymentMethod::Mixed->value;
+
+        $this->actingAs($this->pemilik)
+            ->put(route('settings.payment-methods.update'), $payload)
+            ->assertSessionHasErrors();
+        $this->assertDatabaseMissing('payment_methods', ['code' => PaymentMethod::Mixed->value]);
     }
 
     public function test_kasir_hanya_menampilkan_metode_aktif_sesuai_urutan(): void
@@ -148,7 +162,7 @@ class MetodePembayaranTest extends TestCase
 
     public function test_minimal_satu_metode_selain_piutang_harus_aktif(): void
     {
-        $semuaMati = collect(PaymentMethod::cases())
+        $semuaMati = collect(PaymentMethod::configurable())
             ->reject(fn (PaymentMethod $m) => $m === PaymentMethod::Receivable)
             ->mapWithKeys(fn (PaymentMethod $m) => [$m->value => ['is_active' => false]])
             ->all();
@@ -157,7 +171,7 @@ class MetodePembayaranTest extends TestCase
             ->put(route('settings.payment-methods.update'), $this->payload($semuaMati))
             ->assertSessionHasErrors(['methods' => 'Aktifkan minimal satu metode selain Piutang.']);
 
-        $this->assertCount(count(PaymentMethod::cases()), PaymentMethod::untukPenjualan());
+        $this->assertCount(count(PaymentMethod::configurable()), PaymentMethod::untukPenjualan());
     }
 
     public function test_semua_metode_harus_dikirim_dan_tidak_boleh_ganda(): void

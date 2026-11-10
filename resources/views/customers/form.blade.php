@@ -1,52 +1,34 @@
-@php($edit = $customer->exists)
+{{-- Tambah / ubah pelanggan. Kode dibuat otomatis (CUS-0001). Saldo piutang tidak diisi manual. --}}
+@php
+    $edit = $customer->exists;
+@endphp
 
 <x-app-layout>
     <x-slot name="header">{{ $edit ? 'Ubah pelanggan' : 'Tambah pelanggan' }}</x-slot>
+    <x-slot name="description">{{ $edit ? $customer->name.' · '.$customer->code : 'Kode pelanggan dibuat otomatis (CUS-0001, CUS-0002, dan seterusnya).' }}</x-slot>
 
-    <form method="POST" action="{{ $edit ? route('customers.update', $customer) : route('customers.store') }}"
-          class="max-w-2xl space-y-5 rounded-lg border border-stone-200 bg-white p-6">
+    <form method="POST" action="{{ $edit ? route('customers.update', $customer) : route('customers.store') }}" class="grid gap-8">
         @csrf
-        @if ($edit) @method('PUT') @endif
-
         @if ($edit)
-            <p class="text-sm text-stone-500">Kode pelanggan: <span class="font-medium text-stone-900">{{ $customer->code }}</span></p>
-        @else
-            <p class="text-sm text-stone-500">Kode pelanggan dibuat otomatis (CUS-0001, CUS-0002, dan seterusnya).</p>
+            @method('PUT')
         @endif
 
-        <x-isian label="Nama pelanggan" name="name" :value="$customer->name" :wajib="true" maxlength="150" />
+        <x-ui.form-section title="Identitas" description="Nama tampil di kasir, struk, dan daftar piutang.">
+            <x-ui.input name="name" label="Nama pelanggan" :value="$customer->name" maxlength="150" required />
+            <div class="grid gap-5 sm:grid-cols-2">
+                <x-ui.input name="phone" label="Nomor HP" type="tel" :value="$customer->phone" maxlength="20" hint="Bisa dicari di layar Kasir." />
+                <x-ui.input name="email" label="Email" type="email" :value="$customer->email" maxlength="255" />
+            </div>
+        </x-ui.form-section>
 
-        <div class="grid gap-5 sm:grid-cols-2">
-            <x-isian label="Nomor HP" name="phone" type="tel" :value="$customer->phone" maxlength="20" />
-            <x-isian label="Email" name="email" type="email" :value="$customer->email" maxlength="255" />
-        </div>
+        <x-ui.form-section title="Alamat & catatan" description="Saldo piutang tidak diisi manual: bertambah dari penjualan piutang dan berkurang saat pelanggan membayar, jadi selalu ada riwayatnya.">
+            <x-ui.textarea name="address" label="Alamat" :value="$customer->address" rows="2" maxlength="1000" />
+            <x-ui.textarea name="note" label="Catatan" :value="$customer->note" rows="2" maxlength="1000" />
 
-        <div>
-            <label for="address" class="block text-sm font-medium text-stone-700">Alamat <span class="font-normal text-stone-400">(opsional)</span></label>
-            <textarea id="address" name="address" rows="2" maxlength="1000"
-                      class="mt-1 block w-full rounded-md border-stone-300 text-sm shadow-sm focus:border-brand-600 focus:ring-brand-600">{{ old('address', $customer->address) }}</textarea>
-            @error('address') <p class="mt-1 text-sm text-brand-600">{{ $message }}</p> @enderror
-        </div>
-
-        <div>
-            <label for="note" class="block text-sm font-medium text-stone-700">Catatan <span class="font-normal text-stone-400">(opsional)</span></label>
-            <textarea id="note" name="note" rows="2" maxlength="1000"
-                      class="mt-1 block w-full rounded-md border-stone-300 text-sm shadow-sm focus:border-brand-600 focus:ring-brand-600">{{ old('note', $customer->note) }}</textarea>
-            @error('note') <p class="mt-1 text-sm text-brand-600">{{ $message }}</p> @enderror
-        </div>
-
-        <p class="rounded-md bg-stone-50 px-4 py-3 text-sm text-stone-600">
-            Saldo piutang tidak diisi manual. Saldo bertambah dari penjualan dengan metode Piutang dan berkurang saat pelanggan membayar,
-            sehingga selalu ada riwayatnya.
-        </p>
-
-        <div class="flex justify-end gap-2 border-t border-stone-100 pt-5">
-            <a href="{{ $edit ? route('customers.show', $customer) : route('customers.index') }}"
-               class="tombol-kedua">Batal</a>
-            <button type="submit"
-                    class="tombol-utama">
-                {{ $edit ? 'Simpan perubahan' : 'Simpan pelanggan' }}
-            </button>
-        </div>
+            <x-slot:footer>
+                <x-ui.button :href="$edit ? route('customers.show', $customer) : route('customers.index')" variant="secondary">Batal</x-ui.button>
+                <x-ui.button type="submit">{{ $edit ? 'Simpan perubahan' : 'Simpan pelanggan' }}</x-ui.button>
+            </x-slot:footer>
+        </x-ui.form-section>
     </form>
 </x-app-layout>

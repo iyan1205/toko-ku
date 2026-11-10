@@ -32,8 +32,8 @@ class UpdatePaymentMethodsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'methods' => ['required', 'array', 'size:'.count(PaymentMethod::cases())],
-            'methods.*.code' => ['required', 'distinct', Rule::enum(PaymentMethod::class)],
+            'methods' => ['required', 'array', 'size:'.count(PaymentMethod::configurable())],
+            'methods.*.code' => ['required', 'distinct', Rule::enum(PaymentMethod::class)->except([PaymentMethod::Mixed])],
             'methods.*.label' => ['required', 'string', 'max:40'],
             'methods.*.is_active' => ['boolean'],
         ];

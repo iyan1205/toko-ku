@@ -78,12 +78,21 @@ final class StrukTeks
         if ((float) $s->discount > 0) {
             $baris[] = $this->duaKolom('Diskon', '-'.Format::rupiah($s->discount, false), $lebar);
         }
+        if ((float) $s->tax > 0 && ! $s->tax_inclusive) {
+            $baris[] = $this->duaKolom($s->taxLabel(), Format::rupiah($s->tax, false), $lebar);
+        }
         $baris[] = $this->duaKolom('TOTAL', Format::rupiah($s->grand_total, false), $lebar);
+        if ((float) $s->tax > 0 && $s->tax_inclusive) {
+            $baris[] = $this->duaKolom('Termasuk '.$s->taxLabel(), Format::rupiah($s->tax, false), $lebar);
+        }
 
         // ---------- Pembayaran ----------
         $baris[] = str_repeat('-', $lebar);
         $baris[] = $this->duaKolom('Metode', $s->payment_method->label(), $lebar);
-        if ($s->payment_method->value === 'cash') {
+        foreach ($s->receiptPayments() as $bayar) {
+            $baris[] = $this->duaKolom('  '.$bayar->method->label(), Format::rupiah($bayar->amount, false), $lebar);
+        }
+        if (in_array($s->payment_method->value, ['cash', 'mixed'], true)) {
             $baris[] = $this->duaKolom('Bayar', Format::rupiah($s->tendered_amount, false), $lebar);
             $baris[] = $this->duaKolom('Kembali', Format::rupiah($s->change_amount, false), $lebar);
         }

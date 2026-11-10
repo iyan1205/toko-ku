@@ -10,7 +10,7 @@
         'label' => $m['label'],
         'is_active' => $m['is_active'],
     ])->all());
-    $bawaan = collect(\App\Enums\PaymentMethod::cases())->mapWithKeys(fn ($m) => [$m->value => $m->defaultLabel()]);
+    $bawaan = collect(\App\Enums\PaymentMethod::configurable())->mapWithKeys(fn ($m) => [$m->value => $m->defaultLabel()]);
 @endphp
 
 <x-app-layout>

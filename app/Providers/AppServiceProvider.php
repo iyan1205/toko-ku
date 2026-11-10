@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchaseReturn;
 use App\Models\Sale;
+use App\Models\SaleReturn;
 use App\Models\StockOpname;
 use App\Models\StockTransfer;
 use App\Models\User;
@@ -50,6 +51,7 @@ class AppServiceProvider extends ServiceProvider
             'stock_transfer' => StockTransfer::class,
             'goods_receipt' => GoodsReceipt::class,
             'purchase_return' => PurchaseReturn::class,
+            'sale_return' => SaleReturn::class,
         ]);
 
         // Menu sidebar, breadcrumb, notifikasi stok, dan nama toko untuk layout aplikasi & kasir.

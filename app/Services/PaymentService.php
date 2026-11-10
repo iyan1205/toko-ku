@@ -6,12 +6,15 @@ use App\Enums\DocumentType;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\PurchaseStatus;
+use App\Events\CustomerPaymentRecorded;
 use App\Events\SupplierPaymentRecorded;
 use App\Exceptions\AturanBisnisException;
+use App\Models\CashSession;
 use App\Models\Customer;
 use App\Models\Payment;
 use App\Models\Purchase;
 use App\Models\Sale;
+use App\Models\SaleReturn;
 use App\Models\User;
 use App\Services\Settings\DocumentNumberService;
 use App\Support\Format;
@@ -19,8 +22,9 @@ use App\Support\Uang;
 use Illuminate\Support\Facades\DB;
 
 /**
- * SATU-SATUNYA tempat yang mengubah paid_amount, balance, dan payment_status pembelian.
- * Dipakai saat pembayaran awal di formulir pembelian, dan nanti oleh modul Hutang (Tahap 7).
+ * SATU-SATUNYA tempat yang mencatat uang masuk/keluar (tabel payments) dan mengubah paid_amount,
+ * balance, dan payment_status karena pembayaran. Dipakai pembelian, Hutang Supplier, kasir,
+ * Piutang Pelanggan, dan pengembalian uang retur penjualan.
  */
 class PaymentService
 {
@@ -91,8 +95,9 @@ class PaymentService
     }
 
     /**
-     * Uang masuk dari pelanggan untuk sebuah penjualan: pembayaran saat transaksi, bayar di muka (DP),
-     * dan nanti pelunasan piutang (Tahap 7). Untuk penjualan piutang, saldo piutang pelanggan ikut berkurang.
+     * Uang masuk dari pelanggan untuk sebuah penjualan: pembayaran saat transaksi (satu baris per
+     * metode), bayar di muka (DP), dan pelunasan piutang. Untuk penjualan piutang, saldo piutang
+     * pelanggan ikut berkurang. $session = sesi kasir tempat uang diterima (untuk rekap setoran).
      *
      * @param  int  $sen  jumlah yang DITERIMA untuk penjualan ini (bukan uang yang diserahkan; kembalian tidak dihitung)
      */
@@ -103,16 +108,17 @@ class PaymentService
         ?string $catatan,
         User $user,
         ?string $tanggal = null,
+        ?CashSession $session = null,
     ): Payment {
         if ($sen <= 0) {
             throw new AturanBisnisException('Jumlah pembayaran harus lebih dari nol.');
         }
 
-        if ($metode === PaymentMethod::Receivable) {
+        if ($metode === PaymentMethod::Receivable || $metode === PaymentMethod::Mixed) {
             throw new AturanBisnisException('Piutang bukan metode pembayaran. Pilih metode yang dipakai pelanggan membayar.');
         }
 
-        return DB::transaction(function () use ($penjualan, $sen, $metode, $catatan, $user, $tanggal) {
+        return DB::transaction(function () use ($penjualan, $sen, $metode, $catatan, $user, $tanggal, $session) {
             $terkunci = Sale::whereKey($penjualan->getKey())->lockForUpdate()->firstOrFail();
 
             if ($terkunci->status !== PurchaseStatus::Completed) {
@@ -138,6 +144,7 @@ class PaymentService
                 'paid_at' => $tanggal,
                 'note' => $catatan,
                 'user_id' => $user->getKey(),
+                'cash_session_id' => $session?->getKey(),
             ]);
 
             $dibayar = Uang::sen($terkunci->paid_amount) + $sen;
@@ -156,7 +163,45 @@ class PaymentService
 
             $penjualan->setRawAttributes($terkunci->getAttributes(), true);
 
+            CustomerPaymentRecorded::dispatch($pembayaran, $terkunci);
+
             return $pembayaran;
         });
+    }
+
+    /**
+     * Uang yang dikembalikan ke pelanggan karena retur penjualan disetujui (uang keluar).
+     * Tidak mengubah paid_amount penjualan: nilai retur dicatat di sales.returned_amount.
+     *
+     * @param  int  $sen  jumlah yang dikembalikan
+     */
+    public function refundSaleReturn(
+        SaleReturn $retur,
+        int $sen,
+        PaymentMethod $metode,
+        User $user,
+        ?CashSession $session = null,
+    ): Payment {
+        if ($sen <= 0) {
+            throw new AturanBisnisException('Jumlah pengembalian uang harus lebih dari nol.');
+        }
+
+        if ($metode === PaymentMethod::Receivable || $metode === PaymentMethod::Mixed) {
+            throw new AturanBisnisException('Pilih metode pengembalian uang: tunai, transfer, atau metode lain.');
+        }
+
+        $tanggal = now()->toDateString();
+
+        return Payment::create([
+            'number' => $this->numbers->next(DocumentType::CustomerRefund, $tanggal),
+            'payable_type' => $retur->getMorphClass(),
+            'payable_id' => $retur->getKey(),
+            'amount' => Uang::keDesimal($sen),
+            'method' => $metode,
+            'paid_at' => $tanggal,
+            'note' => "Pengembalian uang retur {$retur->number}",
+            'user_id' => $user->getKey(),
+            'cash_session_id' => $session?->getKey(),
+        ]);
     }
 }

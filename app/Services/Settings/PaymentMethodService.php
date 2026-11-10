@@ -95,7 +95,7 @@ class PaymentMethodService
             ->all());
 
         // Metode yang belum punya baris (misal metode baru di enum) tampil aktif di urutan akhir.
-        return collect(PaymentMethod::cases())
+        return collect(PaymentMethod::configurable())
             ->map(fn (PaymentMethod $method, int $index) => [
                 'method' => $method,
                 'label' => $rows[$method->value]['label'] ?? $method->defaultLabel(),

@@ -19,9 +19,16 @@ enum PaymentMethod: string
     case EWallet = 'ewallet';
     case Receivable = 'receivable'; // hanya penjualan (Tahap 5): dicatat sebagai piutang pelanggan
 
+    /** Hanya untuk sales.payment_method: penjualan yang dibayar dengan lebih dari satu metode. Rinciannya ada di payments. */
+    case Mixed = 'mixed';
+
     /** Nama tampilan dari Pengaturan (misal "QRIS BCA"); nama bawaan bila belum diatur. */
     public function label(): string
     {
+        if ($this === self::Mixed) {
+            return $this->defaultLabel();
+        }
+
         try {
             return app(PaymentMethodService::class)->label($this);
         } catch (QueryException) {
@@ -40,7 +47,19 @@ enum PaymentMethod: string
             self::Credit => 'Kredit',
             self::EWallet => 'E-Wallet',
             self::Receivable => 'Piutang',
+            self::Mixed => 'Campuran',
         };
+    }
+
+    /**
+     * Metode yang diatur di Pengaturan → Metode Pembayaran (semua kecuali Campuran,
+     * yang bukan metode tersendiri).
+     *
+     * @return list<self>
+     */
+    public static function configurable(): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $m) => $m !== self::Mixed));
     }
 
     /**
@@ -71,6 +90,6 @@ enum PaymentMethod: string
      */
     public static function untukPembelian(): array
     {
-        return array_values(array_filter(self::cases(), fn (self $m) => $m !== self::Receivable));
+        return array_values(array_filter(self::configurable(), fn (self $m) => $m !== self::Receivable));
     }
 }

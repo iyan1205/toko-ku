@@ -86,6 +86,46 @@ final class Uang
         return intdiv($totalSen * 1000 * 2 + $milli, $milli * 2);
     }
 
+    /**
+     * a x b / c dibulatkan setengah ke atas, tepat walau a x b melebihi batas bilangan bulat 64-bit
+     * (misal nilai baris x total transaksi). Dihitung dengan perkalian biner bersisa, tanpa float.
+     * Hanya untuk a, b >= 0 dan c > 0, dengan c dan hasilnya di bawah 2^62.
+     */
+    public static function kaliBagi(int $a, int $b, int $c): int
+    {
+        self::pastikanTakNegatif($a, $b);
+
+        if ($c <= 0) {
+            throw new InvalidArgumentException('Pembagi harus lebih dari nol.');
+        }
+
+        // Hasil bagi dan sisa dari a x b / c, bit demi bit dari a (sisa selalu < c, jadi tidak meluap).
+        $hasil = 0;
+        $sisa = 0;
+        $bLebih = intdiv($b, $c);
+        $bSisa = $b % $c;
+
+        for ($bit = 62; $bit >= 0; $bit--) {
+            $hasil *= 2;
+            $sisa *= 2;
+            if ($sisa >= $c) {
+                $sisa -= $c;
+                $hasil++;
+            }
+
+            if (($a >> $bit) & 1) {
+                $hasil += $bLebih;
+                $sisa += $bSisa;
+                if ($sisa >= $c) {
+                    $sisa -= $c;
+                    $hasil++;
+                }
+            }
+        }
+
+        return $sisa * 2 >= $c ? $hasil + 1 : $hasil;
+    }
+
     private static function parse(mixed $nilai, int $skala): int
     {
         if ($nilai === null || $nilai === '') {
@@ -101,7 +141,7 @@ final class Uang
         }
 
         if (! is_string($nilai) || ! preg_match('/^(-?)(\d+)(?:\.(\d+))?$/', trim($nilai), $m)) {
-            throw new InvalidArgumentException('Angka tidak valid: ' . (is_scalar($nilai) ? $nilai : gettype($nilai)));
+            throw new InvalidArgumentException('Angka tidak valid: '.(is_scalar($nilai) ? $nilai : gettype($nilai)));
         }
 
         $desimal = $m[3] ?? '';
@@ -113,7 +153,7 @@ final class Uang
             $desimal = substr($desimal, 0, $skala);
         }
 
-        $hasil = (int) ($m[2] . str_pad($desimal, $skala, '0'));
+        $hasil = (int) ($m[2].str_pad($desimal, $skala, '0'));
 
         return $m[1] === '-' ? -$hasil : $hasil;
     }
@@ -123,7 +163,7 @@ final class Uang
         $negatif = $nilai < 0;
         $digit = str_pad((string) abs($nilai), $skala + 1, '0', STR_PAD_LEFT);
 
-        return ($negatif ? '-' : '') . substr($digit, 0, -$skala) . '.' . substr($digit, -$skala);
+        return ($negatif ? '-' : '').substr($digit, 0, -$skala).'.'.substr($digit, -$skala);
     }
 
     private static function pastikanTakNegatif(int ...$angka): void

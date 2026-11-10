@@ -16,7 +16,7 @@ class Payment extends Model
 {
     private const KOLOM_VOID = ['voided_at', 'voided_by', 'void_reason', 'updated_at'];
 
-    protected $fillable = ['number', 'payable_type', 'payable_id', 'amount', 'method', 'paid_at', 'note', 'user_id'];
+    protected $fillable = ['number', 'payable_type', 'payable_id', 'amount', 'method', 'paid_at', 'note', 'user_id', 'cash_session_id'];
 
     protected function casts(): array
     {
@@ -49,6 +49,17 @@ class Payment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class)->withTrashed();
+    }
+
+    public function cashSession(): BelongsTo
+    {
+        return $this->belongsTo(CashSession::class);
+    }
+
+    /** Uang keluar: pengembalian uang retur penjualan. Selain itu uang masuk/keluar sesuai dokumennya. */
+    public function isRefund(): bool
+    {
+        return $this->payable_type === (new SaleReturn)->getMorphClass();
     }
 
     public function dibatalkan(): bool

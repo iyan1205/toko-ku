@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Pos;
+
+use App\Http\Controllers\Controller;
 
 use App\Models\Sale;
 use App\Services\Settings\ReceiptSettingsService;
@@ -35,7 +37,7 @@ class StrukController extends Controller
 
         $toko = $this->struk->storeHeader();
 
-        $sale->load(['customer', 'user', 'items']);
+        $sale->load(['customer', 'user', 'items', 'payments']);
 
         return response()->json([
             'nomor' => $sale->number,

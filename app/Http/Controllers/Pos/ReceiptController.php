@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Pos;
+
+use App\Http\Controllers\Controller;
 
 use App\Models\Sale;
 use App\Services\Settings\ReceiptSettingsService;
@@ -32,7 +34,7 @@ class ReceiptController extends Controller
         $pengaturan = $this->struk->get();
 
         return view('sales.receipt', [
-            'penjualan' => $sale->load(['customer', 'user', 'items']),
+            'penjualan' => $sale->load(['customer', 'user', 'items', 'payments']),
             'toko' => $this->struk->storeHeader(),
             'lebarMm' => $pengaturan['paper_width'],
             'footer' => $pengaturan['footer'],

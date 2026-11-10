@@ -36,8 +36,16 @@ class SaleRequest extends FormRequest
             'items.*.discount' => ['nullable', 'numeric', 'min:0', 'max:99999999999.99', 'decimal:0,2'],
 
             'discount' => ['numeric', 'min:0', 'max:99999999999.99', 'decimal:0,2'],
-            'payment_method' => ['required', Rule::in(array_map(fn (PaymentMethod $m) => $m->value, PaymentMethod::untukPenjualan()))],
-            // Tunai: uang diterima. Piutang: bayar di muka (boleh 0). Metode lain: diabaikan (lunas otomatis).
+
+            // Bentuk baru (layar Kasir): satu baris per metode. Tunai = uang yang diserahkan.
+            // payment_method = 'receivable' menandai sisa yang belum dibayar menjadi piutang.
+            'payments' => ['sometimes', 'array', 'max:'.count(PaymentMethod::untukUangMuka())],
+            'payments.*.method' => ['required', 'distinct', Rule::in(array_map(fn (PaymentMethod $m) => $m->value, PaymentMethod::untukUangMuka()))],
+            'payments.*.amount' => ['required', 'numeric', 'min:0', 'max:99999999999.99', 'decimal:0,2'],
+
+            // Bentuk lama: satu metode. Tunai: uang diterima. Piutang: bayar di muka (boleh 0).
+            // Metode lain: diabaikan (lunas otomatis).
+            'payment_method' => ['required_without:payments', 'nullable', Rule::in(array_map(fn (PaymentMethod $m) => $m->value, PaymentMethod::untukPenjualan()))],
             'paid_amount' => ['numeric', 'min:0', 'max:99999999999.99', 'decimal:0,2'],
             'dp_method' => ['nullable', Rule::in(array_map(fn (PaymentMethod $m) => $m->value, PaymentMethod::untukUangMuka()))],
 
@@ -56,6 +64,9 @@ class SaleRequest extends FormRequest
             'items.*.discount' => 'diskon baris',
             'discount' => 'diskon transaksi',
             'payment_method' => 'metode pembayaran',
+            'payments' => 'pembayaran',
+            'payments.*.method' => 'metode pembayaran',
+            'payments.*.amount' => 'jumlah bayar',
             'paid_amount' => 'jumlah dibayar',
             'dp_method' => 'metode bayar di muka',
             'note' => 'catatan',
@@ -72,6 +83,8 @@ class SaleRequest extends FormRequest
             'items.*.discount.decimal' => 'Diskon baris maksimal 2 angka di belakang koma.',
             'discount.decimal' => 'Diskon maksimal 2 angka di belakang koma.',
             'paid_amount.decimal' => 'Jumlah dibayar maksimal 2 angka di belakang koma.',
+            'payments.*.method.distinct' => 'Setiap metode pembayaran cukup dipakai satu kali.',
+            'payments.*.amount.decimal' => 'Jumlah bayar maksimal 2 angka di belakang koma.',
         ];
     }
 }

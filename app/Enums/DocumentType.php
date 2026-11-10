@@ -2,6 +2,7 @@
 
 namespace App\Enums;
 
+use App\Models\CashSession;
 use App\Models\Cuti;
 use App\Models\GoodsReceipt;
 use App\Models\Payment;
@@ -9,6 +10,7 @@ use App\Models\Purchase;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseReturn;
 use App\Models\Sale;
+use App\Models\SaleReturn;
 use App\Models\StockOpname;
 use App\Models\StockTransfer;
 use Illuminate\Database\Eloquent\Model;
@@ -31,6 +33,9 @@ enum DocumentType: string
     case PurchaseOrder = 'purchase_order';
     case GoodsReceipt = 'goods_receipt';
     case PurchaseReturn = 'purchase_return';
+    case CashSession = 'cash_session';
+    case SaleReturn = 'sale_return';
+    case CustomerRefund = 'customer_refund';
     case Leave = 'leave';
 
     public function label(): string
@@ -45,6 +50,9 @@ enum DocumentType: string
             self::PurchaseOrder => 'Purchase order',
             self::GoodsReceipt => 'Penerimaan barang',
             self::PurchaseReturn => 'Retur pembelian',
+            self::CashSession => 'Sesi kasir',
+            self::SaleReturn => 'Retur penjualan',
+            self::CustomerRefund => 'Pengembalian uang ke pelanggan',
             self::Leave => 'Pengajuan cuti & izin',
         };
     }
@@ -61,6 +69,9 @@ enum DocumentType: string
             self::PurchaseOrder => 'PO-{YYYY}{MM}{DD}-{####}',
             self::GoodsReceipt => 'GRN-{YYYY}{MM}{DD}-{####}',
             self::PurchaseReturn => 'RTB-{YYYY}{MM}{DD}-{####}',
+            self::CashSession => 'SES-{YYYY}{MM}{DD}-{####}',
+            self::SaleReturn => 'RTJ-{YYYY}{MM}{DD}-{####}',
+            self::CustomerRefund => 'RFD-{YYYY}{MM}{DD}-{####}',
             self::Leave => 'CT-{#####}',
         };
     }
@@ -76,12 +87,14 @@ enum DocumentType: string
         return match ($this) {
             self::Sale => Sale::class,
             self::Purchase => Purchase::class,
-            self::SupplierPayment, self::CustomerPayment => Payment::class,
+            self::SupplierPayment, self::CustomerPayment, self::CustomerRefund => Payment::class,
             self::StockOpname => StockOpname::class,
             self::StockTransfer => StockTransfer::class,
             self::PurchaseOrder => PurchaseOrder::class,
             self::GoodsReceipt => GoodsReceipt::class,
             self::PurchaseReturn => PurchaseReturn::class,
+            self::CashSession => CashSession::class,
+            self::SaleReturn => SaleReturn::class,
             self::Leave => Cuti::class,
         };
     }

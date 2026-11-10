@@ -47,10 +47,11 @@ return [
             'label' => 'Kasir (POS)',
             'features' => [
                 'transactions' => ['label' => 'Transaksi penjualan', 'actions' => ['view', 'view-own', 'create', 'void', 'print', 'export']],
-                'sessions' => ['label' => 'Sesi/shift kasir', 'actions' => ['view', 'create', 'approve'], 'planned' => true],
-                'returns' => ['label' => 'Retur penjualan', 'actions' => ['view', 'create', 'approve'], 'planned' => true],
+                // Sesi & retur: view/create = milik sendiri; approve = semua, verifikasi setoran, dan persetujuan retur.
+                'sessions' => ['label' => 'Sesi/shift kasir', 'actions' => ['view', 'create', 'approve', 'export']],
+                'returns' => ['label' => 'Retur penjualan', 'actions' => ['view', 'create', 'approve', 'export']],
                 'customers' => ['label' => 'Pelanggan', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
-                'receivables' => ['label' => 'Piutang pelanggan', 'actions' => ['view', 'create'], 'planned' => true],
+                'receivables' => ['label' => 'Piutang pelanggan', 'actions' => ['view', 'create', 'export']],
             ],
         ],
 
@@ -136,6 +137,7 @@ return [
                 'branches' => ['label' => 'Cabang', 'actions' => ['view', 'create', 'update', 'delete']],
                 'taxes' => ['label' => 'Pajak', 'actions' => ['view', 'update']],
                 'payment-methods' => ['label' => 'Metode pembayaran', 'actions' => ['view', 'update']],
+                'pos' => ['label' => 'Kasir', 'actions' => ['view', 'update']],
                 'receipts' => ['label' => 'Struk & printer', 'actions' => ['view', 'update']],
                 'numbering' => ['label' => 'Penomoran dokumen', 'actions' => ['view', 'update']],
                 'backup' => ['label' => 'Backup', 'actions' => ['view', 'create']],

@@ -13,8 +13,8 @@
     <x-slot name="header">Pajak</x-slot>
     <x-slot name="description">Pajak penjualan yang dikenakan di kasir.</x-slot>
 
-    <x-ui.alert type="warning" class="mb-6">
-        Pengaturan ini belum dipakai di transaksi kasir. Total penjualan belum berubah sampai perhitungan pajak di kasir diaktifkan.
+    <x-ui.alert type="info" class="mb-6">
+        Pajak dihitung di Kasir untuk transaksi baru, dari total setelah diskon. Transaksi yang sudah tersimpan tidak berubah.
     </x-ui.alert>
 
     <form method="POST" action="{{ route('settings.taxes.update') }}" class="grid gap-8"

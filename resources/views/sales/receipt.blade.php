@@ -167,10 +167,16 @@
             @if ((float) $penjualan->discount > 0)
                 <tr><td>Diskon</td><td class="kanan">-{{ \App\Support\Format::rupiah($penjualan->discount, false) }}</td></tr>
             @endif
+            @if ((float) $penjualan->tax > 0 && ! $penjualan->tax_inclusive)
+                <tr><td>{{ $penjualan->taxLabel() }}</td><td class="kanan">{{ \App\Support\Format::rupiah($penjualan->tax, false) }}</td></tr>
+            @endif
             <tr class="tebal">
                 <td>TOTAL</td>
                 <td class="kanan">{{ \App\Support\Format::rupiah($penjualan->grand_total, false) }}</td>
             </tr>
+            @if ((float) $penjualan->tax > 0 && $penjualan->tax_inclusive)
+                <tr class="kecil"><td>Termasuk {{ $penjualan->taxLabel() }}</td><td class="kanan">{{ \App\Support\Format::rupiah($penjualan->tax, false) }}</td></tr>
+            @endif
         </table>
 
         <hr>
@@ -178,7 +184,11 @@
         <table>
             <tr><td>Metode</td><td class="kanan">{{ $penjualan->payment_method->label() }}</td></tr>
 
-            @if ($penjualan->payment_method->value === 'cash')
+            @foreach ($penjualan->receiptPayments() as $bayar)
+                <tr><td>&nbsp; {{ $bayar->method->label() }}</td><td class="kanan">{{ \App\Support\Format::rupiah($bayar->amount, false) }}</td></tr>
+            @endforeach
+
+            @if (in_array($penjualan->payment_method->value, ['cash', 'mixed'], true))
                 <tr><td>Bayar</td><td class="kanan">{{ \App\Support\Format::rupiah($penjualan->tendered_amount, false) }}</td></tr>
                 <tr><td>Kembali</td><td class="kanan">{{ \App\Support\Format::rupiah($penjualan->change_amount, false) }}</td></tr>
             @endif

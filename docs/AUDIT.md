@@ -533,6 +533,26 @@ Dikerjakan sebelum 5b dan Fase 6 karena mengubah `StockService`, yang dipakai pe
 - Test: alur PO → penerimaan parsial ke gudang → stok → hutang, event dikirim, retur, ekspor.
 
 ### Fase 6 — Kasir (POS) · XL
+**Status 10 Nov 2026: selesai, menunggu pengecekan pemilik.**
+- Keputusan pemilik (10 Nov 2026):
+  - Produk ber-resep mengurangi stok produk jadi, bukan bahan baku.
+  - Retur diajukan kasir, lalu disetujui atasan (izin `pos.returns.approve`).
+  - Sesi kasir belum wajib. Bisa diwajibkan di Pengaturan → Kasir.
+- Layar Kasir baru (layout `pos`):
+  - Kiri: pencarian dan scan barcode dengan fokus otomatis, plus grid kategori.
+  - Kanan: keranjang, diskon (Rp atau %), pajak, total besar, dan tombol bayar.
+  - Shortcut: F2 cari, F3 pelanggan, F4 diskon, F7 daftar ditahan, F8 bayar, F9 tahan, Esc batal/tutup.
+  - Penjualan disimpan lewat JSON, jadi keranjang tidak hilang bila transaksi ditolak.
+  - JavaScript ada di `resources/js/pos/` (commit tersendiri).
+- Pembayaran multi-metode (`payments[]`): satu baris `payments` per metode, kembalian hanya dari tunai, dan sisa bayar bisa menjadi piutang pelanggan terdaftar. Format input lama tetap diterima.
+- Pajak dihitung di kasir sesuai Pengaturan → Pajak, baik termasuk maupun belum termasuk harga. Kolom baru `sales.tax_rate`, `tax`, `tax_inclusive`. Struk menampilkan pajak dan rincian pembayaran campuran.
+- Sesi kasir (`cash_sessions`): buka dengan modal awal dan gudang penjualan, tutup dengan hitungan uang fisik (tunai seharusnya, selisih, rekap per metode), lalu atasan memverifikasi. Penjualan tanpa sesi memakai gudang bawaan cabang aktif.
+- Halaman baru: Sesi/Shift Kasir, Retur Penjualan, Piutang Pelanggan (pelunasan), dan Pengaturan → Kasir. Riwayat Transaksi dan Pelanggan di-redesign, dan semua daftar punya ekspor Excel/PDF.
+- Retur penjualan: stok kembali ke gudang penjualan, piutang transaksi dikurangi dulu, lalu sisanya dikembalikan ke pelanggan. Transaksi yang punya retur tidak bisa dibatalkan.
+- Event, dikirim setelah commit: `SaleCompleted`, `SaleVoided`, `SaleReturned`, `CustomerPaymentRecorded`.
+- Layar Kasir sudah diuji di DOM tiruan (jsdom, memakai bundle hasil build): cari dan scan, F2/F4/F8/F9/Esc, bayar tunai dengan kembalian, split bayar, dan tahan transaksi. Belum diuji di tablet sungguhan maupun dengan scanner fisik.
+- Seluruh suite 657/657 lulus.
+
 - Pindahkan JS `kasir()` ke `resources/js/pos/` **tanpa mengubah logika** (satu commit), baru redesign tampilan: kiri pencarian + scan + grid kategori, kanan keranjang, diskon, pajak, total besar, tombol bayar.
 - Shortcut baru: F2 cari, F8 bayar, Esc batal. Diskon dan Tahan pindah ke tombol lain, legenda tampil di layar. Input scan otomatis fokus.
 - Split payment (lebih dari satu metode): tabel `payments` sudah polimorfik dan bisa banyak baris per penjualan, jadi yang berubah `SaleService` dan UI. `sales.payment_method` menyimpan metode utama atau nilai "campuran".

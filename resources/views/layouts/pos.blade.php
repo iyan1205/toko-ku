@@ -1,6 +1,8 @@
 {{--
     Layout Kasir layar penuh: tanpa sidebar, bilah atas tipis, seluruh lebar untuk transaksi.
-    Dipakai lewat <x-pos-layout>. Slot header = judul halaman (untuk <title>).
+    Dipakai lewat <x-pos-layout>. Slot header = judul halaman (untuk <title>), slot toolbar = isi
+    bilah atas di samping nama toko (misal status sesi kasir).
+    Di layar lg (tablet 1024px) ke atas tingginya pas satu layar: halaman mengatur gulir di dalamnya.
 --}}
 @php($user = auth()->user())
 <!DOCTYPE html>
@@ -14,7 +16,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="h-full font-sans text-slate-800 antialiased">
-<div class="flex min-h-full flex-col">
+<div class="flex min-h-full flex-col lg:h-dvh lg:min-h-0">
     <header class="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-3 sm:px-4 print:hidden">
         <a href="{{ route('dashboard') }}"
            class="inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
@@ -32,6 +34,10 @@
                 <span class="block text-xs leading-tight text-slate-500">{{ trim(strip_tags((string) ($header ?? 'Kasir'))) }}</span>
             </span>
         </div>
+
+        @isset($toolbar)
+            <div class="flex min-w-0 items-center gap-2 border-l border-slate-200 pl-3">{{ $toolbar }}</div>
+        @endisset
 
         <div class="ml-auto flex items-center gap-3">
             <span x-data="{ jam: '' }"
@@ -52,7 +58,7 @@
         </div>
     </header>
 
-    <main class="flex-1 p-3 sm:p-4">
+    <main class="flex-1 p-3 sm:p-4 lg:min-h-0">
         {{ $slot }}
     </main>
 

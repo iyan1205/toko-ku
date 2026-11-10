@@ -1,12 +1,17 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Pos;
+
+use App\Http\Controllers\Controller;
 
 use App\Exceptions\AturanBisnisException;
 use App\Http\Requests\HoldSaleRequest;
 use App\Models\Customer;
 use App\Models\HeldSale;
 use App\Models\Product;
+use App\Models\WarehouseStock;
+use App\Services\Pos\CashSessionService;
+use App\Support\Uang;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -58,20 +63,32 @@ class HeldSaleController extends Controller
         return response()->json(['id' => $tahan->id, 'label' => $tahan->label ?: ('Tahan #' . $tahan->id)], 201);
     }
 
-    public function show(Request $request, HeldSale $heldSale): JsonResponse
+    /**
+     * Isi keranjang yang ditahan dengan harga dan stok terkini: harga jual setelah diskon tetap produk
+     * (sama dengan yang dihitung SaleService) dan stok gudang penjualan kasir saat ini.
+     * Produk yang sudah dihapus atau dinonaktifkan dilewati dan dilaporkan sebagai produk_hilang.
+     */
+    public function show(Request $request, HeldSale $heldSale, CashSessionService $sessions): JsonResponse
     {
         Gate::allowIf($heldSale->user_id === $request->user()->id);
 
         $ids = collect($heldSale->cart['items'] ?? [])->pluck('product_id');
-        $produk = Product::whereIn('id', $ids)->with('unit:id,name')->get()->keyBy('id');
+        $produk = Product::aktif()->whereIn('id', $ids)->with('unit:id,name')->get()->keyBy('id');
+        $gudang = $sessions->saleContext($request->user())['warehouse'];
+        $stok = WarehouseStock::query()->where('warehouse_id', $gudang->getKey())
+            ->whereIn('product_id', $produk->modelKeys())->pluck('quantity', 'product_id');
 
-        $items = collect($heldSale->cart['items'] ?? [])->map(function ($it) use ($produk) {
+        $items = collect($heldSale->cart['items'] ?? [])->map(function ($it) use ($produk, $stok) {
             $p = $produk->get($it['product_id']);
 
             return $p ? [
                 'product_id' => $p->id, 'sku' => $p->sku, 'name' => $p->name, 'unit' => $p->unit?->name,
-                'quantity' => $it['quantity'], 'unit_price' => (float) $p->selling_price, 'discount' => $it['discount'] ?? 0,
-                'stock' => (float) $p->stock,
+                'quantity' => $it['quantity'],
+                'unit_price' => (float) Uang::keDesimal(Uang::kurangiPersen(Uang::sen($p->selling_price), $p->discount_percent)),
+                'selling_price' => (float) $p->selling_price,
+                'discount_percent' => (float) $p->discount_percent,
+                'discount' => $it['discount'] ?? 0,
+                'stock' => round((float) ($stok[$p->id] ?? 0), 3),
             ] : null;
         })->filter()->values();
 

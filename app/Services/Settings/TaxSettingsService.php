@@ -8,8 +8,9 @@ use App\Models\User;
  * Pengaturan pajak penjualan (PPN): aktif/tidak, nama, tarif, dan apakah harga jual
  * sudah termasuk pajak.
  *
- * Belum dihitung di transaksi kasir. Kasir mulai memakai pengaturan ini saat
- * halaman kasir diperbarui (Fase 6); sampai saat itu nilai transaksi tidak berubah.
+ * Dipakai SaleService::pajak() untuk setiap penjualan kasir baru (sejak Fase 6). Tarif dan
+ * cara hitungnya disalin ke transaksi (sales.tax_rate, tax_inclusive, tax), jadi perubahan
+ * pengaturan tidak mengubah transaksi lama.
  */
 class TaxSettingsService
 {

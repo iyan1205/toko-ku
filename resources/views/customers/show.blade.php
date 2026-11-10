@@ -1,91 +1,129 @@
+{{-- Detail pelanggan: identitas, ringkasan belanja, piutang yang belum lunas (bisa dilunasi di sini), dan transaksi terakhir. --}}
+@use('App\Support\Format')
+@php
+    $user = auth()->user();
+    $bisaLunasi = $user->can('pos.receivables.create') && $piutang->isNotEmpty();
+    $awalTarget = [
+        'url' => old('_piutang_url', ''),
+        'nomor' => old('_piutang_nomor', ''),
+        'pelanggan' => $customer->name,
+        'sisa' => (float) old('_piutang_sisa', 0),
+        'jumlah' => old('amount', ''),
+    ];
+    $baris = 'flex justify-between gap-4';
+@endphp
+
 <x-app-layout>
-    <x-slot name="header">Detail pelanggan</x-slot>
-
-    <div class="max-w-3xl space-y-6">
-        <div class="kartu p-6">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                    <h2 class="text-xl font-semibold text-stone-900">{{ $customer->name }}</h2>
-                    <p class="mt-1 text-sm text-stone-500">{{ $customer->code }}@if ($customer->is_default) · Bawaan sistem untuk transaksi tanpa pelanggan @endif</p>
-                </div>
-                <div class="flex gap-2">
-                    @unless ($customer->is_default)
-                        <a href="{{ route('customers.edit', $customer) }}" class="tombol-utama">Ubah</a>
-                    @endunless
-                    <a href="{{ route('customers.index') }}" class="tombol-kedua">Kembali</a>
-                </div>
-            </div>
-
-            <dl class="mt-5 grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
-                <div><dt class="text-stone-500">Nomor HP</dt><dd class="font-medium text-stone-900">{{ $customer->phone ?: '-' }}</dd></div>
-                <div><dt class="text-stone-500">Email</dt><dd class="font-medium text-stone-900">{{ $customer->email ?: '-' }}</dd></div>
-                <div>
-                    <dt class="text-stone-500">Saldo piutang</dt>
-                    <dd class="font-medium {{ (float) $customer->receivable_balance > 0 ? 'text-brand-700' : 'text-stone-900' }}">@rupiah($customer->receivable_balance)</dd>
-                </div>
-                <div class="sm:col-span-2"><dt class="text-stone-500">Alamat</dt><dd class="whitespace-pre-line font-medium text-stone-900">{{ $customer->address ?: '-' }}</dd></div>
-                <div class="sm:col-span-2"><dt class="text-stone-500">Catatan</dt><dd class="whitespace-pre-line font-medium text-stone-900">{{ $customer->note ?: '-' }}</dd></div>
-            </dl>
-        </div>
-
-        <div class="grid gap-3 sm:grid-cols-3">
-            <div class="kartu p-4">
-                <p class="text-sm text-stone-500">Jumlah transaksi</p>
-                <p class="mt-1 text-2xl font-semibold text-stone-900">{{ $ringkasan['jumlah'] }}</p>
-            </div>
-            <div class="kartu p-4">
-                <p class="text-sm text-stone-500">Total belanja</p>
-                <p class="mt-1 text-2xl font-semibold text-stone-900">@rupiah($ringkasan['total'])</p>
-            </div>
-            <div class="kartu p-4">
-                <p class="text-sm text-stone-500">Sisa piutang</p>
-                <p class="mt-1 text-2xl font-semibold {{ $ringkasan['piutang'] > 0 ? 'text-brand-700' : 'text-stone-900' }}">@rupiah($ringkasan['piutang'])</p>
-            </div>
-        </div>
-
-        <div class="kartu">
-            <div class="flex items-center justify-between border-b border-stone-200 px-4 py-3">
-                <h3 class="text-sm font-medium text-stone-600">Riwayat pembelian</h3>
-                <div class="flex gap-3 text-sm">
-                    @can('pos.transactions.create')
-                        <a href="{{ route('pos.index') }}" class="text-brand-700 hover:underline">Buka Kasir</a>
-                    @endcan
-                    @can('pos.transactions.view')
-                        <a href="{{ route('sales.index', ['pelanggan' => $customer->id]) }}" class="text-stone-600 hover:underline">Semua</a>
-                    @endcan
-                </div>
-            </div>
-            @forelse ($penjualan as $p)
-                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 px-4 py-3 text-sm last:border-0">
-                    <div>
-                        @can('pos.transactions.view')
-                            <a href="{{ route('sales.show', $p) }}" class="font-medium {{ $p->dibatalkan() ? 'text-stone-400 line-through' : 'text-stone-900 hover:underline' }}">{{ $p->number }}</a>
-                        @else
-                            <span class="font-medium text-stone-900">{{ $p->number }}</span>
-                        @endcan
-                        <span class="ml-2 text-stone-500">@tanggal($p->sold_at, true)</span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span>@rupiah($p->grand_total)</span>
-                        @if ($p->dibatalkan())
-                            <span class="rounded-full bg-stone-200 px-2.5 py-0.5 text-xs font-medium text-stone-700">Dibatalkan</span>
-                        @else
-                            @include('partials.badge-pembayaran', ['status' => $p->payment_status, 'penjualan' => true])
-                        @endif
-                    </div>
-                </div>
-            @empty
-                <p class="px-4 py-6 text-sm text-stone-500">Belum ada transaksi dari pelanggan ini.</p>
-            @endforelse
-        </div>
-
+    <x-slot name="header">{{ $customer->name }}</x-slot>
+    <x-slot name="description">{{ $customer->code }}{{ $customer->is_default ? ' · Bawaan sistem untuk transaksi tanpa pelanggan' : '' }}</x-slot>
+    <x-slot name="actions">
         @unless ($customer->is_default)
-            <div class="flex justify-end">
-                <button type="button" class="text-sm text-brand-600 hover:underline"
-                        @click="$dispatch('konfirmasi-hapus', { action: @js(route('customers.destroy', $customer)), nama: @js($customer->name) })">
-                    Hapus pelanggan ini
-                </button>
-            </div>
+            @can('pos.customers.delete')
+                <x-ui.button variant="ghost" icon="trash" class="text-danger-600"
+                    x-data x-on:click="$dispatch('konfirmasi-hapus', { action: {{ \Illuminate\Support\Js::from(route('customers.destroy', $customer)) }}, nama: {{ \Illuminate\Support\Js::from($customer->name) }} })">Hapus</x-ui.button>
+            @endcan
+            @can('pos.customers.update')
+                <x-ui.button variant="secondary" icon="pencil-square" :href="route('customers.edit', $customer)">Ubah</x-ui.button>
+            @endcan
         @endunless
+    </x-slot>
+
+    <div class="mb-6 grid gap-4 sm:grid-cols-3">
+        <x-ui.stat-card label="Jumlah transaksi" :value="Format::jumlah($ringkasan['jumlah'])" icon="receipt-percent" color="neutral"
+                        :hint="$ringkasan['terakhir'] ? 'terakhir '.Format::tanggal($ringkasan['terakhir']) : 'belum pernah belanja'" />
+        <x-ui.stat-card label="Total belanja" :value="Format::rupiah($ringkasan['total'])" icon="banknotes"
+                        :hint="$ringkasan['retur'] > 0 ? 'retur '.Format::rupiah($ringkasan['retur']) : null" />
+        <x-ui.stat-card label="Saldo piutang" :value="Format::rupiah($customer->receivable_balance)" icon="clock" :color="(float) $customer->receivable_balance > 0 ? 'warning' : 'neutral'" />
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-3" x-data="{ target: {{ \Illuminate\Support\Js::from($awalTarget) }} }">
+        <x-ui.card title="Kontak">
+            <dl class="grid gap-3 text-sm">
+                <div class="{{ $baris }}"><dt class="text-slate-500">Nomor HP</dt><dd class="text-right text-slate-900">{{ $customer->phone ?: '—' }}</dd></div>
+                <div class="{{ $baris }}"><dt class="text-slate-500">Email</dt><dd class="text-right text-slate-900">{{ $customer->email ?: '—' }}</dd></div>
+                <div><dt class="text-slate-500">Alamat</dt><dd class="mt-1 whitespace-pre-line text-slate-900">{{ $customer->address ?: '—' }}</dd></div>
+                <div><dt class="text-slate-500">Catatan</dt><dd class="mt-1 whitespace-pre-line text-slate-900">{{ $customer->note ?: '—' }}</dd></div>
+            </dl>
+        </x-ui.card>
+
+        <div class="grid gap-6 lg:col-span-2">
+            @if ($piutang->isNotEmpty())
+                <x-ui.card title="Piutang belum lunas" :padding="false">
+                    <x-ui.table :sticky="false">
+                        <x-slot:head>
+                            <x-ui.table.th>Penjualan</x-ui.table.th>
+                            <x-ui.table.th>Tanggal</x-ui.table.th>
+                            <x-ui.table.th align="right">Total</x-ui.table.th>
+                            <x-ui.table.th align="right">Sisa</x-ui.table.th>
+                            <x-ui.table.th align="right"><span class="sr-only">Aksi</span></x-ui.table.th>
+                        </x-slot:head>
+                        @foreach ($piutang as $p)
+                            <tr>
+                                <x-ui.table.td>
+                                    @can('view', $p)
+                                        <a href="{{ route('sales.show', $p) }}" class="font-medium text-slate-900 hover:text-primary-700 hover:underline">{{ $p->number }}</a>
+                                    @else
+                                        <span class="font-medium text-slate-900">{{ $p->number }}</span>
+                                    @endcan
+                                </x-ui.table.td>
+                                <x-ui.table.td numeric muted>{{ Format::tanggal($p->sold_at) }}</x-ui.table.td>
+                                <x-ui.table.td align="right" numeric muted>@rupiah($p->grand_total)</x-ui.table.td>
+                                <x-ui.table.td align="right" numeric class="font-medium text-warning-700">@rupiah($p->balance)</x-ui.table.td>
+                                <x-ui.table.td align="right">
+                                    @if ($bisaLunasi)
+                                        <x-ui.button size="sm" variant="secondary" icon="banknotes"
+                                            x-on:click="target = { url: {{ \Illuminate\Support\Js::from(route('receivables.store', $p)) }}, nomor: {{ \Illuminate\Support\Js::from($p->number) }}, pelanggan: {{ \Illuminate\Support\Js::from($customer->name) }}, sisa: {{ (float) $p->balance }}, jumlah: {{ (float) $p->balance }} }; $dispatch('open-modal', 'terima-piutang')">Terima</x-ui.button>
+                                    @endif
+                                </x-ui.table.td>
+                            </tr>
+                        @endforeach
+                    </x-ui.table>
+                </x-ui.card>
+            @endif
+
+            <x-ui.card title="Transaksi terakhir" :padding="false">
+                <x-slot:actions>
+                    @canany(['pos.transactions.view'])
+                        <x-ui.button variant="link" size="sm" :href="route('sales.index', ['pelanggan' => $customer->id])">Semua transaksi</x-ui.button>
+                    @endcanany
+                </x-slot:actions>
+                @if ($penjualan->isEmpty())
+                    <x-ui.empty-state icon="receipt-percent" title="Belum ada transaksi" description="Transaksi pelanggan ini akan tampil di sini." />
+                @else
+                    <x-ui.table :sticky="false">
+                        <x-slot:head>
+                            <x-ui.table.th>Nomor</x-ui.table.th>
+                            <x-ui.table.th>Waktu</x-ui.table.th>
+                            <x-ui.table.th align="right">Total</x-ui.table.th>
+                            <x-ui.table.th>Status</x-ui.table.th>
+                        </x-slot:head>
+                        @foreach ($penjualan as $p)
+                            <tr @class(['text-slate-400' => $p->dibatalkan()])>
+                                <x-ui.table.td>
+                                    @can('view', $p)
+                                        <a href="{{ route('sales.show', $p) }}" @class(['font-medium hover:underline', 'text-slate-900' => ! $p->dibatalkan(), 'line-through' => $p->dibatalkan()])>{{ $p->number }}</a>
+                                    @else
+                                        <span class="font-medium text-slate-900">{{ $p->number }}</span>
+                                    @endcan
+                                </x-ui.table.td>
+                                <x-ui.table.td numeric muted>{{ Format::tanggal($p->sold_at, true) }}</x-ui.table.td>
+                                <x-ui.table.td align="right" numeric>@rupiah($p->grand_total)</x-ui.table.td>
+                                <x-ui.table.td>
+                                    @if ($p->dibatalkan())
+                                        <x-ui.badge color="neutral">Dibatalkan</x-ui.badge>
+                                    @else
+                                        @include('partials.badge-pembayaran', ['status' => $p->payment_status, 'penjualan' => true])
+                                    @endif
+                                </x-ui.table.td>
+                            </tr>
+                        @endforeach
+                    </x-ui.table>
+                @endif
+            </x-ui.card>
+        </div>
+
+        @if ($bisaLunasi)
+            @include('partials.terima-piutang', ['methods' => $methods])
+        @endif
     </div>
 </x-app-layout>

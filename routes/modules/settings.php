@@ -1,7 +1,7 @@
 <?php
 
 /*
-| Pengaturan: profil toko, cabang, pajak, metode pembayaran, struk & printer,
+| Pengaturan: profil toko, cabang, pajak, metode pembayaran, kasir, struk & printer,
 | penomoran dokumen, dan backup. Nilai disimpan di tabel settings (helper setting()),
 | kecuali cabang (branches) dan metode pembayaran (payment_methods).
 | Di-include dari routes/web.php di dalam grup middleware auth.
@@ -11,6 +11,7 @@ use App\Http\Controllers\Settings\BackupController;
 use App\Http\Controllers\Settings\BranchController;
 use App\Http\Controllers\Settings\DocumentNumberingController;
 use App\Http\Controllers\Settings\PaymentMethodController;
+use App\Http\Controllers\Settings\PosSettingController;
 use App\Http\Controllers\Settings\ReceiptSettingController;
 use App\Http\Controllers\Settings\StoreProfileController;
 use App\Http\Controllers\Settings\TaxController;
@@ -35,6 +36,9 @@ Route::prefix('pengaturan')->name('settings.')->group(function () {
 
     Route::get('metode-pembayaran', [PaymentMethodController::class, 'edit'])->middleware('permission:settings.payment-methods.view')->name('payment-methods.edit');
     Route::put('metode-pembayaran', [PaymentMethodController::class, 'update'])->middleware('permission:settings.payment-methods.update')->name('payment-methods.update');
+
+    Route::get('kasir', [PosSettingController::class, 'edit'])->middleware('permission:settings.pos.view')->name('pos.edit');
+    Route::put('kasir', [PosSettingController::class, 'update'])->middleware('permission:settings.pos.update')->name('pos.update');
 
     Route::get('struk', [ReceiptSettingController::class, 'edit'])->middleware('permission:settings.receipts.view')->name('receipts.edit');
     Route::put('struk', [ReceiptSettingController::class, 'update'])->middleware('permission:settings.receipts.update')->name('receipts.update');

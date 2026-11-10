@@ -6,6 +6,7 @@ use App\Models\GoodsReceipt;
 use App\Models\Purchase;
 use App\Models\PurchaseReturn;
 use App\Models\Sale;
+use App\Models\SaleReturn;
 use App\Models\StockOpname;
 use App\Models\StockTransfer;
 use App\Models\User;
@@ -20,6 +21,7 @@ final class DocumentLink
     /** @var array<class-string<Model>, array{route: string, permission: string|list<string>}> */
     private const ROUTES = [
         Sale::class => ['route' => 'sales.show', 'permission' => ['pos.transactions.view', 'pos.transactions.view-own']],
+        SaleReturn::class => ['route' => 'sale-returns.show', 'permission' => ['pos.returns.view', 'pos.returns.create', 'pos.returns.approve']],
         Purchase::class => ['route' => 'purchases.show', 'permission' => 'purchasing.invoices.view'],
         GoodsReceipt::class => ['route' => 'goods-receipts.show', 'permission' => 'purchasing.receipts.view'],
         PurchaseReturn::class => ['route' => 'purchase-returns.show', 'permission' => 'purchasing.returns.view'],
