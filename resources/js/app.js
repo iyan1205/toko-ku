@@ -13,6 +13,7 @@ import cariGlobal from './cari-global';
 import dokumenBarang from './dokumen-barang';
 import grafikPenjualan from './grafik-penjualan';
 import notifikasiStok from './notifikasi-stok';
+import kasir from './pos/kasir';
 
 window.Alpine = Alpine;
 
@@ -20,5 +21,6 @@ Alpine.data('cariGlobal', cariGlobal);
 Alpine.data('dokumenBarang', dokumenBarang);
 Alpine.data('grafikPenjualan', grafikPenjualan);
 Alpine.data('notifikasiStok', notifikasiStok);
+Alpine.data('kasir', kasir);
 
 Alpine.start();
