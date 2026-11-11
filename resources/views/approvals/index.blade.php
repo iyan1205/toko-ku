@@ -70,7 +70,7 @@
     @elseif ($tab === 'pengajuan')
         <x-ui.table :paginator="$items">
             <x-slot:toolbar>
-                <x-ui.filter-bar :search="null">
+                <x-ui.filter-bar :search="false">
                     <input type="hidden" name="tab" value="pengajuan">
                     <x-ui.select name="status" label="Status" hide-label :options="collect(ApprovalStatus::cases())->mapWithKeys(fn ($s) => [$s->value => $s->label()])" :selected="request('status')" placeholder="Semua status" />
                 </x-ui.filter-bar>

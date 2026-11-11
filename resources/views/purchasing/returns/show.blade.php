@@ -68,4 +68,6 @@
             @endforeach
         </x-ui.table>
     </div>
+
+    <x-ui.journal-links :document="$retur" class="mt-6" />
 </x-app-layout>

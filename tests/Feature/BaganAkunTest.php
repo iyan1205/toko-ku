@@ -42,11 +42,12 @@ class BaganAkunTest extends TestCase
 
         $this->post(route('accounts.install'))->assertRedirect(route('accounts.index'));
 
-        $this->assertSame(43, Account::count());
+        $this->assertSame(count(ChartOfAccountsService::STANDARD), Account::count());
         $this->assertSame(
-            collect(config('accounting.accounts'))->values()->sort()->values()->all(),
+            collect(config('accounting.mapping'))->pluck('default')->sort()->values()->all(),
             Account::where('is_system', true)->orderBy('code')->pluck('code')->all(),
         );
+        $this->assertSame(['1-1100', '1-1200'], Account::where('is_cash_bank', true)->orderBy('code')->pluck('code')->all());
         $this->assertSame($this->akun('1-1000')->id, $this->akun('1-1100')->parent_id);
     }
 
@@ -59,7 +60,7 @@ class BaganAkunTest extends TestCase
 
         $this->assertSame(0, $ditambah);
         $this->assertSame('Kas Laci', $this->akun('1-1100')->name);
-        $this->assertSame(43, Account::count());
+        $this->assertSame(count(ChartOfAccountsService::STANDARD), Account::count());
     }
 
     public function test_akun_baru_harus_satu_kelompok_dengan_induknya(): void

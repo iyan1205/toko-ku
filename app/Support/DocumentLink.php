@@ -3,10 +3,12 @@
 namespace App\Support;
 
 use App\Models\GoodsReceipt;
+use App\Models\OpeningBalance;
 use App\Models\Purchase;
 use App\Models\PurchaseReturn;
 use App\Models\Sale;
 use App\Models\SaleReturn;
+use App\Models\StockMovement;
 use App\Models\StockOpname;
 use App\Models\StockTransfer;
 use App\Models\User;
@@ -27,16 +29,28 @@ final class DocumentLink
         PurchaseReturn::class => ['route' => 'purchase-returns.show', 'permission' => 'purchasing.returns.view'],
         StockOpname::class => ['route' => 'stock-opnames.show', 'permission' => 'inventory.opnames.view'],
         StockTransfer::class => ['route' => 'stock-transfers.show', 'permission' => 'inventory.transfers.view'],
+        OpeningBalance::class => ['route' => 'opening-balances.show', 'permission' => 'accounting.opening-balances.view'],
     ];
 
     /** Nomor dokumen, atau null bila mutasi tidak punya dokumen (penyesuaian manual). */
     public static function number(?Model $reference): ?string
     {
+        if ($reference instanceof StockMovement) {
+            return 'Kartu stok '.($reference->product?->name ?? '#'.$reference->product_id);
+        }
+
         return $reference?->getAttribute('number');
     }
 
     public static function url(?Model $reference, ?User $user): ?string
     {
+        // Penyesuaian stok manual tidak punya dokumen: buka kartu stok produk di gudangnya.
+        if ($reference instanceof StockMovement) {
+            return $user?->can('inventory.stock-card.view')
+                ? route('stock.movements', ['produk' => $reference->product_id, 'gudang' => $reference->warehouse_id])
+                : null;
+        }
+
         $target = $reference ? (self::ROUTES[$reference::class] ?? null) : null;
 
         if ($target === null || $user === null || ! $user->canAny((array) $target['permission'])) {

@@ -9,6 +9,7 @@ use App\Exports\ListExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Accounting\JournalRequest;
 use App\Models\Account;
+use App\Models\CostCenter;
 use App\Models\Journal;
 use App\Models\User;
 use App\Services\Accounting\JournalService;
@@ -47,10 +48,7 @@ class JournalController extends Controller
 
     public function create(): View
     {
-        return view('accounting.journals.form', [
-            'journal' => new Journal(['journal_date' => now()]),
-            'accounts' => Account::query()->postable()->ordered()->get(['id', 'code', 'name', 'type']),
-        ]);
+        return view('accounting.journals.form', $this->formData(new Journal(['journal_date' => now()])));
     }
 
     /**
@@ -60,10 +58,11 @@ class JournalController extends Controller
     public function store(JournalRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        $attributes = ['auto_reverse_on' => $data['auto_reverse_on'] ?? null];
 
         $journal = $request->input('aksi') === 'draft'
-            ? $this->journals->saveDraft($data['journal_date'], $data['description'], $data['lines'], $request->user())
-            : $this->journals->createManual($data['journal_date'], $data['description'], $data['lines'], $request->user());
+            ? $this->journals->saveDraft($data['journal_date'], $data['description'], $data['lines'], $request->user(), attributes: $attributes)
+            : $this->journals->createManual($data['journal_date'], $data['description'], $data['lines'], $request->user(), $attributes);
 
         return redirect()->route('journals.show', $journal)->with('success', $this->savedMessage($journal));
     }
@@ -74,17 +73,14 @@ class JournalController extends Controller
             return redirect()->route('journals.show', $journal)->with('error', 'Hanya draf jurnal manual yang bisa diubah.');
         }
 
-        return view('accounting.journals.form', [
-            'journal' => $journal->load('lines'),
-            'accounts' => Account::query()->postable()->ordered()->get(['id', 'code', 'name', 'type']),
-        ]);
+        return view('accounting.journals.form', $this->formData($journal->load('lines')));
     }
 
     /** Simpan perubahan draf; aksi=post sekalian memposting (atau mengajukan). */
     public function update(JournalRequest $request, Journal $journal): RedirectResponse
     {
         $data = $request->validated();
-        $journal = $this->journals->saveDraft($data['journal_date'], $data['description'], $data['lines'], $request->user(), $journal);
+        $journal = $this->journals->saveDraft($data['journal_date'], $data['description'], $data['lines'], $request->user(), $journal, ['auto_reverse_on' => $data['auto_reverse_on'] ?? null]);
 
         if ($request->input('aksi') !== 'draft') {
             $journal = $this->postOrSubmit($journal, $request->user());
@@ -113,7 +109,7 @@ class JournalController extends Controller
     public function show(Request $request, Journal $journal): View
     {
         return view('accounting.journals.show', [
-            'journal' => $journal->load(['lines.account', 'user', 'postedBy', 'cancelledBy', 'reversal', 'reversalOf', 'source']),
+            'journal' => $journal->load(['lines.account', 'lines.costCenter', 'user', 'postedBy', 'cancelledBy', 'reversal', 'reversalOf', 'source', 'recurringJournal']),
             'approvalFlow' => $journal->isManual() && $journal->isEditable() ? $this->approvals->flowFor($journal) : null,
             'sourceUrl' => $journal->sourceUrl($request->user()),
         ]);
@@ -131,6 +127,18 @@ class JournalController extends Controller
         $reversal = $this->journals->reverse($journal, "Pembalik {$journal->number}: ".trim($request->input('alasan')), $request->user());
 
         return redirect()->route('journals.show', $reversal)->with('success', "Jurnal {$journal->number} dibalik dengan {$reversal->number}.");
+    }
+
+    /** @return array<string, mixed> */
+    private function formData(Journal $journal): array
+    {
+        $used = $journal->exists ? $journal->lines->pluck('cost_center_id')->filter()->all() : [];
+
+        return [
+            'journal' => $journal,
+            'accounts' => Account::query()->postable()->ordered()->get(['id', 'code', 'name', 'type']),
+            'costCenters' => CostCenter::query()->where(fn ($q) => $q->where('is_active', true)->orWhereIn('id', $used ?: [0]))->ordered()->get(['id', 'code', 'name']),
+        ];
     }
 
     private function postOrSubmit(Journal $journal, User $user): Journal

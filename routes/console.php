@@ -21,6 +21,9 @@ Artisan::command('inspire', function () {
 // Tanda hidup scheduler (Pengaturan → Sistem).
 Schedule::call(fn () => QueueHealth::schedulerBeat())->name('schedule-heartbeat')->everyMinute();
 
+// Jurnal berulang yang jatuh tempo dan jurnal yang dijadwalkan dibalik otomatis (Akuntansi).
+Schedule::command('akuntansi:jurnal-terjadwal')->dailyAt('00:20')->withoutOverlapping();
+
 // Cadangan database harian (Pengaturan → Backup). Menyimpan 14 berkas terbaru.
 Schedule::command('backup:database')->dailyAt('01:30');
 

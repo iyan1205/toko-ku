@@ -24,6 +24,9 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * Jurnal manual: source_type null. Jurnal otomatis: source = dokumen asal (penjualan, faktur,
  * retur, pembayaran) dan source_event = kejadiannya (created, voided, approved).
  *
+ * Jurnal manual bisa dijadwalkan dibalik otomatis (auto_reverse_on) dan bisa berasal dari
+ * templat jurnal berulang (recurring_journal_id + recurring_period).
+ *
  * Status (HasDocumentStatus): jurnal otomatis langsung posted. Jurnal manual bisa disimpan
  * sebagai draf, diajukan ke alur persetujuan (HasApproval, dokumen "journal"), lalu posted
  * otomatis saat disetujui. Hanya jurnal posted yang dihitung di saldo akun.
@@ -32,12 +35,26 @@ class Journal extends Model
 {
     use BelongsToBranch, HasApproval, HasAttachments, HasDocumentStatus;
 
+    /** Nama jenis dokumen sumber jurnal otomatis (kunci = morph map). */
+    public const SOURCE_LABELS = [
+        'sale' => 'Penjualan',
+        'sale_return' => 'Retur penjualan',
+        'purchase' => 'Pembelian',
+        'purchase_return' => 'Retur pembelian',
+        'payment' => 'Pembayaran',
+        'stock_opname' => 'Stok opname',
+        'stock_transfer' => 'Transfer stok',
+        'stock_movement' => 'Penyesuaian stok',
+        'opening_balance' => 'Saldo awal',
+    ];
+
     protected $fillable = ['number', 'journal_date', 'description', 'source_type', 'source_id', 'source_event', 'reversal_of_id', 'total', 'user_id'];
 
     protected function casts(): array
     {
         return [
             'journal_date' => 'date',
+            'auto_reverse_on' => 'date',
             'total' => 'decimal:2',
             'submitted_at' => 'datetime',
             'approved_at' => 'datetime',
@@ -71,6 +88,11 @@ class Journal extends Model
         return $this->hasOne(self::class, 'reversal_of_id');
     }
 
+    public function recurringJournal(): BelongsTo
+    {
+        return $this->belongsTo(RecurringJournal::class)->withTrashed();
+    }
+
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by')->withTrashed();
@@ -101,17 +123,15 @@ class Journal extends Model
     public function sourceLabel(): string
     {
         if ($this->isManual()) {
-            return $this->reversal_of_id ? 'Pembalik manual' : 'Manual';
+            return match (true) {
+                $this->reversal_of_id !== null => 'Pembalik manual',
+                $this->recurring_journal_id !== null => 'Jurnal berulang',
+                default => 'Manual',
+            };
         }
 
-        return match ($this->source_type) {
-            'sale' => 'Penjualan',
-            'sale_return' => 'Retur penjualan',
-            'purchase' => 'Pembelian',
-            'purchase_return' => 'Retur pembelian',
-            'payment' => 'Pembayaran',
-            default => 'Otomatis',
-        }.($this->source_event === 'voided' ? ' (batal)' : '');
+        return (self::SOURCE_LABELS[$this->source_type] ?? 'Otomatis')
+            .(in_array($this->source_event, ['voided', 'void_out', 'void_in'], true) ? ' (batal)' : '');
     }
 
     /** Dokumen yang bisa dibuka dari jurnal ini. Jurnal pembayaran membuka dokumen yang dibayar. */
@@ -136,6 +156,7 @@ class Journal extends Model
             ->when($f['sumber'] ?? null, fn (Builder $q, $v) => match ($v) {
                 'manual' => $q->whereNull('source_type'),
                 'otomatis' => $q->whereNotNull('source_type'),
+                'berulang' => $q->whereNotNull('recurring_journal_id'),
                 default => $q->where('source_type', $v),
             })
             ->when($f['akun'] ?? null, fn (Builder $q, $v) => $q->whereHas('lines', fn (Builder $l) => $l->where('account_id', $v)))

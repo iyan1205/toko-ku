@@ -1,16 +1,21 @@
 <?php
 
 /*
-| Akuntansi: bagan akun (COA), jurnal umum (Fase 7), dan kunci periode (Fase 8).
-| Buku besar, kas & bank, laporan keuangan, dan tutup buku menyusul (lihat docs/ROADMAP.md).
+| Akuntansi: bagan akun (COA), saldo awal, jurnal umum & jurnal berulang, buku besar, neraca saldo,
+| cost center, dan kunci periode. Kas & bank, laporan keuangan, dan tutup buku menyusul (docs/ROADMAP.md).
 | Di-include dari routes/web.php di dalam grup middleware auth. Setiap route dijaga izin
 | "{modul}.{fitur}.{aksi}" (config/permission-matrix.php). Route statis ditulis di atas
 | route ber-parameter.
 */
 
 use App\Http\Controllers\Accounting\AccountController;
+use App\Http\Controllers\Accounting\CostCenterController;
 use App\Http\Controllers\Accounting\FiscalPeriodController;
 use App\Http\Controllers\Accounting\JournalController;
+use App\Http\Controllers\Accounting\LedgerController;
+use App\Http\Controllers\Accounting\OpeningBalanceController;
+use App\Http\Controllers\Accounting\RecurringJournalController;
+use App\Http\Controllers\Accounting\TrialBalanceController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('akuntansi')->group(function () {
@@ -44,6 +49,51 @@ Route::prefix('akuntansi')->group(function () {
     });
     Route::post('jurnal/{journal}/balik', [JournalController::class, 'reverse'])
         ->whereNumber('journal')->middleware('permission:accounting.journals.void')->name('journals.reverse');
+
+    // ---- Saldo awal: draf (create), posting (approve), batalkan yang sudah diposting (void). ----
+    Route::get('saldo-awal', [OpeningBalanceController::class, 'index'])->middleware('permission:accounting.opening-balances.view')->name('opening-balances.index');
+    Route::middleware('permission:accounting.opening-balances.create')->group(function () {
+        Route::get('saldo-awal/buat', [OpeningBalanceController::class, 'create'])->name('opening-balances.create');
+        Route::post('saldo-awal', [OpeningBalanceController::class, 'store'])->name('opening-balances.store');
+        Route::prefix('saldo-awal/{openingBalance}')->whereNumber('openingBalance')->group(function () {
+            Route::get('ubah', [OpeningBalanceController::class, 'edit'])->name('opening-balances.edit');
+            Route::put('/', [OpeningBalanceController::class, 'update'])->name('opening-balances.update');
+            Route::delete('/', [OpeningBalanceController::class, 'destroy'])->name('opening-balances.destroy');
+        });
+    });
+    Route::prefix('saldo-awal/{openingBalance}')->whereNumber('openingBalance')->name('opening-balances.')->group(function () {
+        Route::get('/', [OpeningBalanceController::class, 'show'])->middleware('permission:accounting.opening-balances.view')->name('show');
+        Route::post('posting', [OpeningBalanceController::class, 'post'])->middleware('permission:accounting.opening-balances.approve')->name('post');
+        Route::post('batal', [OpeningBalanceController::class, 'cancel'])->middleware('permission:accounting.opening-balances.void')->name('cancel');
+    });
+
+    // ---- Jurnal berulang (templat; jurnalnya dibuat scheduler akuntansi:jurnal-terjadwal). ----
+    Route::post('jurnal-berulang/{recurringJournal}/jalankan', [RecurringJournalController::class, 'run'])
+        ->whereNumber('recurringJournal')->middleware('permission:accounting.recurring.update')->name('recurring-journals.run');
+    Route::resource('jurnal-berulang', RecurringJournalController::class)
+        ->parameters(['jurnal-berulang' => 'recurringJournal'])
+        ->names('recurring-journals')
+        ->middlewareFor(['index', 'show'], 'permission:accounting.recurring.view')
+        ->middlewareFor(['create', 'store'], 'permission:accounting.recurring.create')
+        ->middlewareFor(['edit', 'update'], 'permission:accounting.recurring.update')
+        ->middlewareFor('destroy', 'permission:accounting.recurring.delete');
+
+    // ---- Buku besar dan neraca saldo (hanya jurnal posted). ----
+    Route::get('buku-besar', [LedgerController::class, 'index'])->middleware('permission:accounting.ledger.view')->name('ledger.index');
+    Route::get('buku-besar/ekspor', [LedgerController::class, 'export'])->middleware('permission:accounting.ledger.export')->name('ledger.export');
+    Route::get('neraca-saldo', [TrialBalanceController::class, 'index'])->middleware('permission:accounting.trial-balance.view')->name('trial-balance.index');
+    Route::get('neraca-saldo/ekspor', [TrialBalanceController::class, 'export'])->middleware('permission:accounting.trial-balance.export')->name('trial-balance.export');
+
+    // ---- Cost center / departemen (dimensi laporan). ----
+    Route::get('cost-center/ekspor', [CostCenterController::class, 'export'])->middleware('permission:accounting.cost-centers.export')->name('cost-centers.export');
+    Route::resource('cost-center', CostCenterController::class)
+        ->parameters(['cost-center' => 'costCenter'])
+        ->names('cost-centers')
+        ->except('show')
+        ->middlewareFor('index', 'permission:accounting.cost-centers.view')
+        ->middlewareFor(['create', 'store'], 'permission:accounting.cost-centers.create')
+        ->middlewareFor(['edit', 'update'], 'permission:accounting.cost-centers.update')
+        ->middlewareFor('destroy', 'permission:accounting.cost-centers.delete');
 
     // ---- Kunci periode: tutup / buka kembali per bulan. ----
     Route::get('kunci-periode', [FiscalPeriodController::class, 'index'])->middleware('permission:accounting.periods.view')->name('fiscal-periods.index');

@@ -24,6 +24,23 @@ final class JournalLines
         return $this->add($account, $sen, 'credit', $description);
     }
 
+    public function isEmpty(): bool
+    {
+        return $this->lines === [];
+    }
+
+    /** Gabungkan baris dari penyusun lain. */
+    public function merge(self $other): self
+    {
+        foreach ($other->lines as $key => $line) {
+            $this->lines[$key] ??= ['account_id' => $line['account_id'], 'description' => $line['description'], 'debit' => 0, 'credit' => 0];
+            $this->lines[$key]['debit'] += $line['debit'];
+            $this->lines[$key]['credit'] += $line['credit'];
+        }
+
+        return $this;
+    }
+
     /** @return list<array{account_id: int, description: ?string, debit: string, credit: string}> */
     public function all(): array
     {

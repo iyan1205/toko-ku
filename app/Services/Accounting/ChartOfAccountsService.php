@@ -5,6 +5,8 @@ namespace App\Services\Accounting;
 use App\Enums\AccountType;
 use App\Enums\NormalBalance;
 use App\Models\Account;
+use App\Support\Uang;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -12,17 +14,20 @@ use Illuminate\Support\Facades\DB;
  * ChartOfAccountsSeeder atau tombol "Pasang COA standar" di halaman Bagan Akun.
  *
  * Aman dijalankan ulang: akun yang kodenya sudah ada tidak diubah (nama/deskripsi dari pemilik
- * tetap), hanya akun yang belum ada yang ditambahkan. Akun yang dipakai jurnal otomatis
- * (config/accounting.php) ditandai akun sistem.
+ * tetap), hanya akun yang belum ada yang ditambahkan. Akun yang dipetakan untuk jurnal otomatis
+ * (AccountMappingService) ditandai akun sistem.
  */
 class ChartOfAccountsService
 {
+    /** Akun kas/bank di COA standar (bisa dipilih sebagai akun metode pembayaran). */
+    private const CASH_BANK = ['1-1100', '1-1200'];
+
     /**
      * [kode, nama, tipe, kode induk, akun induk?, saldo normal khusus (akun kontra), deskripsi]
      *
      * @var list<array{0: string, 1: string, 2: AccountType, 3: ?string, 4: bool, 5?: ?NormalBalance, 6?: string}>
      */
-    private const STANDARD = [
+    public const STANDARD = [
         ['1-0000', 'Aset', AccountType::Asset, null, true],
         ['1-1000', 'Aset Lancar', AccountType::Asset, '1-0000', true],
         ['1-1100', 'Kas', AccountType::Asset, '1-1000', false, null, 'Uang tunai di laci kasir dan brankas.'],
@@ -32,6 +37,7 @@ class ChartOfAccountsService
         ['1-1400', 'Persediaan Barang Dagang', AccountType::Asset, '1-1000', false],
         ['1-1500', 'PPN Masukan', AccountType::Asset, '1-1000', false, null, 'Pajak yang dibayar saat pembelian.'],
         ['1-1600', 'Biaya Dibayar di Muka', AccountType::Asset, '1-1000', false, null, 'Misal sewa yang dibayar untuk beberapa bulan.'],
+        ['1-1700', 'Rekening Antar Cabang', AccountType::Asset, '1-1000', false, null, 'Penampung nilai barang yang ditransfer antar cabang. Bila semua cabang dijumlahkan, saldonya nol.'],
         ['1-2000', 'Aset Tetap', AccountType::Asset, '1-0000', true],
         ['1-2100', 'Peralatan Toko', AccountType::Asset, '1-2000', false, null, 'Etalase, kulkas, mesin kasir, printer, dan peralatan lain.'],
         ['1-2200', 'Kendaraan', AccountType::Asset, '1-2000', false],
@@ -51,10 +57,12 @@ class ChartOfAccountsService
         ['3-1000', 'Modal Pemilik', AccountType::Equity, '3-0000', false],
         ['3-2000', 'Prive Pemilik', AccountType::Equity, '3-0000', false, NormalBalance::Debit, 'Pengambilan uang toko untuk keperluan pribadi pemilik.'],
         ['3-3000', 'Laba Ditahan', AccountType::Equity, '3-0000', false],
+        ['3-9000', 'Ekuitas Saldo Awal', AccountType::Equity, '3-0000', false, null, 'Penyeimbang saat saldo awal dimasukkan. Setelah saldo awal lengkap, pindahkan ke Modal Pemilik dengan jurnal manual.'],
 
         ['4-0000', 'Pendapatan', AccountType::Revenue, null, true],
         ['4-1000', 'Penjualan', AccountType::Revenue, '4-0000', false, null, 'Penjualan bersih setelah diskon, tanpa pajak.'],
         ['4-1100', 'Retur Penjualan', AccountType::Revenue, '4-0000', false, NormalBalance::Debit, 'Akun kontra pendapatan.'],
+        ['4-1200', 'Diskon Penjualan', AccountType::Revenue, '4-0000', false, NormalBalance::Debit, 'Akun kontra pendapatan: potongan harga per barang dan per transaksi di kasir.'],
         ['4-2000', 'Pendapatan Lain-lain', AccountType::Revenue, '4-0000', false],
 
         ['5-0000', 'Harga Pokok Penjualan', AccountType::Cogs, null, true],
@@ -93,6 +101,7 @@ class ChartOfAccountsService
                     'normal_balance' => $row[5] ?? $type->normalBalance(),
                     'parent_id' => $parent ? ($existing[$parent] ?? null) : null,
                     'is_header' => $header,
+                    'is_cash_bank' => in_array($code, self::CASH_BANK, true),
                     'is_active' => true,
                     'description' => $row[6] ?? null,
                 ]);
@@ -107,14 +116,89 @@ class ChartOfAccountsService
         });
     }
 
-    /** Tandai akun yang dipakai jurnal otomatis sebagai akun sistem. */
+    /** Tandai akun yang dipetakan untuk jurnal otomatis sebagai akun sistem. */
     public function markSystemAccounts(): void
     {
-        Account::withTrashed()->whereIn('code', array_values(config('accounting.accounts')))->update(['is_system' => true]);
+        app(AccountMappingService::class)->syncSystemFlags();
     }
 
     public function isInstalled(): bool
     {
         return Account::query()->exists();
+    }
+
+    /** @return list<string> kode akun standar yang belum ada (misal akun baru di versi aplikasi berikutnya) */
+    public function missingCodes(): array
+    {
+        $existing = Account::withTrashed()->pluck('code')->all();
+
+        return array_values(array_diff(array_column(self::STANDARD, 0), $existing));
+    }
+
+    /**
+     * Susun akun menjadi pohon (urutan tampil dari atas ke bawah). Saldo akun induk = jumlah saldo
+     * semua akun di bawahnya, mengikuti saldo normal akun induk itu. $visible membatasi baris yang
+     * ditampilkan (hasil filter) beserta akun induknya; null = semua.
+     *
+     * @param  Collection<int, Account>  $accounts  dengan debit_total/credit_total (AccountsExport)
+     * @param  list<int>|null  $visible
+     * @return list<array{account: Account, depth: int, ancestors: list<int>, has_children: bool, balance: ?string}>
+     */
+    public function tree(Collection $accounts, ?array $visible = null): array
+    {
+        $byParent = $accounts->groupBy(fn (Account $a) => (int) $a->parent_id);
+        $byId = $accounts->keyBy('id');
+
+        // Saldo bersih (debit - kredit, sen) per akun termasuk semua turunannya.
+        $net = [];
+        $sum = function (Account $account) use (&$sum, &$net, $byParent): int {
+            $own = Uang::sen($account->getAttribute('debit_total') ?? 0) - Uang::sen($account->getAttribute('credit_total') ?? 0);
+            foreach ($byParent->get($account->id, collect()) as $child) {
+                $own += $sum($child);
+            }
+
+            return $net[$account->id] = $own;
+        };
+
+        // Akun yang induknya tidak ada (terhapus) diperlakukan sebagai akun teratas.
+        $roots = $accounts->filter(fn (Account $a) => $a->parent_id === null || ! $byId->has($a->parent_id))->sortBy('code');
+        foreach ($roots as $root) {
+            $sum($root);
+        }
+
+        $show = null;
+        if ($visible !== null) {
+            $show = [];
+            foreach ($visible as $id) {
+                for ($node = $byId->get($id); $node !== null && ! isset($show[$node->id]); $node = $byId->get((int) $node->parent_id)) {
+                    $show[$node->id] = true;
+                }
+            }
+        }
+
+        $rows = [];
+        $walk = function (Account $account, int $depth, array $ancestors) use (&$walk, &$rows, $byParent, $net, $show): void {
+            if ($show !== null && ! isset($show[$account->id])) {
+                return;
+            }
+            $children = $byParent->get($account->id, collect())->sortBy('code');
+            $saldo = $net[$account->id] ?? 0;
+            $rows[] = [
+                'account' => $account,
+                'depth' => $depth,
+                'ancestors' => $ancestors,
+                'has_children' => $children->isNotEmpty(),
+                'balance' => Uang::keDesimal($account->normal_balance === NormalBalance::Debit ? $saldo : -$saldo),
+            ];
+            foreach ($children as $child) {
+                $walk($child, $depth + 1, [...$ancestors, $account->id]);
+            }
+        };
+
+        foreach ($roots as $root) {
+            $walk($root, 0, []);
+        }
+
+        return $rows;
     }
 }

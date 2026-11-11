@@ -5,10 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-/** Satu baris jurnal: tepat satu sisi (debit atau kredit) bernilai lebih dari nol. */
+/** Satu baris jurnal: tepat satu sisi (debit atau kredit) bernilai lebih dari nol. Cost center opsional. */
 class JournalLine extends Model
 {
-    protected $fillable = ['account_id', 'description', 'debit', 'credit'];
+    protected $fillable = ['account_id', 'cost_center_id', 'description', 'debit', 'credit'];
 
     protected function casts(): array
     {
@@ -26,5 +26,10 @@ class JournalLine extends Model
     public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class)->withTrashed();
+    }
+
+    public function costCenter(): BelongsTo
+    {
+        return $this->belongsTo(CostCenter::class)->withTrashed();
     }
 }

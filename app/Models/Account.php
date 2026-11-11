@@ -14,14 +14,15 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Akun di bagan akun (COA). Hanya akun yang aktif dan bukan akun induk (is_header) yang bisa
- * dipakai di jurnal. is_system ditandai otomatis untuk akun yang dipakai jurnal otomatis
- * (config/accounting.php) dan tidak bisa diisi dari form.
+ * dipakai di jurnal. is_system ditandai otomatis untuk akun yang dipetakan ke jurnal otomatis
+ * (Pengaturan → Akuntansi, AccountMappingService) dan tidak bisa diisi dari form.
+ * is_cash_bank menandai akun kas/bank (pilihan akun metode pembayaran, modul Kas & Bank).
  */
 class Account extends Model
 {
     use HasFactory, RecordsActivity, SoftDeletes;
 
-    protected $fillable = ['code', 'name', 'type', 'normal_balance', 'parent_id', 'is_header', 'is_active', 'description'];
+    protected $fillable = ['code', 'name', 'type', 'normal_balance', 'parent_id', 'is_header', 'is_cash_bank', 'is_active', 'description'];
 
     protected function casts(): array
     {
@@ -29,6 +30,7 @@ class Account extends Model
             'type' => AccountType::class,
             'normal_balance' => NormalBalance::class,
             'is_header' => 'boolean',
+            'is_cash_bank' => 'boolean',
             'is_system' => 'boolean',
             'is_active' => 'boolean',
         ];
@@ -53,6 +55,12 @@ class Account extends Model
     public function scopePostable(Builder $query): Builder
     {
         return $query->where('is_header', false)->where('is_active', true);
+    }
+
+    /** Akun kas/bank yang bisa dipakai di jurnal. */
+    public function scopeCashBank(Builder $query): Builder
+    {
+        return $query->postable()->where('is_cash_bank', true);
     }
 
     public function scopeOrdered(Builder $query): Builder
@@ -84,6 +92,6 @@ class Account extends Model
     /** @return list<string> */
     protected function activityLogAttributes(): array
     {
-        return ['code', 'name', 'type', 'normal_balance', 'parent_id', 'is_header', 'is_active', 'description'];
+        return ['code', 'name', 'type', 'normal_balance', 'parent_id', 'is_header', 'is_cash_bank', 'is_active', 'description'];
     }
 }

@@ -220,4 +220,6 @@
             @include('partials.terima-piutang', ['methods' => $metode])
         </div>
     @endif
+
+    <x-ui.journal-links :document="$penjualan" class="mt-6" />
 </x-app-layout>

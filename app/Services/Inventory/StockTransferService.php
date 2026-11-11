@@ -5,6 +5,8 @@ namespace App\Services\Inventory;
 use App\Enums\DocumentType;
 use App\Enums\PurchaseStatus;
 use App\Enums\StockMovementType;
+use App\Events\StockTransferred;
+use App\Events\StockTransferVoided;
 use App\Exceptions\AturanBisnisException;
 use App\Models\Product;
 use App\Models\StockTransfer;
@@ -86,6 +88,8 @@ class StockTransferService
                 ->withProperties(['dari' => $dari->name, 'ke' => $ke->name, 'produk' => count($baris)])
                 ->log("Transfer stok {$transfer->number} dari {$dari->name} ke {$ke->name}");
 
+            StockTransferred::dispatch($transfer);
+
             return $transfer->load('items');
         });
     }
@@ -131,6 +135,8 @@ class StockTransferService
             activity('inventori')->performedOn($terkunci)->causedBy($user)->event('voided')
                 ->withProperties(['alasan' => $alasan])
                 ->log("Transfer stok {$terkunci->number} dibatalkan");
+
+            StockTransferVoided::dispatch($terkunci);
 
             return $terkunci;
         });

@@ -21,11 +21,22 @@ class AccountController extends Controller
 {
     public function __construct(private readonly AccountService $accounts) {}
 
+    /** Pohon akun. Dengan filter, hanya akun yang cocok (beserta akun induknya) yang tampil. */
     public function index(Request $request, ChartOfAccountsService $chart): View
     {
+        $filters = $this->filter($request);
+        $all = (new AccountsExport)->query()->get();
+        $visible = array_filter($filters) !== []
+            ? (new AccountsExport($filters))->query()->pluck('accounts.id')->map(fn ($id) => (int) $id)->all()
+            : null;
+        $missing = $chart->isInstalled() ? $chart->missingCodes() : [];
+
         return view('accounting.accounts.index', [
-            'accounts' => AccountsExport::fromRequest($request, $this->filter($request))->paginate(60),
+            'rows' => $chart->tree($all, $visible),
+            'filtered' => $visible !== null,
             'installed' => $chart->isInstalled(),
+            'standardCount' => count(ChartOfAccountsService::STANDARD),
+            'missing' => collect(ChartOfAccountsService::STANDARD)->filter(fn (array $row) => in_array($row[0], $missing, true))->map(fn (array $row) => "{$row[0]} {$row[1]}")->values(),
         ]);
     }
 
@@ -46,7 +57,7 @@ class AccountController extends Controller
             ->log("Bagan akun standar dipasang ({$created} akun ditambahkan)");
 
         return redirect()->route('accounts.index')->with('success', $created > 0
-            ? "{$created} akun standar ditambahkan. Jurnal otomatis sekarang bisa berjalan."
+            ? "{$created} akun standar ditambahkan. Akun yang dipakai jurnal otomatis sudah ditandai akun sistem."
             : 'Semua akun standar sudah ada; tidak ada yang ditambahkan.');
     }
 

@@ -19,6 +19,8 @@ class AccountRequest extends FormRequest
         $this->merge([
             'code' => $this->filled('code') ? trim((string) $this->input('code')) : null,
             'is_header' => $this->boolean('is_header'),
+            // Tanpa field ini (misal permintaan selain dari formulir) tanda kas/bank tidak berubah.
+            'is_cash_bank' => $this->has('is_cash_bank') ? $this->boolean('is_cash_bank') : (bool) $this->route('account')?->is_cash_bank,
             'is_active' => $this->boolean('is_active'),
         ]);
     }
@@ -36,6 +38,7 @@ class AccountRequest extends FormRequest
             'normal_balance' => ['nullable', Rule::enum(NormalBalance::class)],
             'parent_id' => ['nullable', 'integer', Rule::exists('accounts', 'id')->where('is_header', true)->whereNull('deleted_at'), Rule::notIn(array_filter([$id]))],
             'is_header' => ['boolean'],
+            'is_cash_bank' => ['boolean'],
             'is_active' => ['boolean'],
             'description' => ['nullable', 'string', 'max:255'],
         ];

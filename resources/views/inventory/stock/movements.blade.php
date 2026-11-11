@@ -31,7 +31,7 @@
 
     <x-ui.table :paginator="$mutasi">
         <x-slot:toolbar>
-            <x-ui.filter-bar :search="null">
+            <x-ui.filter-bar :search="false">
                 @if ($produkDipilih)
                     <input type="hidden" name="produk" value="{{ $produkDipilih->id }}">
                 @endif

@@ -25,7 +25,7 @@ trait HasDocumentStatus
 {
     /** Kolom yang tetap boleh berubah setelah dokumen terkunci (jejak status). */
     private static array $documentStatusTrail = [
-        'status', 'updated_at', 'submitted_at', 'approved_at', 'approved_by',
+        'status', 'updated_at', 'updated_by', 'submitted_at', 'approved_at', 'approved_by',
         'posted_at', 'posted_by', 'cancelled_at', 'cancelled_by', 'cancel_reason',
     ];
 

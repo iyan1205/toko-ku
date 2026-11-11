@@ -10,6 +10,8 @@ use Illuminate\Validation\ValidationException;
 /**
  * Aturan bagan akun:
  *   - akun induk harus satu kelompok dengan akunnya;
+ *   - akun kas/bank harus akun Aset yang bukan akun induk; akun yang dipetakan sebagai kas/bank
+ *     (Pengaturan → Akuntansi) tidak bisa dilepas tandanya;
  *   - akun sistem (dipakai jurnal otomatis) tidak bisa diganti kode/kelompoknya, dijadikan akun
  *     induk, dinonaktifkan, atau dihapus;
  *   - akun yang sudah dipakai jurnal tidak bisa dijadikan akun induk atau dihapus (nonaktifkan saja);
@@ -17,13 +19,20 @@ use Illuminate\Validation\ValidationException;
  */
 class AccountService
 {
+    public function __construct(private readonly AccountMappingService $mapping) {}
+
     /** @param array<string, mixed> $data */
     public function create(array $data): Account
     {
         $data = $this->normalize($data);
         $this->ensureParentMatches($data);
+        $this->ensureCashBankValid($data);
 
-        return Account::create($data);
+        $account = Account::create($data);
+        // Akun dengan kode bawaan sebuah peran (misal 4-1200 Diskon Penjualan) langsung dipakai jurnal otomatis.
+        $this->mapping->syncSystemFlags();
+
+        return $account->refresh();
     }
 
     /** @param array<string, mixed> $data */
@@ -31,6 +40,11 @@ class AccountService
     {
         $data = $this->normalize($data);
         $this->ensureParentMatches($data);
+        $this->ensureCashBankValid($data);
+
+        if (! ($data['is_cash_bank'] ?? false) && $account->is_cash_bank && in_array($account->id, $this->mapping->cashBankAccountIds(), true)) {
+            throw ValidationException::withMessages(['is_cash_bank' => 'Akun ini dipakai sebagai akun kas/bank di Pengaturan → Akuntansi, jadi tandanya tidak bisa dilepas.']);
+        }
 
         if ($account->is_system) {
             $errors = array_filter([
@@ -49,8 +63,9 @@ class AccountService
         }
 
         $account->update($data);
+        $this->mapping->syncSystemFlags();
 
-        return $account;
+        return $account->refresh();
     }
 
     public function delete(Account $account): void
@@ -77,6 +92,20 @@ class AccountService
         $data['normal_balance'] ??= AccountType::from($data['type'])->normalBalance()->value;
 
         return $data;
+    }
+
+    /** @param array<string, mixed> $data */
+    private function ensureCashBankValid(array $data): void
+    {
+        if (! ($data['is_cash_bank'] ?? false)) {
+            return;
+        }
+        if ($data['type'] !== AccountType::Asset->value) {
+            throw ValidationException::withMessages(['is_cash_bank' => 'Akun kas/bank harus berkelompok Aset.']);
+        }
+        if ($data['is_header'] ?? false) {
+            throw ValidationException::withMessages(['is_cash_bank' => 'Akun induk tidak bisa menjadi akun kas/bank.']);
+        }
     }
 
     /** @param array<string, mixed> $data */

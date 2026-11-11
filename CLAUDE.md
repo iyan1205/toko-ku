@@ -30,7 +30,9 @@ Rencana Fase 8–19: docs/ROADMAP-ENTERPRISE-TOKOKU.md. Status modul: docs/ROADM
 - Perubahan stok selalu lewat `StockService::catat()` dengan gudang (`Warehouse`); tanpa gudang = Gudang Utama. Cek konsistensi dengan `php artisan stok:periksa`.
 - Tabel daftar dibangun dari satu kelas turunan `App\Exports\ListExport` (query, filter, sort, kolom), dipakai bersama oleh halaman, ekspor Excel, dan ekspor PDF.
 - Penjualan dari Kasir dikirim ke `SaleService` dengan `payments[]` (satu baris per metode). Hitungan uang memakai bilangan bulat sen (`App\Support\Uang`), dan pratinjau di layar memakai `resources/js/pos/hitung.js` dengan aturan pembulatan yang sama.
-- Jurnal akuntansi hanya lewat `App\Services\Accounting\JournalService` (debit = kredit, tidak bisa diubah; koreksi dengan jurnal pembalik). Akun untuk jurnal otomatis diatur di `config/accounting.php`.
+- Jurnal akuntansi hanya lewat `App\Services\Accounting\JournalService` (debit = kredit, tidak bisa diubah; koreksi dengan jurnal pembalik). Akun untuk jurnal otomatis dibaca lewat `AccountMappingService` (`require('sales')`, `paymentAccount($metode)`): bawaannya kode di `config/accounting.php` (`mapping`), diubah pemilik di Pengaturan → Akuntansi. Jangan menulis kode akun langsung di service.
+- Jurnal otomatis menyimpan dokumen sumber (`source` + `source_event`, unik) dan ditambahkan di `App\Listeners\CreateAutoJournal` + `AutoJournalService`. Halaman dokumen sumber menampilkan jurnalnya dengan `<x-ui.journal-links :document="$dokumen" />`.
+- Laporan dari jurnal (buku besar, neraca saldo, laporan keuangan nanti) hanya menghitung jurnal posted dan memakai `LedgerService` (saringan cabang/cost center, batas tanggal `LedgerService::bounds()`; jangan `<= 'Y-m-d'` pada `journal_date`).
 - Event antar modul (misal `GoodsReceived`) memakai `ShouldDispatchAfterCommit`, supaya listener (Akuntansi) hanya menerima transaksi yang benar-benar tersimpan.
 
 ## Fondasi (Fase 8)
@@ -211,3 +213,12 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - Run `vendor/bin/phpunit` to call the test runner directly. It accepts the same file path and `--filter=testName` arguments.
 
 </laravel-boost-guidelines>
+## Aturan Enterprise
+- Nominal uang: kolom decimal(18,2), kuantitas decimal(18,4). Jangan pakai float. Gunakan helper/Money cast.
+- Semua transaksi yang menyentuh stok, kas, atau jurnal wajib dalam DB::transaction dan menggunakan lockForUpdate bila perlu.
+- Dokumen bisnis punya status: draft → submitted → approved → posted → cancelled. Dokumen posted tidak boleh diedit/dihapus; koreksi lewat pembatalan/jurnal balik (reversal).
+- Jurnal wajib seimbang (total debit = total kredit) dan tidak boleh diposting ke periode yang sudah dikunci.
+- Semua tabel transaksi punya company_id/branch_id (scope via global scope), created_by, updated_by, soft deletes.
+- Tarif pajak, BPJS, PTKP, TER PPh 21, UMR: SELALU disimpan sebagai data yang bisa diatur di Pengaturan (dengan tanggal berlaku), JANGAN hardcode.
+- Proses berat (laporan besar, payroll massal, import, email) lewat Queue job.
+- Setiap modul baru wajib: permission seeder, entri di config/menu.php, feature test untuk alur utama.

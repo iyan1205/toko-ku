@@ -1,5 +1,6 @@
 <?php
 
+use App\Imports\Definitions\AccountsImport;
 use App\Imports\Definitions\CustomersImport;
 use App\Imports\Definitions\SuppliersImport;
 
@@ -17,6 +18,7 @@ return [
     'types' => [
         'customers' => ['class' => CustomersImport::class, 'slug' => 'pelanggan', 'permission' => 'pos.customers.import'],
         'suppliers' => ['class' => SuppliersImport::class, 'slug' => 'supplier', 'permission' => 'purchasing.suppliers.import'],
+        'accounts' => ['class' => AccountsImport::class, 'slug' => 'akun', 'permission' => 'accounting.coa.import'],
     ],
 
     // Berkas yang boleh diunggah dan ukurannya (KB).

@@ -19,6 +19,11 @@ class JournalsExport extends ListExport
         'purchase' => 'Pembelian',
         'purchase_return' => 'Retur pembelian',
         'payment' => 'Pembayaran',
+        'stock_opname' => 'Stok opname',
+        'stock_movement' => 'Penyesuaian stok',
+        'stock_transfer' => 'Transfer stok antar cabang',
+        'opening_balance' => 'Saldo awal',
+        'berulang' => 'Jurnal berulang',
     ];
 
     public function documentTitle(): string

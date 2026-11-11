@@ -607,6 +607,18 @@ Dikerjakan sebelum 5b dan Fase 6 karena mengubah `StockService`, yang dipakai pe
 - Queue & scheduler: `QueueHealth`, Pengaturan → Sistem, tugas pembersihan terjadwal, `docs/DEPLOY.md`.
 - Seluruh suite 747/747 lulus.
 
+### Fase 9 — Akuntansi inti · L
+**Status 11 Nov 2026: selesai, menunggu pengecekan pemilik.** Rincian di [ROADMAP.md](ROADMAP.md).
+- COA: `accounts.is_cash_bank`, tampilan pohon, impor Excel (`AccountsImport`), 3 akun standar baru (1-1700, 3-9000, 4-1200).
+- Saldo awal: `opening_balances` + `opening_balance_lines` (akun, persediaan per gudang, piutang per pelanggan, hutang per supplier), `OpeningBalanceService`, satu jurnal per saldo awal dengan penyeimbang Ekuitas Saldo Awal.
+- Jurnal: `journal_lines.cost_center_id`, `journals.auto_reverse_on`, `recurring_journals` + `recurring_journal_lines` (unik per templat + periode), perintah `akuntansi:jurnal-terjadwal` (harian 00:20).
+- Pemetaan akun: `config/accounting.php` (`mapping`) + setting `accounting.map.*`, `AccountMappingService`, halaman Pengaturan → Akuntansi; akun sistem disinkronkan dengan pemetaan.
+- Jurnal otomatis baru: diskon penjualan terpisah, selisih stok opname, penyesuaian stok, transfer antar cabang (+ pembatalannya). Event `StockOpnameFinalized`, `StockAdjusted`, `StockTransferred`, `StockTransferVoided` (setelah commit). Komponen `x-ui.journal-links` di halaman dokumen sumber.
+- Laporan: Buku Besar (`LedgerExport`, saldo berjalan dengan window function) dan Neraca Saldo (`TrialBalanceExport`), saringan periode/cabang/cost center, `LedgerService`.
+- Cost center: `cost_centers` (opsional terhubung ke departemen SDM).
+- 16 izin baru: `accounting.coa.import`, `accounting.opening-balances.*` (4), `accounting.recurring.*` (4), `accounting.trial-balance.*` (2), `accounting.cost-centers.*` (5); `accounting.ledger.*` tidak lagi "planned".
+- Seluruh suite 781/781 lulus.
+
 ### Urutan dan ketergantungan
 ```
 0.5 Persiapan → 1 Fondasi UI → 2 Layout & Menu → 3 Hak Akses → 4 Pengaturan & Dashboard

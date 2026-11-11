@@ -92,4 +92,6 @@
             @endforeach
         </x-ui.table>
     </div>
+
+    <x-ui.journal-links :document="$opname" class="mt-6" />
 </x-app-layout>

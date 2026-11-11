@@ -6,6 +6,7 @@ use App\Models\CashSession;
 use App\Models\Cuti;
 use App\Models\GoodsReceipt;
 use App\Models\Journal;
+use App\Models\OpeningBalance;
 use App\Models\Payment;
 use App\Models\Purchase;
 use App\Models\PurchaseOrder;
@@ -39,6 +40,7 @@ enum DocumentType: string
     case CustomerRefund = 'customer_refund';
     case Journal = 'journal';
     case Leave = 'leave';
+    case OpeningBalance = 'opening_balance';
 
     public function label(): string
     {
@@ -57,6 +59,7 @@ enum DocumentType: string
             self::CustomerRefund => 'Pengembalian uang ke pelanggan',
             self::Journal => 'Jurnal umum',
             self::Leave => 'Pengajuan cuti & izin',
+            self::OpeningBalance => 'Saldo awal',
         };
     }
 
@@ -77,6 +80,7 @@ enum DocumentType: string
             self::CustomerRefund => 'RFD-{YYYY}{MM}{DD}-{####}',
             self::Journal => 'JU-{YYYY}{MM}{DD}-{####}',
             self::Leave => 'CT-{#####}',
+            self::OpeningBalance => 'SA-{YYYY}{MM}{DD}-{####}',
         };
     }
 
@@ -101,6 +105,7 @@ enum DocumentType: string
             self::SaleReturn => SaleReturn::class,
             self::Journal => Journal::class,
             self::Leave => Cuti::class,
+            self::OpeningBalance => OpeningBalance::class,
         };
     }
 

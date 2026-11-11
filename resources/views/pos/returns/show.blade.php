@@ -105,4 +105,6 @@
             </x-slot:footer>
         </x-ui.modal>
     @endif
+
+    <x-ui.journal-links :document="$retur" class="mt-6" />
 </x-app-layout>

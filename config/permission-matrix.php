@@ -86,12 +86,17 @@ return [
         'accounting' => [
             'label' => 'Akuntansi',
             'features' => [
-                'coa' => ['label' => 'Bagan akun (COA)', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
+                'coa' => ['label' => 'Bagan akun (COA)', 'actions' => ['view', 'create', 'update', 'delete', 'import', 'export']],
+                // Saldo awal: create = draf, approve = posting, void = batalkan yang sudah diposting (jurnal dibalik).
+                'opening-balances' => ['label' => 'Saldo awal', 'actions' => ['view', 'create', 'approve', 'void']],
                 // Jurnal tidak bisa diubah/dihapus; void = membuat jurnal pembalik untuk jurnal manual.
                 'journals' => ['label' => 'Jurnal umum', 'actions' => ['view', 'create', 'void', 'export']],
+                'recurring' => ['label' => 'Jurnal berulang', 'actions' => ['view', 'create', 'update', 'delete']],
                 // Kunci periode: update = menutup dan membuka kembali bulan.
                 'periods' => ['label' => 'Kunci periode', 'actions' => ['view', 'update']],
-                'ledger' => ['label' => 'Buku besar', 'actions' => ['view', 'export'], 'planned' => true],
+                'ledger' => ['label' => 'Buku besar', 'actions' => ['view', 'export']],
+                'trial-balance' => ['label' => 'Neraca saldo', 'actions' => ['view', 'export']],
+                'cost-centers' => ['label' => 'Cost center / departemen', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
                 'cash-bank' => ['label' => 'Kas & bank', 'actions' => ['view', 'create', 'update', 'export'], 'planned' => true],
                 'reports' => ['label' => 'Laporan keuangan', 'actions' => ['view', 'export'], 'planned' => true],
                 'closing' => ['label' => 'Tutup buku', 'actions' => ['view', 'approve'], 'planned' => true],
@@ -141,7 +146,7 @@ return [
                 'taxes' => ['label' => 'Pajak', 'actions' => ['view', 'update']],
                 'payment-methods' => ['label' => 'Metode pembayaran', 'actions' => ['view', 'update']],
                 'pos' => ['label' => 'Kasir', 'actions' => ['view', 'update']],
-                'accounting' => ['label' => 'Akuntansi (jurnal otomatis)', 'actions' => ['view', 'update']],
+                'accounting' => ['label' => 'Akuntansi (jurnal otomatis & pemetaan akun)', 'actions' => ['view', 'update']],
                 'receipts' => ['label' => 'Struk & printer', 'actions' => ['view', 'update']],
                 'numbering' => ['label' => 'Penomoran dokumen', 'actions' => ['view', 'update']],
                 'approvals' => ['label' => 'Alur persetujuan', 'actions' => ['view', 'create', 'update', 'delete']],

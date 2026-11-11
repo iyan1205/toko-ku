@@ -77,4 +77,6 @@
             beserta pembayarannya. Ditolak bila barang sudah keluar dari gudang atau fakturnya sudah diretur.
         </x-ui.void-dialog>
     @endif
+
+    <x-ui.journal-links :document="$receipt->purchase" class="mt-6" />
 </x-app-layout>

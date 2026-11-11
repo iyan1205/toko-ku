@@ -1,6 +1,6 @@
 # Roadmap Toko-ku
 
-Status per 10 Nov 2026, setelah Fase 8 (fondasi enterprise). Rincian keputusan dan rencana tiap fase ada di [AUDIT.md](AUDIT.md); spesifikasi di [REDESIGN-TOKOKU.md](REDESIGN-TOKOKU.md), rencana Fase 8–19 di `ROADMAP-ENTERPRISE-TOKOKU.md`. Cara deploy, queue worker, dan scheduler: [DEPLOY.md](DEPLOY.md).
+Status per 11 Nov 2026, setelah Fase 9 (akuntansi inti). Rincian keputusan dan rencana tiap fase ada di [AUDIT.md](AUDIT.md); spesifikasi di [REDESIGN-TOKOKU.md](REDESIGN-TOKOKU.md), rencana Fase 8–19 di `ROADMAP-ENTERPRISE-TOKOKU.md`. Cara deploy, queue worker, dan scheduler: [DEPLOY.md](DEPLOY.md).
 
 ## Ringkasan
 
@@ -10,7 +10,7 @@ Status per 10 Nov 2026, setelah Fase 8 (fondasi enterprise). Rincian keputusan d
 | Kasir (POS) | Jadi | Layar kasir baru, split bayar, pajak, sesi kasir, retur, piutang |
 | Inventori | Jadi | Multi-gudang, transfer, opname draft → selesai, kartu stok |
 | Pembelian | Jadi | PO → penerimaan parsial → faktur & hutang, retur, pembayaran hutang |
-| Akuntansi | Kerangka | Bagan akun, jurnal umum (draf, persetujuan, posting), jurnal otomatis, kunci periode. Buku besar & laporan keuangan belum |
+| Akuntansi | Sebagian | Bagan akun (pohon, impor), saldo awal, jurnal umum & berulang, pemetaan akun, jurnal otomatis termasuk stok, buku besar, neraca saldo, cost center, kunci periode. Kas & bank, laporan keuangan, tutup buku belum |
 | SDM | Sebagian | Karyawan, departemen & jabatan, absensi, jadwal, shift, cuti. Penggajian belum |
 | Laporan | Sebagian | Laporan penjualan ada. Pembelian, stok, laba kotor, kinerja kasir belum |
 | Pengguna & Hak Akses | Jadi | Peran dinamis, matriks izin, akses cabang per pengguna, log aktivitas, profil |
@@ -40,22 +40,32 @@ Menu yang belum jadi tetap tampil dengan label **Segera Hadir** (diatur di `conf
 - Pembayaran multi-metode, pajak termasuk/belum termasuk harga, transaksi ditahan.
 - Sesi kasir (modal awal, tutup dengan hitung uang, verifikasi), retur penjualan (diajukan → disetujui), piutang pelanggan.
 
-### Akuntansi (Fase 7, kerangka)
-- **Bagan akun (COA)** bertingkat: 43 akun standar toko retail Indonesia, dipasang dari halaman Bagan Akun ("Pasang COA standar") atau `php artisan db:seed --class=ChartOfAccountsSeeder`. Akun sistem (dipakai jurnal otomatis) tidak bisa dihapus/dinonaktifkan.
-- **Jurnal umum**: daftar, jurnal manual (debit = kredit diperiksa dengan bilangan bulat), jurnal pembalik untuk koreksi. Jurnal tidak pernah diubah atau dihapus.
+### Akuntansi (Fase 7 dan Fase 9)
+- **Bagan akun (COA)** bertingkat sebagai pohon (akun induk bisa diciutkan, saldo induk = jumlah akun di bawahnya), dengan kelompok, saldo normal, tanda **akun kas/bank**, dan status aktif. 46 akun standar toko retail Indonesia dipasang dari halaman Bagan Akun atau `php artisan db:seed --class=ChartOfAccountsSeeder`. COA lama mendapat tawaran "Tambahkan akun standar" untuk akun baru (Rekening Antar Cabang, Ekuitas Saldo Awal, Diskon Penjualan). **Impor Excel** lewat kerangka impor (kode yang ada diperbarui, akun induk boleh ditulis di baris sebelumnya).
+- **Saldo awal** (Akuntansi → Saldo Awal): saldo akun, nilai persediaan per gudang (bisa diisi dari stok saat ini), piutang per pelanggan, dan hutang per supplier, per cabang. Draf → posting menjadi satu jurnal; selisih masuk `3-9000 Ekuitas Saldo Awal`. Saldo awal posted dibatalkan dengan jurnal pembalik di tanggal yang sama. Nilai persediaan tidak mengubah jumlah stok.
+- **Jurnal umum**: multi-baris, wajib seimbang (bilangan bulat sen), **cost center per baris** (opsional), lampiran, persetujuan, draf → posting, jurnal pembalik untuk koreksi, dan **balik otomatis** pada tanggal tertentu (untuk akrual). Jurnal posted tidak pernah diubah atau dihapus.
+- **Jurnal berulang** (Akuntansi → Jurnal Berulang): templat setiap 1/2/3/6/12 bulan pada tanggal tertentu (tanggal 31 = akhir bulan), langsung posting atau draf. Dibuat scheduler `akuntansi:jurnal-terjadwal` setiap 00:20; jadwal yang terlewat ikut dibuat, satu periode tidak pernah dobel. Tombol "Buat jurnal sekarang" untuk server tanpa scheduler.
+- **Pemetaan akun** (Pengaturan → Akuntansi): akun untuk penjualan, diskon, retur, PPN keluaran/masukan, piutang, HPP, persediaan, hutang, selisih persediaan, rekening antar cabang, gaji, ekuitas saldo awal, laba ditahan, dan **akun per metode pembayaran** (misal QRIS ke rekening BCA). Bawaan dari kode di `config/accounting.php`; dibaca lewat `AccountMappingService`. Akun yang dipetakan otomatis menjadi akun sistem.
 - **Jurnal otomatis** (`App\Listeners\CreateAutoJournal`), bisa dimatikan di Pengaturan → Akuntansi:
 
   | Kejadian | Debit | Kredit |
   |---|---|---|
-  | Penjualan | Kas/Bank (dibayar saat transaksi), Piutang (sisa), HPP | Penjualan, PPN Keluaran, Persediaan |
+  | Penjualan | Kas/Bank (dibayar saat transaksi), Piutang (sisa), Diskon Penjualan*, HPP | Penjualan, PPN Keluaran, Persediaan |
   | Barang diterima / pembelian langsung | Persediaan, PPN Masukan | Kas/Bank (dibayar saat transaksi), Hutang (sisa) |
   | Pelunasan piutang | Kas/Bank | Piutang |
   | Pembayaran hutang | Hutang | Kas/Bank |
   | Retur penjualan | Retur Penjualan, PPN Keluaran, Persediaan | Piutang, Kas/Bank (uang kembali), HPP |
   | Retur pembelian | Hutang, Piutang Lain-lain | Persediaan |
-  | Pembatalan penjualan/pembelian | jurnal pembalik dokumen dan pembayarannya | |
+  | Stok opname (selisih lebih / kurang) | Persediaan / Selisih Persediaan | Selisih Persediaan / Persediaan |
+  | Penyesuaian stok, barang rusak/hilang | sama dengan stok opname, per mutasi | |
+  | Transfer stok antar cabang | cabang asal: Rekening Antar Cabang; cabang tujuan: Persediaan | cabang asal: Persediaan; cabang tujuan: Rekening Antar Cabang |
+  | Pembatalan penjualan/pembelian/transfer | jurnal pembalik dokumen dan pembayarannya | |
 
-  Kode akun yang dipakai ada di `config/accounting.php`. Kegagalan membuat jurnal tidak mengganggu transaksi; kegagalannya tercatat di Log Aktivitas (kelompok "akuntansi").
+  \* Diskon dipisah bila peran "Diskon penjualan" dipetakan (bawaan `4-1200`); bila dikosongkan, penjualan dicatat bersih. Nilai barang untuk opname, penyesuaian, dan transfer = jumlah x harga pokok produk saat itu. Transfer di dalam satu cabang tidak dijurnal. Kegagalan membuat jurnal tidak mengganggu transaksi; kegagalannya tercatat di Log Aktivitas (kelompok "akuntansi").
+- **Tautan dua arah**: halaman jurnal membuka dokumen sumbernya (penyesuaian stok membuka kartu stok), dan halaman penjualan, faktur pembelian, penerimaan barang, retur, stok opname, transfer, dan saldo awal menampilkan jurnalnya.
+- **Buku besar** per akun: saldo awal, mutasi, dan saldo berjalan; saringan periode, cabang, dan cost center; ekspor Excel/PDF. **Neraca saldo**: saldo awal, mutasi debit/kredit, dan saldo akhir per akun, dikelompokkan, dengan tanda seimbang; klik akun untuk membuka buku besarnya. Keduanya hanya menghitung jurnal posted.
+- **Cost center / departemen** (Akuntansi → Cost Center): dimensi laporan di baris jurnal, bisa dihubungkan ke departemen SDM. Yang sudah dipakai jurnal tidak bisa dihapus, cukup dinonaktifkan.
+- **Kunci periode** (Fase 8) tetap berlaku untuk semua jurnal di atas.
 
 ### SDM (Fase 7, kerangka)
 - **Karyawan**: daftar, tambah/ubah/hapus, ekspor. Kode otomatis `KRY-0001`. Tautan opsional ke akun login (satu akun untuk satu karyawan); karyawan tanpa akun tetap bisa dicatat.
@@ -76,15 +86,13 @@ Menu yang belum jadi tetap tampil dengan label **Segera Hadir** (diatur di `conf
 ## Belum dibangun
 
 ### Akuntansi
-- **Buku Besar**: mutasi dan saldo berjalan per akun per periode. Data sudah tersedia di `journal_lines`; tinggal halaman dan ekspor.
 - **Kas & Bank**: pemasukan/pengeluaran non-penjualan (misal bayar listrik) tanpa menulis jurnal manual, rekonsiliasi bank.
 - **Laporan Keuangan**: Laba Rugi, Neraca, Arus Kas.
 - **Tutup Buku**: checklist tutup bulan, jurnal penutup tahun, dan buka kembali hanya oleh peran tertentu. Kunci periode bulanan sudah ada (Fase 8).
-- **Saldo awal**: input saldo awal akun (modal, kas, persediaan) saat mulai memakai akuntansi.
-- **Jurnal untuk mutasi stok non-transaksi**: penyesuaian stok, barang rusak/hilang, dan selisih opname belum dijurnal (akun `5-2000 Selisih Persediaan` sudah disiapkan). Transfer antar gudang tidak perlu dijurnal.
-- **Jurnal untuk transaksi lama**: transaksi sebelum Fase 7 terpasang tidak dijurnal otomatis. Bila perlu, catat lewat saldo awal atau perintah backfill.
-- **Pengaturan akun dari aplikasi**: kode akun jurnal otomatis masih diatur di `config/accounting.php`.
-- Kartu kredit, QRIS, dan e-wallet masih masuk ke akun Bank yang sama; biaya MDR belum dicatat otomatis.
+- **Piutang dan hutang dari saldo awal** sudah tercatat per pelanggan/supplier di jurnal, tetapi belum muncul di halaman Piutang Pelanggan / Hutang Supplier dan belum bisa dilunasi dari sana (Fase 10: kartu piutang/hutang). Sementara pelunasannya dicatat dengan jurnal manual.
+- **Jurnal untuk transaksi lama**: transaksi sebelum jurnal otomatis menyala tidak dijurnal. Catat posisinya lewat Saldo Awal per tanggal mulai.
+- Jurnal otomatis belum diberi cost center (hanya jurnal manual dan jurnal berulang); rencana: cost center bawaan per gudang/cabang.
+- Biaya MDR kartu/QRIS belum dicatat otomatis (akun per metode pembayaran sudah bisa dipisah).
 
 ### SDM
 - **Penggajian**: komponen gaji, potongan, hitung dari absensi, slip gaji, dan jurnal beban gaji (rencana event `PayrollPosted` → D Beban Gaji / K Kas atau Hutang Gaji).
@@ -95,11 +103,11 @@ Menu yang belum jadi tetap tampil dengan label **Segera Hadir** (diatur di `conf
 - Laporan Pembelian (per supplier, produk, periode), Laporan Stok (per gudang, nilai persediaan), Laba Kotor, Kinerja Kasir.
 
 ### Fondasi (lanjutan Fase 8)
-- Server: queue worker (systemd) dan cron scheduler belum dipasang; email masih `MAIL_MAILER=log`; batas unggah PHP 2 MB. Langkahnya di [DEPLOY.md](DEPLOY.md).
+- Server: queue worker (systemd) dan cron scheduler belum dipasang (jurnal berulang, balik otomatis, dan backup harian butuh scheduler); email masih `MAIL_MAILER=log`; batas unggah PHP 2 MB. Langkahnya di [DEPLOY.md](DEPLOY.md).
 - Impor produk masih memakai halaman lamanya (semua-atau-tidak-sama-sekali); belum dipindah ke kerangka impor baru.
 - Persetujuan baru dipakai purchase order dan jurnal manual. Retur penjualan/pembelian, stok opname, dan cuti masih memakai persetujuan lamanya (cuti punya alur bertahap sendiri).
-- Transfer stok antar cabang tercatat di cabang gudang asal; status kirim/terima dan barang dalam perjalanan direncanakan di Fase 16.
-- Saldo di Bagan Akun dan saringan cabang: laporan keuangan per cabang menyusul di Fase 9/11.
+- Transfer stok antar cabang tercatat di cabang gudang asal dan dijurnal di kedua cabang lewat Rekening Antar Cabang; status kirim/terima dan barang dalam perjalanan direncanakan di Fase 16.
+- Buku besar dan neraca saldo sudah bisa per cabang (Fase 9); laporan keuangan per cabang menyusul di Fase 11.
 - Multi-perusahaan: tabel `companies` sudah ada, tetapi hanya satu perusahaan yang dipakai (Fase 17).
 
 ### Lain-lain

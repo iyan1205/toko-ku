@@ -66,4 +66,6 @@
             Bila sebagian barang sudah keluar dari gudang tujuan, pembatalan ditolak. Dokumen tidak dihapus.
         </x-ui.void-dialog>
     @endif
+
+    <x-ui.journal-links :document="$transfer" class="mt-6" />
 </x-app-layout>

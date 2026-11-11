@@ -4,6 +4,7 @@ namespace App\Http\Requests\Settings;
 
 use Illuminate\Foundation\Http\FormRequest;
 
+/** Jurnal otomatis + pemetaan akun. Kecocokan akun dengan perannya diperiksa AccountMappingService. */
 class AccountingSettingsRequest extends FormRequest
 {
     public function authorize(): bool
@@ -19,6 +20,12 @@ class AccountingSettingsRequest extends FormRequest
     /** @return array<string, mixed> */
     public function rules(): array
     {
-        return ['auto_journal' => ['boolean']];
+        return [
+            'auto_journal' => ['boolean'],
+            'roles' => ['sometimes', 'array'],
+            'roles.*' => ['nullable', 'integer'],
+            'payments' => ['sometimes', 'array'],
+            'payments.*' => ['nullable', 'integer'],
+        ];
     }
 }

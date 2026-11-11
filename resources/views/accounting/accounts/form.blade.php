@@ -21,6 +21,7 @@
             <input type="hidden" name="code" value="{{ $account->code }}">
             <input type="hidden" name="type" value="{{ $account->type->value }}">
             <input type="hidden" name="is_active" value="1">
+            <input type="hidden" name="is_header" value="0">
         @endif
 
         <x-ui.form-section title="Akun" description="Akun induk hanya untuk pengelompokan dan tidak bisa dipakai di jurnal.">
@@ -44,6 +45,8 @@
                 <x-ui.checkbox name="is_active" label="Akun aktif" :checked="$account->is_active ?? true" unchecked-value="0"
                                hint="Akun nonaktif tidak bisa dipilih di jurnal baru. Jurnal lama tidak berubah." />
             @endunless
+            <x-ui.checkbox name="is_cash_bank" label="Akun kas/bank" :checked="$account->is_cash_bank" unchecked-value="0"
+                           hint="Untuk akun Aset berisi uang: laci kasir, brankas, rekening bank, atau saldo e-wallet. Bisa dipilih sebagai akun metode pembayaran di Pengaturan → Akuntansi." />
 
             <x-slot:footer>
                 <x-ui.button :href="route('accounts.index')" variant="secondary">Batal</x-ui.button>

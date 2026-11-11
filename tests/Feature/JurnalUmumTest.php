@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\RoleName;
 use App\Models\Account;
+use App\Models\CostCenter;
 use App\Models\Journal;
 use App\Models\User;
 use App\Services\Accounting\ChartOfAccountsService;
@@ -151,5 +152,23 @@ class JurnalUmumTest extends TestCase
         $this->actingAs($this->buatPengguna(RoleName::Admin))->post(route('journals.store'), $this->payload())->assertForbidden();
 
         $this->assertSame(0, Journal::count());
+    }
+
+    public function test_jurnal_pembalik_menyalin_cost_center_dan_tetap_di_cabang_jurnal_asal(): void
+    {
+        $toko = CostCenter::factory()->create(['code' => 'TOKO']);
+        $payload = $this->payload();
+        $payload['lines'][0]['cost_center_id'] = $toko->id;
+        $this->actingAs($this->akuntan)->post(route('journals.store'), $payload)->assertSessionHasNoErrors();
+        $asal = Journal::sole();
+        $this->assertSame($toko->id, $asal->lines()->where('account_id', $this->akun('1-1100'))->value('cost_center_id'));
+
+        $toko->update(['is_active' => false]);
+        $this->post(route('journals.reverse', $asal), ['alasan' => 'Salah input'])->assertSessionHasNoErrors();
+
+        $pembalik = $asal->reversal()->sole();
+        $this->assertSame($asal->branch_id, $pembalik->branch_id);
+        $this->assertSame([$toko->id, null], $pembalik->lines->pluck('cost_center_id')->all(), 'Cost center nonaktif tetap disalin ke jurnal pembalik.');
+        $this->assertSame('1000000.00', (string) $pembalik->lines->firstWhere('account_id', $this->akun('1-1100'))->credit);
     }
 }

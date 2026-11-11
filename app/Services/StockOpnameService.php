@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\DocumentType;
 use App\Enums\StockMovementType;
 use App\Enums\StockOpnameStatus;
+use App\Events\StockOpnameFinalized;
 use App\Exceptions\AturanBisnisException;
 use App\Models\Product;
 use App\Models\StockOpname;
@@ -140,6 +141,8 @@ class StockOpnameService
             activity('inventori')->performedOn($terkunci)->causedBy($user)->event('approved')
                 ->withProperties(['gudang' => $gudang->name, 'produk' => $items->count(), 'berselisih' => $items->where('difference', '!=', 0)->count()])
                 ->log("Stok opname {$terkunci->number} diselesaikan");
+
+            StockOpnameFinalized::dispatch($terkunci);
 
             return $terkunci->load('items.product');
         });

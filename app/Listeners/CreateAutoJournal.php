@@ -9,6 +9,10 @@ use App\Events\PurchaseVoided;
 use App\Events\SaleCompleted;
 use App\Events\SaleReturned;
 use App\Events\SaleVoided;
+use App\Events\StockAdjusted;
+use App\Events\StockOpnameFinalized;
+use App\Events\StockTransferred;
+use App\Events\StockTransferVoided;
 use App\Events\SupplierPaymentRecorded;
 use App\Services\Accounting\AutoJournalService;
 use Closure;
@@ -56,6 +60,26 @@ class CreateAutoJournal
     public function handlePurchaseReturned(PurchaseReturned $event): void
     {
         $this->run("retur pembelian {$event->purchaseReturn->number}", fn () => $this->auto->forPurchaseReturn($event->purchaseReturn));
+    }
+
+    public function handleStockOpnameFinalized(StockOpnameFinalized $event): void
+    {
+        $this->run("stok opname {$event->opname->number}", fn () => $this->auto->forStockOpname($event->opname));
+    }
+
+    public function handleStockAdjusted(StockAdjusted $event): void
+    {
+        $this->run('penyesuaian stok #'.$event->movement->getKey(), fn () => $this->auto->forStockAdjustment($event->movement));
+    }
+
+    public function handleStockTransferred(StockTransferred $event): void
+    {
+        $this->run("transfer stok {$event->transfer->number}", fn () => $this->auto->forStockTransfer($event->transfer));
+    }
+
+    public function handleStockTransferVoided(StockTransferVoided $event): void
+    {
+        $this->run("pembatalan transfer stok {$event->transfer->number}", fn () => $this->auto->forStockTransferVoid($event->transfer));
     }
 
     public function handleCustomerPaymentRecorded(CustomerPaymentRecorded $event): void

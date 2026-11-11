@@ -3,16 +3,20 @@
 namespace App\Services\Accounting;
 
 use App\Enums\PaymentMethod;
-use App\Exceptions\AturanBisnisException;
+use App\Enums\StockMovementType;
 use App\Models\Account;
 use App\Models\GoodsReceipt;
 use App\Models\Journal;
 use App\Models\Payment;
+use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchaseReturn;
 use App\Models\Sale;
 use App\Models\SaleReturn;
 use App\Models\Scopes\BranchScope;
+use App\Models\StockMovement;
+use App\Models\StockOpname;
+use App\Models\StockTransfer;
 use App\Models\User;
 use App\Support\Uang;
 use Illuminate\Database\Eloquent\Model;
@@ -20,23 +24,34 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * Jurnal otomatis dari transaksi modul lain, dipanggil listener App\Listeners\CreateAutoJournal.
  *
- *   Penjualan        D Kas/Bank (dibayar saat transaksi), Piutang (sisa), HPP   | K Penjualan, PPN Keluaran, Persediaan
+ *   Penjualan        D Kas/Bank (dibayar saat transaksi), Piutang (sisa), Diskon*, HPP | K Penjualan, PPN Keluaran, Persediaan
  *   Barang diterima  D Persediaan, PPN Masukan                                    | K Kas/Bank (dibayar saat transaksi), Hutang (sisa)
  *   Pelunasan piutang D Kas/Bank | K Piutang        Bayar hutang D Hutang | K Kas/Bank
  *   Retur penjualan  D Retur Penjualan, PPN Keluaran, Persediaan                  | K Piutang, Kas/Bank (uang kembali), HPP
  *   Retur pembelian  D Hutang, Piutang Lain-lain (uang dari supplier)             | K Persediaan
+ *   Stok opname      selisih lebih: D Persediaan | K Selisih Persediaan; selisih kurang sebaliknya
+ *   Penyesuaian stok (manual, rusak, hilang) sama seperti stok opname, per mutasi
+ *   Transfer stok    hanya antar cabang: cabang asal D Rekening Antar Cabang | K Persediaan,
+ *                    cabang tujuan D Persediaan | K Rekening Antar Cabang
  *   Pembatalan       jurnal pembalik untuk jurnal dokumen dan jurnal pembayarannya
  *
+ *   * Diskon dipisah ke akun Diskon Penjualan bila peran itu dipetakan; bila tidak, penjualan
+ *     dicatat bersih setelah diskon.
+ *
  * Pembayaran yang dibuat bersamaan dengan transaksi sudah masuk jurnal transaksinya, jadi
- * event pembayarannya (atCheckout = true) tidak dijurnal lagi. Akun diambil dari
- * config/accounting.php. Setiap kejadian hanya dijurnal sekali (lihat JournalService).
+ * event pembayarannya (atCheckout = true) tidak dijurnal lagi. Akun diambil dari pemetaan di
+ * Pengaturan → Akuntansi (AccountMappingService). Nilai barang (opname, penyesuaian, transfer)
+ * = jumlah x harga pokok produk saat itu. Setiap kejadian hanya dijurnal sekali (JournalService).
  */
 class AutoJournalService
 {
     /** @var array<string, Account> */
     private array $accounts = [];
 
-    public function __construct(private readonly JournalService $journals) {}
+    public function __construct(
+        private readonly JournalService $journals,
+        private readonly AccountMappingService $mapping,
+    ) {}
 
     /** Menyala lewat Pengaturan → Akuntansi (bawaan: menyala) dan bagan akun sudah dipasang. */
     public function enabled(): bool
@@ -58,8 +73,19 @@ class AutoJournalService
 
         $total = Uang::sen($sale->grand_total);
         $tax = Uang::sen($sale->tax);
+        $net = $total - $tax;
         $lines->debit($this->account('receivable'), max(0, $total - $paid));
-        $lines->credit($this->account('sales'), $total - $tax);
+
+        // Diskon dipisah bila akunnya dipetakan. Harga termasuk pajak: hanya bagian di luar pajak.
+        $discount = Uang::sen($sale->item_discount) + Uang::sen($sale->discount);
+        $discountAccount = $discount > 0 ? $this->mapping->optional('sales_discount') : null;
+        if ($discountAccount !== null) {
+            $discountBase = $sale->tax_inclusive && $total > 0 ? Uang::kaliBagi($discount, $net, $total) : $discount;
+            $lines->debit($discountAccount, $discountBase, 'Diskon penjualan');
+            $lines->credit($this->account('sales'), $net + $discountBase);
+        } else {
+            $lines->credit($this->account('sales'), $net);
+        }
         $lines->credit($this->account('vat_out'), $tax);
 
         $cost = $sale->items->sum(fn ($item) => Uang::kali(Uang::milli($item->quantity), Uang::sen($item->cost_price)));
@@ -158,26 +184,133 @@ class AutoJournalService
         return $this->journals->post($payment->paid_at, "Pembayaran hutang {$payment->number} atas {$purchase->number}", $lines->all(), $payment->user, $payment, 'created');
     }
 
-    /** Akun sistem berdasarkan kunci di config/accounting.php. */
+    /** Selisih stok opname: kelebihan menambah persediaan, kekurangan menjadi beban selisih. */
+    public function forStockOpname(StockOpname $opname): ?Journal
+    {
+        $opname->loadMissing(['items', 'warehouse', 'finalizedBy', 'user']);
+        $prices = $this->costPrices($opname->items->pluck('product_id')->all());
+        [$gain, $loss] = [0, 0];
+
+        foreach ($opname->items as $item) {
+            $milli = Uang::milli($item->difference);
+            $value = Uang::kali(abs($milli), $prices[$item->product_id] ?? 0);
+            $milli > 0 ? $gain += $value : $loss += $value;
+        }
+
+        $lines = $this->inventoryChange($gain, 'Kelebihan stok hasil opname')->merge($this->inventoryChange(-$loss, 'Kekurangan stok hasil opname'));
+        if ($lines->isEmpty()) {
+            return null;
+        }
+
+        return $this->journals->post($opname->opname_date, "Stok opname {$opname->number} · {$opname->warehouse?->name}", $lines->all(), $opname->finalizedBy ?? $opname->user, $opname, 'approved');
+    }
+
+    /** Penyesuaian stok manual (termasuk barang rusak/hilang). */
+    public function forStockAdjustment(StockMovement $movement): ?Journal
+    {
+        $movement->loadMissing(['product', 'warehouse', 'user']);
+        $milli = Uang::milli($movement->quantity);
+        $value = Uang::kali(abs($milli), Uang::sen($movement->product?->purchase_price ?? 0));
+
+        $label = match ($movement->type) {
+            StockMovementType::Damaged => 'Barang rusak',
+            StockMovementType::Lost => 'Barang hilang',
+            default => $milli > 0 ? 'Penyesuaian stok masuk' : 'Penyesuaian stok keluar',
+        };
+        $lines = $this->inventoryChange($milli > 0 ? $value : -$value, $label);
+        if ($lines->isEmpty()) {
+            return null;
+        }
+
+        $keterangan = trim("{$label}: {$movement->product?->name} di {$movement->warehouse?->name}".($movement->note ? " ({$movement->note})" : ''));
+
+        return $this->journals->post($movement->created_at ?? now(), $keterangan, $lines->all(), $movement->user, $movement, 'created');
+    }
+
+    /**
+     * Transfer antar cabang: satu jurnal di cabang asal dan satu di cabang tujuan, lewat
+     * Rekening Antar Cabang. Transfer di dalam satu cabang tidak mengubah saldo akun.
+     *
+     * @return list<Journal>
+     */
+    public function forStockTransfer(StockTransfer $transfer): array
+    {
+        $transfer->loadMissing(['items', 'fromWarehouse', 'toWarehouse', 'user']);
+        $from = $transfer->fromWarehouse;
+        $to = $transfer->toWarehouse;
+
+        if ($from === null || $to === null || (int) $from->branch_id === (int) $to->branch_id) {
+            return [];
+        }
+
+        $prices = $this->costPrices($transfer->items->pluck('product_id')->all());
+        $value = $transfer->items->sum(fn ($item) => Uang::kali(Uang::milli($item->quantity), $prices[$item->product_id] ?? 0));
+        if ($value <= 0) {
+            return [];
+        }
+
+        $description = "Transfer stok {$transfer->number}: {$from->name} ke {$to->name}";
+        $out = (new JournalLines)->debit($this->account('interbranch'), $value, "Barang dikirim ke {$to->name}")->credit($this->account('inventory'), $value, 'Persediaan keluar');
+        $in = (new JournalLines)->debit($this->account('inventory'), $value, 'Persediaan masuk')->credit($this->account('interbranch'), $value, "Barang diterima dari {$from->name}");
+
+        return [
+            $this->journals->post($transfer->transfer_date, $description, $out->all(), $transfer->user, $transfer, 'transfer_out', attributes: ['branch_id' => (int) $from->branch_id]),
+            $this->journals->post($transfer->transfer_date, $description, $in->all(), $transfer->user, $transfer, 'transfer_in', attributes: ['branch_id' => (int) $to->branch_id]),
+        ];
+    }
+
+    /** @return list<Journal> */
+    public function forStockTransferVoid(StockTransfer $transfer): array
+    {
+        $journals = Journal::query()->withoutGlobalScope(BranchScope::class)
+            ->where('source_type', $transfer->getMorphClass())
+            ->where('source_id', $transfer->getKey())
+            ->whereIn('source_event', ['transfer_out', 'transfer_in'])
+            ->whereDoesntHave('reversal')
+            ->orderBy('id')
+            ->get();
+
+        return $journals->map(fn (Journal $journal) => $this->journals->reverse(
+            $journal, "Pembatalan transfer stok {$transfer->number} (membalik {$journal->number})", $transfer->voidedBy, $transfer,
+            $journal->source_event === 'transfer_out' ? 'void_out' : 'void_in',
+        ))->all();
+    }
+
+    /** Akun wajib untuk peran ini (Pengaturan → Akuntansi). */
     public function account(string $key): Account
     {
-        if (isset($this->accounts[$key])) {
-            return $this->accounts[$key];
-        }
-
-        $code = config("accounting.accounts.{$key}");
-        $account = $code ? Account::query()->where('code', $code)->first() : null;
-
-        if ($account === null || ! $account->isPostable()) {
-            throw new AturanBisnisException("Akun {$code} untuk jurnal otomatis ({$key}) tidak ditemukan atau tidak aktif. Periksa Bagan Akun.");
-        }
-
-        return $this->accounts[$key] = $account;
+        return $this->accounts[$key] ??= $this->mapping->require($key);
     }
 
     public function paymentAccount(PaymentMethod $method): Account
     {
-        return $this->account(config("accounting.payment_accounts.{$method->value}", 'bank'));
+        return $this->accounts['payment:'.$method->value] ??= $this->mapping->paymentAccount($method);
+    }
+
+    /** Persediaan bertambah (sen > 0) atau berkurang (sen < 0) dengan lawan akun Selisih Persediaan. */
+    private function inventoryChange(int $sen, string $description): JournalLines
+    {
+        $lines = new JournalLines;
+
+        if ($sen > 0) {
+            $lines->debit($this->account('inventory'), $sen, $description)->credit($this->account('inventory_variance'), $sen, $description);
+        } elseif ($sen < 0) {
+            $lines->debit($this->account('inventory_variance'), -$sen, $description)->credit($this->account('inventory'), -$sen, $description);
+        }
+
+        return $lines;
+    }
+
+    /**
+     * Harga pokok produk saat ini (sen) per id produk.
+     *
+     * @param  list<int>  $productIds
+     * @return array<int, int>
+     */
+    private function costPrices(array $productIds): array
+    {
+        return Product::withTrashed()->whereIn('id', $productIds)->pluck('purchase_price', 'id')
+            ->map(fn ($price) => Uang::sen($price))->all();
     }
 
     /**

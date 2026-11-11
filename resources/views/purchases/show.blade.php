@@ -193,4 +193,6 @@
             @include('partials.bayar-hutang', ['methods' => $metode])
         </div>
     @endif
+
+    <x-ui.journal-links :document="$pembelian" class="mt-6" />
 </x-app-layout>

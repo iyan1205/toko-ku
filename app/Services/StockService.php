@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\StockMovementType;
+use App\Events\StockAdjusted;
 use App\Exceptions\AturanBisnisException;
 use App\Models\Product;
 use App\Models\StockMovement;
@@ -111,7 +112,10 @@ class StockService
         $besar = abs(round((float) $jumlah, 3));
         $tambah = $jenis === StockMovementType::Adjustment && $arah === 'in';
 
-        return $this->catat($produk, $jenis, $tambah ? $besar : -$besar, null, trim($catatan), $user, $gudang);
+        $mutasi = $this->catat($produk, $jenis, $tambah ? $besar : -$besar, null, trim($catatan), $user, $gudang);
+        StockAdjusted::dispatch($mutasi);
+
+        return $mutasi;
     }
 
     public function defaultWarehouse(): Warehouse

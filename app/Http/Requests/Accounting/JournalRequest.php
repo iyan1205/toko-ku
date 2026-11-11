@@ -21,8 +21,10 @@ class JournalRequest extends FormRequest
         return [
             'journal_date' => ['required', 'date', 'before_or_equal:today', new OpenPeriod],
             'description' => ['required', 'string', 'max:255'],
+            'auto_reverse_on' => ['nullable', 'date', 'after:journal_date'],
             'lines' => ['required', 'array', 'min:2', 'max:50'],
             'lines.*.account_id' => ['nullable', 'integer'],
+            'lines.*.cost_center_id' => ['nullable', 'integer'],
             'lines.*.description' => ['nullable', 'string', 'max:255'],
             'lines.*.debit' => $uang,
             'lines.*.credit' => $uang,
@@ -33,6 +35,7 @@ class JournalRequest extends FormRequest
     {
         return [
             'journal_date' => 'tanggal',
+            'auto_reverse_on' => 'tanggal balik otomatis',
             'description' => 'keterangan',
             'lines' => 'baris jurnal',
             'lines.*.debit' => 'debit',
@@ -42,6 +45,9 @@ class JournalRequest extends FormRequest
 
     public function messages(): array
     {
-        return ['journal_date.before_or_equal' => 'Tanggal jurnal tidak boleh lebih dari hari ini.'];
+        return [
+            'journal_date.before_or_equal' => 'Tanggal jurnal tidak boleh lebih dari hari ini.',
+            'auto_reverse_on.after' => 'Tanggal balik otomatis harus setelah tanggal jurnal.',
+        ];
     }
 }

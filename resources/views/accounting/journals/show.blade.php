@@ -60,12 +60,27 @@
                     <div class="{{ $baris }}"><dt class="text-slate-500">Dokumen</dt>
                         <dd class="text-right">
                             @if ($sourceUrl)
-                                <a href="{{ $sourceUrl }}" class="text-primary-700 hover:underline">{{ $journal->sourceDocument()?->number ?? $journal->source?->number }}</a>
+                                <a href="{{ $sourceUrl }}" class="text-primary-700 hover:underline">{{ \App\Support\DocumentLink::number($journal->sourceDocument()) ?? $journal->source?->number }}</a>
                             @else
-                                <span class="text-slate-900">{{ $journal->sourceDocument()?->number ?? $journal->source?->number ?? '—' }}</span>
+                                <span class="text-slate-900">{{ \App\Support\DocumentLink::number($journal->sourceDocument()) ?? $journal->source?->number ?? '—' }}</span>
                             @endif
                         </dd>
                     </div>
+                @endif
+                @if ($journal->recurringJournal)
+                    <div class="{{ $baris }}"><dt class="text-slate-500">Templat</dt>
+                        <dd class="text-right">
+                            @can('accounting.recurring.view')
+                                <a href="{{ route('recurring-journals.show', $journal->recurringJournal) }}" class="text-primary-700 hover:underline">{{ $journal->recurringJournal->name }}</a>
+                            @else
+                                {{ $journal->recurringJournal->name }}
+                            @endcan
+                            <span class="block text-xs text-slate-500">Periode {{ $journal->recurring_period }}</span>
+                        </dd>
+                    </div>
+                @endif
+                @if ($journal->auto_reverse_on)
+                    <div class="{{ $baris }}"><dt class="text-slate-500">Balik otomatis</dt><dd class="text-right text-slate-900">{{ Format::tanggal($journal->auto_reverse_on) }}</dd></div>
                 @endif
                 <div class="{{ $baris }}"><dt class="text-slate-500">Total</dt><dd class="font-medium tabular-nums text-slate-900">@rupiah($journal->total)</dd></div>
                 <div class="{{ $baris }}"><dt class="text-slate-500">Dibuat oleh</dt><dd class="text-right text-slate-900">{{ $journal->user?->name ?? 'Sistem' }}</dd></div>
@@ -88,8 +103,10 @@
                         <p @class(['font-medium text-slate-900', 'pl-6' => (float) $line->credit > 0])>
                             <span class="font-mono text-xs text-slate-500">{{ $line->account?->code }}</span> {{ $line->account?->name }}
                         </p>
-                        @if ($line->description)
-                            <p @class(['text-xs text-slate-500', 'pl-6' => (float) $line->credit > 0])>{{ $line->description }}</p>
+                        @if ($line->description || $line->costCenter)
+                            <p @class(['text-xs text-slate-500', 'pl-6' => (float) $line->credit > 0])>
+                                {{ collect([$line->description, $line->costCenter ? 'Cost center '.$line->costCenter->label() : null])->filter()->join(' · ') }}
+                            </p>
                         @endif
                     </x-ui.table.td>
                     <x-ui.table.td align="right" numeric>{{ (float) $line->debit > 0 ? Format::rupiah($line->debit) : '' }}</x-ui.table.td>
