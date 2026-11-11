@@ -193,6 +193,11 @@ class PurchaseService
         if ($locked->returns()->where('status', PurchaseReturnStatus::Approved->value)->exists()) {
             throw new AturanBisnisException("Faktur {$locked->number} sudah punya retur yang disetujui, sehingga tidak dapat dibatalkan.");
         }
+
+        // Pembayaran lewat Pelunasan gabungan dan nota debit dibatalkan dari dokumen pelunasannya.
+        if (Uang::sen($locked->credited_amount ?? 0) > 0 || $locked->payments()->whereNull('voided_at')->whereNotNull('settlement_id')->exists()) {
+            throw new AturanBisnisException("Faktur {$locked->number} sudah dilunasi lewat Pelunasan atau dikurangi nota debit. Batalkan pelunasan/notanya dulu.");
+        }
     }
 
     /** Tandai faktur (yang sudah dikunci) batal beserta pembayarannya, catat log, dan kirim event. */

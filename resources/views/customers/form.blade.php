@@ -24,6 +24,8 @@
         <x-ui.form-section title="Alamat & catatan" description="Saldo piutang tidak diisi manual: bertambah dari penjualan piutang dan berkurang saat pelanggan membayar, jadi selalu ada riwayatnya.">
             <x-ui.textarea name="address" label="Alamat" :value="$customer->address" rows="2" maxlength="1000" />
             <x-ui.textarea name="note" label="Catatan" :value="$customer->note" rows="2" maxlength="1000" />
+            <x-ui.input name="payment_terms_days" label="Termin pembayaran (hari)" type="number" min="0" max="365" :value="$customer->payment_terms_days" class="sm:max-w-xs"
+                        hint="Jatuh tempo penjualan piutang dan faktur penjualan. Kosong = 30 hari." />
 
             <x-slot:footer>
                 <x-ui.button :href="$edit ? route('customers.show', $customer) : route('customers.index')" variant="secondary">Batal</x-ui.button>

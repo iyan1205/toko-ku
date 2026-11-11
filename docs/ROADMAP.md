@@ -1,16 +1,16 @@
 # Roadmap Toko-ku
 
-Status per 11 Nov 2026, setelah Fase 9 (akuntansi inti). Rincian keputusan dan rencana tiap fase ada di [AUDIT.md](AUDIT.md); spesifikasi di [REDESIGN-TOKOKU.md](REDESIGN-TOKOKU.md), rencana Fase 8–19 di `ROADMAP-ENTERPRISE-TOKOKU.md`. Cara deploy, queue worker, dan scheduler: [DEPLOY.md](DEPLOY.md).
+Status per 11 Nov 2026, setelah Fase 10 (kas & bank, piutang, hutang). Rincian keputusan dan rencana tiap fase ada di [AUDIT.md](AUDIT.md); spesifikasi di [REDESIGN-TOKOKU.md](REDESIGN-TOKOKU.md), rencana Fase 8–19 di `ROADMAP-ENTERPRISE-TOKOKU.md`. Cara deploy, queue worker, dan scheduler: [DEPLOY.md](DEPLOY.md).
 
 ## Ringkasan
 
 | Modul | Status | Catatan singkat |
 |---|---|---|
 | Dashboard | Jadi | KPI, grafik 7/30 hari, terlaris, stok menipis, hutang jatuh tempo, sesuai hak akses |
-| Kasir (POS) | Jadi | Layar kasir baru, split bayar, pajak, sesi kasir, retur, piutang |
+| Kasir (POS) | Jadi | Layar kasir baru, split bayar, pajak, sesi kasir, retur, piutang, faktur penjualan manual, pelunasan gabungan, umur & kartu piutang |
 | Inventori | Jadi | Multi-gudang, transfer, opname draft → selesai, kartu stok |
-| Pembelian | Jadi | PO → penerimaan parsial → faktur & hutang, retur, pembayaran hutang |
-| Akuntansi | Sebagian | Bagan akun (pohon, impor), saldo awal, jurnal umum & berulang, pemetaan akun, jurnal otomatis termasuk stok, buku besar, neraca saldo, cost center, kunci periode. Kas & bank, laporan keuangan, tutup buku belum |
+| Pembelian | Jadi | PO → penerimaan parsial → faktur & hutang, retur, tagihan manual, pembayaran gabungan, jadwal, umur & kartu hutang |
+| Akuntansi | Sebagian | Bagan akun, saldo awal, jurnal umum & berulang, pemetaan akun, jurnal otomatis, buku besar, neraca saldo, cost center, kunci periode, kas & bank, rekonsiliasi bank, giro. Laporan keuangan dan tutup buku belum |
 | SDM | Sebagian | Karyawan, departemen & jabatan, absensi, jadwal, shift, cuti. Penggajian belum |
 | Laporan | Sebagian | Laporan penjualan ada. Pembelian, stok, laba kotor, kinerja kasir belum |
 | Pengguna & Hak Akses | Jadi | Peran dinamis, matriks izin, akses cabang per pengguna, log aktivitas, profil |
@@ -67,6 +67,17 @@ Menu yang belum jadi tetap tampil dengan label **Segera Hadir** (diatur di `conf
 - **Cost center / departemen** (Akuntansi → Cost Center): dimensi laporan di baris jurnal, bisa dihubungkan ke departemen SDM. Yang sudah dipakai jurnal tidak bisa dihapus, cukup dinonaktifkan.
 - **Kunci periode** (Fase 8) tetap berlaku untuk semua jurnal di atas.
 
+### Kas & Bank, Piutang, Hutang (Fase 10)
+- **Rekening** (Kas & Bank → Rekening): kas, rekening bank/e-wallet, dan kas kecil dengan plafon. Setiap rekening menempel pada satu akun kas/bank di Bagan Akun (Kas 1-1100 dan Bank 1-1200 langsung dibuatkan; rekening baru boleh membuat akunnya otomatis). Saldo = saldo akun dari jurnal posted. Kas kecil menampilkan kekurangan terhadap plafon dan tombol **Isi ulang**.
+- **Transaksi kas**: penerimaan (D rekening | K akun per baris), pengeluaran (D akun per baris | K rekening), dan transfer antar rekening (+ biaya admin). Draf → posting; pengeluaran dan transfer mengikuti alur persetujuan `cash_out`/`cash_transfer` bila ada yang cocok. Transaksi posted dibatalkan dengan jurnal pembalik. Nomor BKM/BKK/TRB dari Penomoran Dokumen.
+- **Rekonsiliasi bank**: impor rekening koran CSV/Excel (templat tersedia; kolom Masuk/Keluar atau Jumlah bertanda), cocok otomatis bila nominal sama dan tanggal ±3 hari, cocok manual, **catat** mutasi yang belum ada di buku (misal biaya admin) sebagai transaksi kas, ringkasan selisih, laporan PDF, dan kunci.
+- **Faktur penjualan manual** (Kasir → Faktur Penjualan) dan **tagihan pembelian manual** (Pembelian → Tagihan Pembelian) untuk jasa, sewa, atau biaya non-stok: baris akun x jumlah x harga, pajak opsional, jatuh tempo dari termin pelanggan/supplier (kolom baru di formulirnya, bawaan 30 hari). Penjualan piutang di kasir juga kini punya jatuh tempo.
+- **Pelunasan gabungan** (Pelunasan Piutang / Pembayaran Hutang): satu uang untuk banyak dokumen (penjualan kasir, faktur pembelian, faktur manual, saldo awal), sebagian atau penuh, tombol "Bagi otomatis". Kelebihan uang menjadi **uang muka** (2-1500 / 1-1360) dan bisa dipakai di pelunasan berikutnya. **Nota kredit/debit** mengurangi tagihan tanpa uang. Pembatalan mengembalikan sisa dokumen dan membalik jurnal. Pelunasan satu dokumen dari halaman lama tetap ada.
+- **Giro/cek mundur** (Kas & Bank → Giro & Cek): pelunasan dengan cara bayar giro mengurangi faktur dan mencatat Cek & Giro Diterima / Hutang Giro; **cair** memindahkan uangnya ke rekening, **ditolak** membatalkan pelunasannya.
+- **Laporan**: umur piutang/hutang per pihak (dari tanggal faktur atau dari jatuh tempo), kartu piutang/hutang dengan saldo berjalan dan uang muka, jadwal pembayaran hutang. **Pengingat jatuh tempo** harian (07:00, lonceng + email) ke pengguna yang boleh melihat piutang/hutang.
+- **Saldo awal**: piutang/hutang per pihak dari saldo awal kini menjadi faktur saldo awal yang bisa dilunasi dan masuk umur/kartu. Saldo awal yang sudah diposting sebelum Fase 10 dibuatkan lewat `php artisan keuangan:faktur-saldo-awal` (sekali, aman diulang).
+- Semua dijurnal otomatis lewat pemetaan akun (peran baru: uang muka pelanggan/pembelian, nota kredit/debit, giro diterima/dikeluarkan, biaya administrasi bank).
+
 ### SDM (Fase 7, kerangka)
 - **Karyawan**: daftar, tambah/ubah/hapus, ekspor. Kode otomatis `KRY-0001`. Tautan opsional ke akun login (satu akun untuk satu karyawan); karyawan tanpa akun tetap bisa dicatat.
 - **Departemen & Jabatan**: daftar, tambah/ubah/hapus, ekspor. Tidak bisa dihapus bila masih dipakai karyawan.
@@ -86,10 +97,11 @@ Menu yang belum jadi tetap tampil dengan label **Segera Hadir** (diatur di `conf
 ## Belum dibangun
 
 ### Akuntansi
-- **Kas & Bank**: pemasukan/pengeluaran non-penjualan (misal bayar listrik) tanpa menulis jurnal manual, rekonsiliasi bank.
 - **Laporan Keuangan**: Laba Rugi, Neraca, Arus Kas.
 - **Tutup Buku**: checklist tutup bulan, jurnal penutup tahun, dan buka kembali hanya oleh peran tertentu. Kunci periode bulanan sudah ada (Fase 8).
-- **Piutang dan hutang dari saldo awal** sudah tercatat per pelanggan/supplier di jurnal, tetapi belum muncul di halaman Piutang Pelanggan / Hutang Supplier dan belum bisa dilunasi dari sana (Fase 10: kartu piutang/hutang). Sementara pelunasannya dicatat dengan jurnal manual.
+- Halaman lama Piutang Pelanggan / Hutang Supplier masih hanya menampilkan penjualan kasir / faktur pembelian; faktur manual dan saldo awal ada di Faktur Penjualan / Tagihan Pembelian, dan semuanya muncul bersama di Pelunasan, umur, dan kartu.
+- Rekonsiliasi bank menghitung pencatatan buku yang belum cocok hanya di dalam periode rekening koran; pencatatan lama sebelum rekonsiliasi pertama tidak ikut.
+- Batas kredit pelanggan dan pengingat ke pelanggan (bukan ke pengguna) direncanakan di Fase 15.
 - **Jurnal untuk transaksi lama**: transaksi sebelum jurnal otomatis menyala tidak dijurnal. Catat posisinya lewat Saldo Awal per tanggal mulai.
 - Jurnal otomatis belum diberi cost center (hanya jurnal manual dan jurnal berulang); rencana: cost center bawaan per gudang/cabang.
 - Biaya MDR kartu/QRIS belum dicatat otomatis (akun per metode pembayaran sudah bisa dipisah).

@@ -21,6 +21,7 @@ class SupplierRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:1000'],
             'npwp' => ['nullable', 'string', 'max:30', 'regex:/^[0-9.\-]+$/'],
             'note' => ['nullable', 'string', 'max:1000'],
+            'payment_terms_days' => ['nullable', 'integer', 'min:0', 'max:365'],
         ];
     }
 
@@ -34,6 +35,7 @@ class SupplierRequest extends FormRequest
             'address' => 'alamat',
             'npwp' => 'NPWP',
             'note' => 'catatan',
+            'payment_terms_days' => 'termin pembayaran',
         ];
     }
 

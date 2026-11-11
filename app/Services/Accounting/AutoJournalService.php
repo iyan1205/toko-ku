@@ -3,9 +3,11 @@
 namespace App\Services\Accounting;
 
 use App\Enums\PaymentMethod;
+use App\Enums\SettlementType;
 use App\Enums\StockMovementType;
 use App\Models\Account;
 use App\Models\GoodsReceipt;
+use App\Models\Invoice;
 use App\Models\Journal;
 use App\Models\Payment;
 use App\Models\Product;
@@ -14,6 +16,7 @@ use App\Models\PurchaseReturn;
 use App\Models\Sale;
 use App\Models\SaleReturn;
 use App\Models\Scopes\BranchScope;
+use App\Models\Settlement;
 use App\Models\StockMovement;
 use App\Models\StockOpname;
 use App\Models\StockTransfer;
@@ -34,6 +37,12 @@ use Illuminate\Database\Eloquent\Model;
  *   Transfer stok    hanya antar cabang: cabang asal D Rekening Antar Cabang | K Persediaan,
  *                    cabang tujuan D Persediaan | K Rekening Antar Cabang
  *   Pembatalan       jurnal pembalik untuk jurnal dokumen dan jurnal pembayarannya
+ *   Faktur manual    penjualan: D Piutang | K pendapatan per baris, PPN Keluaran;
+ *                    tagihan: D beban per baris, PPN Masukan | K Hutang
+ *   Pelunasan        penerimaan: D Kas/Bank (atau Giro Diterima), Uang Muka dipakai | K Piutang, Uang Muka baru
+ *                    pembayaran: D Hutang, Uang Muka baru | K Kas/Bank (atau Hutang Giro), Uang Muka dipakai
+ *                    nota kredit: D akun nota | K Piutang;  nota debit: D Hutang | K akun nota
+ *   Giro cair        D rekening | K Giro Diterima (atau D Hutang Giro | K rekening)
  *
  *   * Diskon dipisah ke akun Diskon Penjualan bila peran itu dipetakan; bila tidak, penjualan
  *     dicatat bersih setelah diskon.
@@ -276,6 +285,92 @@ class AutoJournalService
         ))->all();
     }
 
+    /** Faktur penjualan / tagihan pembelian manual (faktur saldo awal tidak dijurnal di sini). */
+    public function forInvoice(Invoice $invoice): ?Journal
+    {
+        if ($invoice->isOpening()) {
+            return null;
+        }
+
+        $invoice->loadMissing(['lines', 'customer', 'supplier']);
+        $sales = $invoice->isSales();
+        $rows = [];
+        foreach ($invoice->lines as $line) {
+            $rows[] = ['account_id' => $line->account_id, 'cost_center_id' => $line->cost_center_id, 'description' => $line->description,
+                'debit' => $sales ? '0' : (string) $line->amount, 'credit' => $sales ? (string) $line->amount : '0'];
+        }
+        if (Uang::sen($invoice->tax) > 0) {
+            $rows[] = ['account_id' => $this->account($sales ? 'vat_out' : 'vat_in')->id, 'description' => 'PPN',
+                'debit' => $sales ? '0' : (string) $invoice->tax, 'credit' => $sales ? (string) $invoice->tax : '0'];
+        }
+        $rows[] = ['account_id' => $this->account($sales ? 'receivable' : 'payable')->id, 'description' => $invoice->party()?->name,
+            'debit' => $sales ? (string) $invoice->total : '0', 'credit' => $sales ? '0' : (string) $invoice->total];
+
+        return $this->journals->post($invoice->invoice_date, "{$invoice->type->label()} {$invoice->number} · {$invoice->party()?->name}", $rows, $invoice->postedBy, $invoice, 'posted');
+    }
+
+    /** @return list<Journal> */
+    public function forInvoiceCancel(Invoice $invoice, ?User $user): array
+    {
+        return $this->reverseSourceEvents($invoice, ['posted'], "Pembatalan {$invoice->number}", $user);
+    }
+
+    /** Pelunasan piutang/hutang dan nota kredit/debit. */
+    public function forSettlement(Settlement $settlement): Journal
+    {
+        $settlement->loadMissing(['cashBankAccount.account', 'counterAccount', 'customer', 'supplier', 'postedBy']);
+        $lines = new JournalLines;
+        $amount = Uang::sen($settlement->amount);
+        $applied = Uang::sen($settlement->deposit_applied);
+        $added = Uang::sen($settlement->deposit_added);
+        $allocated = $amount + $applied - $added;
+        $giro = $settlement->isGiro() ? "Giro {$settlement->giro_number}" : null;
+
+        match ($settlement->type) {
+            SettlementType::Receipt => $lines
+                ->debit($giro ? $this->account('giro_receivable') : $settlement->cashBankAccount->account, $amount, $giro)
+                ->debit($this->account('customer_deposit'), $applied, 'Uang muka dipakai')
+                ->credit($this->account('receivable'), $allocated)
+                ->credit($this->account('customer_deposit'), $added, 'Uang muka pelanggan'),
+            SettlementType::Payment => $lines
+                ->debit($this->account('payable'), $allocated)
+                ->debit($this->account('supplier_deposit'), $added, 'Uang muka ke supplier')
+                ->credit($giro ? $this->account('giro_payable') : $settlement->cashBankAccount->account, $amount, $giro)
+                ->credit($this->account('supplier_deposit'), $applied, 'Uang muka dipakai'),
+            SettlementType::CreditNote => $lines
+                ->debit($settlement->counterAccount, $amount, $settlement->description)
+                ->credit($this->account('receivable'), $amount),
+            SettlementType::DebitNote => $lines
+                ->debit($this->account('payable'), $amount)
+                ->credit($settlement->counterAccount, $amount, $settlement->description),
+        };
+
+        $party = $settlement->party()?->name;
+
+        return $this->journals->post($settlement->settlement_date, "{$settlement->type->label()} {$settlement->number} · {$party}", $lines->all(), $settlement->postedBy, $settlement, 'posted');
+    }
+
+    /** @return list<Journal> */
+    public function forSettlementCancel(Settlement $settlement, ?User $user): array
+    {
+        return $this->reverseSourceEvents($settlement, ['posted', 'giro_cleared'], "Pembatalan {$settlement->number}", $user);
+    }
+
+    /** Giro/cek cair: pindah dari akun Giro ke rekening. */
+    public function forGiroCleared(Settlement $settlement, ?User $user): Journal
+    {
+        $settlement->loadMissing('giroCashBankAccount.account');
+        $amount = Uang::sen($settlement->amount);
+        $rekening = $settlement->giroCashBankAccount->account;
+        $description = "Giro {$settlement->giro_number} cair";
+
+        $lines = $settlement->type === SettlementType::Receipt
+            ? (new JournalLines)->debit($rekening, $amount, $description)->credit($this->account('giro_receivable'), $amount, $description)
+            : (new JournalLines)->debit($this->account('giro_payable'), $amount, $description)->credit($rekening, $amount, $description);
+
+        return $this->journals->post($settlement->giro_cleared_on, "Pencairan giro {$settlement->giro_number} ({$settlement->number})", $lines->all(), $user, $settlement, 'giro_cleared');
+    }
+
     /** Akun wajib untuk peran ini (Pengaturan → Akuntansi). */
     public function account(string $key): Account
     {
@@ -285,6 +380,24 @@ class AutoJournalService
     public function paymentAccount(PaymentMethod $method): Account
     {
         return $this->accounts['payment:'.$method->value] ??= $this->mapping->paymentAccount($method);
+    }
+
+    /**
+     * Balik jurnal sumber dengan kejadian tertentu yang belum dibalik (kejadian pembalik: voided).
+     *
+     * @param  list<string>  $events
+     * @return list<Journal>
+     */
+    private function reverseSourceEvents(Model $source, array $events, string $description, ?User $user): array
+    {
+        return Journal::query()->withoutGlobalScope(BranchScope::class)
+            ->where('source_type', $source->getMorphClass())->where('source_id', $source->getKey())
+            ->whereIn('source_event', $events)
+            ->whereDoesntHave('reversal')
+            ->orderBy('id')->get()
+            ->map(fn (Journal $journal) => $this->journals->reverse($journal, "{$description} (membalik {$journal->number})", $user, $source,
+                $journal->source_event === 'posted' ? 'voided' : "{$journal->source_event}_void"))
+            ->all();
     }
 
     /** Persediaan bertambah (sen > 0) atau berkurang (sen < 0) dengan lawan akun Selisih Persediaan. */

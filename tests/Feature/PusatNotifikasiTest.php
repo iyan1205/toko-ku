@@ -105,7 +105,7 @@ class PusatNotifikasiTest extends TestCase
         $this->assertSame(['database'], $prefs->channels($this->kasir, 'approval.requested'));
         $this->assertSame([], $prefs->channels($this->kasir, 'approval.decided'));
         $this->assertSame(['database', 'mail'], $prefs->channels($this->kasir, 'export.ready'));
-        $this->assertSame(3, NotificationPreference::where('user_id', $this->kasir->id)->count());
+        $this->assertSame(count(config('notification-types')), NotificationPreference::where('user_id', $this->kasir->id)->count(), 'Satu baris per jenis notifikasi.');
 
         // Semua kanal dimatikan: tidak ada yang tersimpan di lonceng.
         $this->kasir->notify(new NotifikasiUji('Tidak terkirim', '/', 'approval.decided'));

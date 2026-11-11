@@ -5,6 +5,7 @@ namespace App\Services\Accounting;
 use App\Enums\AccountType;
 use App\Enums\NormalBalance;
 use App\Models\Account;
+use App\Services\CashBank\CashBankAccountService;
 use App\Support\Uang;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -31,9 +32,11 @@ class ChartOfAccountsService
         ['1-0000', 'Aset', AccountType::Asset, null, true],
         ['1-1000', 'Aset Lancar', AccountType::Asset, '1-0000', true],
         ['1-1100', 'Kas', AccountType::Asset, '1-1000', false, null, 'Uang tunai di laci kasir dan brankas.'],
+        ['1-1150', 'Cek & Giro Diterima', AccountType::Asset, '1-1000', false, null, 'Giro/cek mundur dari pelanggan yang belum cair.'],
         ['1-1200', 'Bank', AccountType::Asset, '1-1000', false, null, 'Rekening bank, termasuk dana masuk dari transfer, kartu debit/kredit, QRIS, dan e-wallet.'],
         ['1-1300', 'Piutang Usaha', AccountType::Asset, '1-1000', false, null, 'Tagihan ke pelanggan dari penjualan piutang.'],
         ['1-1350', 'Piutang Lain-lain', AccountType::Asset, '1-1000', false, null, 'Termasuk uang retur yang harus dikembalikan supplier.'],
+        ['1-1360', 'Uang Muka Pembelian', AccountType::Asset, '1-1000', false, null, 'Uang yang sudah dibayar ke supplier sebelum fakturnya ada.'],
         ['1-1400', 'Persediaan Barang Dagang', AccountType::Asset, '1-1000', false],
         ['1-1500', 'PPN Masukan', AccountType::Asset, '1-1000', false, null, 'Pajak yang dibayar saat pembelian.'],
         ['1-1600', 'Biaya Dibayar di Muka', AccountType::Asset, '1-1000', false, null, 'Misal sewa yang dibayar untuk beberapa bulan.'],
@@ -46,9 +49,11 @@ class ChartOfAccountsService
         ['2-0000', 'Liabilitas', AccountType::Liability, null, true],
         ['2-1000', 'Liabilitas Jangka Pendek', AccountType::Liability, '2-0000', true],
         ['2-1100', 'Hutang Usaha', AccountType::Liability, '2-1000', false, null, 'Hutang ke supplier dari pembelian.'],
+        ['2-1150', 'Hutang Giro', AccountType::Liability, '2-1000', false, null, 'Giro/cek mundur yang sudah diberikan ke supplier tetapi belum cair.'],
         ['2-1200', 'PPN Keluaran', AccountType::Liability, '2-1000', false, null, 'Pajak yang dipungut dari pelanggan saat penjualan.'],
         ['2-1300', 'Hutang Gaji', AccountType::Liability, '2-1000', false],
         ['2-1400', 'Hutang Pajak Lainnya', AccountType::Liability, '2-1000', false],
+        ['2-1500', 'Uang Muka Pelanggan', AccountType::Liability, '2-1000', false, null, 'Uang dari pelanggan yang belum dipakai melunasi faktur.'],
         ['2-1900', 'Hutang Lain-lain', AccountType::Liability, '2-1000', false],
         ['2-2000', 'Liabilitas Jangka Panjang', AccountType::Liability, '2-0000', true],
         ['2-2100', 'Hutang Bank', AccountType::Liability, '2-2000', false],
@@ -63,10 +68,12 @@ class ChartOfAccountsService
         ['4-1000', 'Penjualan', AccountType::Revenue, '4-0000', false, null, 'Penjualan bersih setelah diskon, tanpa pajak.'],
         ['4-1100', 'Retur Penjualan', AccountType::Revenue, '4-0000', false, NormalBalance::Debit, 'Akun kontra pendapatan.'],
         ['4-1200', 'Diskon Penjualan', AccountType::Revenue, '4-0000', false, NormalBalance::Debit, 'Akun kontra pendapatan: potongan harga per barang dan per transaksi di kasir.'],
+        ['4-1300', 'Potongan Penjualan', AccountType::Revenue, '4-0000', false, NormalBalance::Debit, 'Akun kontra pendapatan: potongan setelah transaksi lewat nota kredit.'],
         ['4-2000', 'Pendapatan Lain-lain', AccountType::Revenue, '4-0000', false],
 
         ['5-0000', 'Harga Pokok Penjualan', AccountType::Cogs, null, true],
         ['5-1000', 'Harga Pokok Penjualan', AccountType::Cogs, '5-0000', false, null, 'Harga modal barang yang terjual.'],
+        ['5-1500', 'Potongan Pembelian', AccountType::Cogs, '5-0000', false, NormalBalance::Credit, 'Potongan dari supplier setelah faktur lewat nota debit.'],
         ['5-2000', 'Selisih Persediaan', AccountType::Cogs, '5-0000', false, null, 'Selisih hasil stok opname, barang rusak, dan hilang.'],
 
         ['6-0000', 'Beban Operasional', AccountType::Expense, null, true],
@@ -111,6 +118,8 @@ class ChartOfAccountsService
             }
 
             $this->markSystemAccounts();
+            // Kas dan Bank langsung bisa dipakai di Kas & Bank, pelunasan, dan rekonsiliasi.
+            app(CashBankAccountService::class)->linkCashBankAccounts();
 
             return $created;
         });

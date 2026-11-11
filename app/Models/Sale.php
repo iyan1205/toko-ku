@@ -35,6 +35,8 @@ class Sale extends Model
     {
         return [
             'sold_at' => 'datetime',
+            'due_date' => 'date',
+            'credited_amount' => 'decimal:2',
             'subtotal' => 'decimal:2',
             'item_discount' => 'decimal:2',
             'discount' => 'decimal:2',

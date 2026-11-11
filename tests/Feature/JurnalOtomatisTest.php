@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\PaymentMethod;
 use App\Enums\RoleName;
 use App\Models\Account;
+use App\Models\CashBankAccount;
 use App\Models\Customer;
 use App\Models\Journal;
 use App\Models\Product;
@@ -282,6 +283,7 @@ class JurnalOtomatisTest extends TestCase
 
     public function test_tanpa_bagan_akun_jurnal_otomatis_tidak_berjalan_dan_tidak_mencatat_kegagalan(): void
     {
+        CashBankAccount::withTrashed()->forceDelete();
         Account::query()->update(['parent_id' => null]);
         Account::query()->forceDelete();
 

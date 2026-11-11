@@ -46,6 +46,9 @@ class Journal extends Model
         'stock_transfer' => 'Transfer stok',
         'stock_movement' => 'Penyesuaian stok',
         'opening_balance' => 'Saldo awal',
+        'cash_transaction' => 'Kas & bank',
+        'invoice' => 'Faktur manual',
+        'settlement' => 'Pelunasan',
     ];
 
     protected $fillable = ['number', 'journal_date', 'description', 'source_type', 'source_id', 'source_event', 'reversal_of_id', 'total', 'user_id'];
@@ -131,7 +134,8 @@ class Journal extends Model
         }
 
         return (self::SOURCE_LABELS[$this->source_type] ?? 'Otomatis')
-            .(in_array($this->source_event, ['voided', 'void_out', 'void_in'], true) ? ' (batal)' : '');
+            .(in_array($this->source_event, ['voided', 'void_out', 'void_in', 'giro_cleared_void'], true) ? ' (batal)' : '')
+            .($this->source_event === 'giro_cleared' ? ' (giro cair)' : '');
     }
 
     /** Dokumen yang bisa dibuka dari jurnal ini. Jurnal pembayaran membuka dokumen yang dibayar. */

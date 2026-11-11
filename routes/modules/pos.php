@@ -7,6 +7,9 @@
 | Hak per dokumen (milik sendiri atau semua) dicek Policy di controller.
 */
 
+use App\Http\Controllers\Accounting\InvoiceController;
+use App\Http\Controllers\Accounting\PartyLedgerController;
+use App\Http\Controllers\Accounting\SettlementController;
 use App\Http\Controllers\Pos\CashSessionController;
 use App\Http\Controllers\Pos\CustomerController;
 use App\Http\Controllers\Pos\HeldSaleController;
@@ -88,3 +91,32 @@ Route::resource('pelanggan', CustomerController::class)
     ->middlewareFor(['create', 'store'], 'permission:pos.customers.create')
     ->middlewareFor(['edit', 'update'], 'permission:pos.customers.update')
     ->middlewareFor('destroy', 'permission:pos.customers.delete');
+
+// ---------------- Piutang: faktur penjualan manual, pelunasan gabungan, umur & kartu (Fase 10) ----------------
+Route::prefix('faktur-penjualan')->name('sales-invoices.')->group(function () {
+    Route::get('/', [InvoiceController::class, 'index'])->middleware('permission:pos.invoices.view')->name('index');
+    Route::get('ekspor', [InvoiceController::class, 'export'])->middleware('permission:pos.invoices.export')->name('export');
+    Route::middleware('permission:pos.invoices.create')->group(function () {
+        Route::get('buat', [InvoiceController::class, 'create'])->name('create');
+        Route::post('/', [InvoiceController::class, 'store'])->name('store');
+        Route::get('{invoice}/ubah', [InvoiceController::class, 'edit'])->whereNumber('invoice')->name('edit');
+        Route::put('{invoice}', [InvoiceController::class, 'update'])->whereNumber('invoice')->name('update');
+        Route::post('{invoice}/posting', [InvoiceController::class, 'post'])->whereNumber('invoice')->name('post');
+        Route::delete('{invoice}', [InvoiceController::class, 'destroy'])->whereNumber('invoice')->name('destroy');
+    });
+    Route::get('{invoice}', [InvoiceController::class, 'show'])->whereNumber('invoice')->middleware('permission:pos.invoices.view')->name('show');
+    Route::post('{invoice}/batal', [InvoiceController::class, 'cancel'])->whereNumber('invoice')->middleware('permission:pos.invoices.create|pos.invoices.void')->name('cancel');
+});
+
+Route::prefix('piutang/pelunasan')->name('receivable-settlements.')->group(function () {
+    Route::get('/', [SettlementController::class, 'index'])->middleware('permission:pos.receivables.view')->name('index');
+    Route::get('buat', [SettlementController::class, 'create'])->middleware('permission:pos.receivables.create')->name('create');
+    Route::post('/', [SettlementController::class, 'store'])->middleware('permission:pos.receivables.create')->name('store');
+    Route::get('{settlement}', [SettlementController::class, 'show'])->whereNumber('settlement')->middleware('permission:pos.receivables.view')->name('show');
+    Route::post('{settlement}/batal', [SettlementController::class, 'cancel'])->whereNumber('settlement')->middleware('permission:pos.receivables.void')->name('cancel');
+});
+
+Route::middleware('permission:pos.receivables.view')->name('receivable-reports.')->group(function () {
+    Route::get('piutang/umur', [PartyLedgerController::class, 'aging'])->name('aging');
+    Route::get('piutang/kartu', [PartyLedgerController::class, 'card'])->name('card');
+});

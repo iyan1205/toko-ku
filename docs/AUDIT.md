@@ -619,6 +619,15 @@ Dikerjakan sebelum 5b dan Fase 6 karena mengubah `StockService`, yang dipakai pe
 - 16 izin baru: `accounting.coa.import`, `accounting.opening-balances.*` (4), `accounting.recurring.*` (4), `accounting.trial-balance.*` (2), `accounting.cost-centers.*` (5); `accounting.ledger.*` tidak lagi "planned".
 - Seluruh suite 781/781 lulus.
 
+### Fase 10 — Kas & Bank, Piutang, Hutang · XL
+**Status 11 Nov 2026: selesai, menunggu pengecekan pemilik.** Rincian di [ROADMAP.md](ROADMAP.md).
+- Kas & bank: `cash_bank_accounts` (rekening di atas akun kas/bank, kas kecil berplafon), `cash_transactions` + `cash_transaction_lines` (penerimaan/pengeluaran/transfer, status baku, persetujuan `cash_out`/`cash_transfer`), `CashBankAccountService`, `CashTransactionService`.
+- Rekonsiliasi: `bank_statements` + `bank_statement_lines` (cocok ke `journal_lines`, unik), `BankReconciliationService` (impor, cocok otomatis/manual, catat, laporan, kunci).
+- Piutang/hutang: `invoices` + `invoice_lines` (faktur manual dan faktur saldo awal), `settlements` + `settlement_allocations` (pelunasan gabungan, uang muka, nota kredit/debit, giro), `payments.settlement_id`, `sales.due_date`, `credited_amount` di penjualan/pembelian, termin pembayaran pelanggan/supplier. `InvoiceService`, `SettlementService`, `OpenDocuments`, `PartyLedgerService` (umur, kartu, jadwal), perintah `keuangan:pengingat-jatuh-tempo` dan `keuangan:faktur-saldo-awal`.
+- Jurnal otomatis baru: faktur manual, pelunasan/nota, pencairan giro, beserta pembatalannya (event `InvoicePosted`, `InvoiceCancelled`, `SettlementPosted`, `SettlementCancelled`, `GiroCleared`). 6 akun standar baru (1-1150, 1-1360, 2-1150, 2-1500, 4-1300, 5-1500) dan 7 peran pemetaan baru.
+- 14 izin baru: `pos.invoices.*` (4), `purchasing.bills.*` (4), `accounting.reconciliation.*` (3), `pos.receivables.void`, `purchasing.payables.void`, `accounting.cash-bank.void`; `accounting.cash-bank.*` tidak lagi "planned".
+- Seluruh suite 802/802 lulus.
+
 ### Urutan dan ketergantungan
 ```
 0.5 Persiapan → 1 Fondasi UI → 2 Layout & Menu → 3 Hak Akses → 4 Pengaturan & Dashboard

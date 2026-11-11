@@ -19,7 +19,7 @@ class Payment extends Model
 
     private const KOLOM_VOID = ['voided_at', 'voided_by', 'void_reason', 'updated_at'];
 
-    protected $fillable = ['number', 'payable_type', 'payable_id', 'amount', 'method', 'paid_at', 'note', 'user_id', 'cash_session_id'];
+    protected $fillable = ['number', 'payable_type', 'payable_id', 'amount', 'method', 'paid_at', 'note', 'user_id', 'cash_session_id', 'settlement_id'];
 
     protected function casts(): array
     {
@@ -52,6 +52,12 @@ class Payment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class)->withTrashed();
+    }
+
+    /** Pelunasan gabungan yang membuat pembayaran ini (bila ada); jurnalnya ikut pelunasan itu. */
+    public function settlement(): BelongsTo
+    {
+        return $this->belongsTo(Settlement::class)->withTrashed();
     }
 
     public function cashSession(): BelongsTo

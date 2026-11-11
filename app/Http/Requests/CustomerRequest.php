@@ -19,6 +19,7 @@ class CustomerRequest extends FormRequest
             'email' => ['nullable', 'email', 'max:255'],
             'address' => ['nullable', 'string', 'max:1000'],
             'note' => ['nullable', 'string', 'max:1000'],
+            'payment_terms_days' => ['nullable', 'integer', 'min:0', 'max:365'],
         ];
     }
 
@@ -30,6 +31,7 @@ class CustomerRequest extends FormRequest
             'email' => 'email',
             'address' => 'alamat',
             'note' => 'catatan',
+            'payment_terms_days' => 'termin pembayaran',
         ];
     }
 

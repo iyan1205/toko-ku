@@ -16,7 +16,7 @@ class Customer extends Model
     public const KODE_UMUM = 'UMUM';
 
     /** `receivable_balance` tidak fillable: hanya diubah modul piutang (Tahap 7). */
-    protected $fillable = ['code', 'name', 'phone', 'email', 'address', 'note', 'is_default'];
+    protected $fillable = ['code', 'name', 'phone', 'email', 'address', 'note', 'is_default', 'payment_terms_days'];
 
     protected function casts(): array
     {

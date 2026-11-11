@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\CashBankAccount;
+use App\Models\CashTransaction;
 use App\Models\GoodsReceipt;
+use App\Models\Invoice;
 use App\Models\Journal;
 use App\Models\OpeningBalance;
 use App\Models\Payment;
@@ -12,6 +15,7 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseReturn;
 use App\Models\Sale;
 use App\Models\SaleReturn;
+use App\Models\Settlement;
 use App\Models\StockMovement;
 use App\Models\StockOpname;
 use App\Models\StockTransfer;
@@ -66,6 +70,10 @@ class AppServiceProvider extends ServiceProvider
             'journal' => Journal::class,
             'opening_balance' => OpeningBalance::class,
             'stock_movement' => StockMovement::class,
+            'cash_bank_account' => CashBankAccount::class,
+            'cash_transaction' => CashTransaction::class,
+            'invoice' => Invoice::class,
+            'settlement' => Settlement::class,
         ]);
 
         // Tanda hidup queue worker untuk Pengaturan → Sistem dan ekspor besar (lihat QueueHealth).

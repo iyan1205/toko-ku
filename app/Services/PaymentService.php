@@ -11,15 +11,18 @@ use App\Events\SupplierPaymentRecorded;
 use App\Exceptions\AturanBisnisException;
 use App\Models\CashSession;
 use App\Models\Customer;
+use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Purchase;
 use App\Models\Sale;
 use App\Models\SaleReturn;
+use App\Models\Settlement;
 use App\Models\User;
 use App\Services\Accounting\FiscalPeriodService;
 use App\Services\Settings\DocumentNumberService;
 use App\Support\Format;
 use App\Support\Uang;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -40,6 +43,7 @@ class PaymentService
         User $user,
         ?string $tanggal = null,
         bool $atCheckout = false,
+        ?Settlement $settlement = null,
     ): Payment {
         if ($sen <= 0) {
             throw new AturanBisnisException('Jumlah pembayaran harus lebih dari nol.');
@@ -51,7 +55,7 @@ class PaymentService
 
         app(FiscalPeriodService::class)->ensureOpen($tanggal ?? now());
 
-        return DB::transaction(function () use ($pembelian, $sen, $metode, $catatan, $user, $tanggal, $atCheckout) {
+        return DB::transaction(function () use ($pembelian, $sen, $metode, $catatan, $user, $tanggal, $atCheckout, $settlement) {
             // Kunci pembelian: dua pembayaran bersamaan tidak boleh sama-sama lolos dari batas sisa hutang.
             $terkunci = Purchase::whereKey($pembelian->getKey())->lockForUpdate()->firstOrFail();
 
@@ -78,6 +82,7 @@ class PaymentService
                 'paid_at' => $tanggal,
                 'note' => $catatan,
                 'user_id' => $user->getKey(),
+                'settlement_id' => $settlement?->getKey(),
             ]);
 
             $dibayar = Uang::sen($terkunci->paid_amount) + $sen;
@@ -114,6 +119,7 @@ class PaymentService
         ?string $tanggal = null,
         ?CashSession $session = null,
         bool $atCheckout = false,
+        ?Settlement $settlement = null,
     ): Payment {
         if ($sen <= 0) {
             throw new AturanBisnisException('Jumlah pembayaran harus lebih dari nol.');
@@ -125,7 +131,7 @@ class PaymentService
 
         app(FiscalPeriodService::class)->ensureOpen($tanggal ?? now());
 
-        return DB::transaction(function () use ($penjualan, $sen, $metode, $catatan, $user, $tanggal, $session, $atCheckout) {
+        return DB::transaction(function () use ($penjualan, $sen, $metode, $catatan, $user, $tanggal, $session, $atCheckout, $settlement) {
             $terkunci = Sale::whereKey($penjualan->getKey())->lockForUpdate()->firstOrFail();
 
             if ($terkunci->status !== PurchaseStatus::Completed) {
@@ -152,6 +158,7 @@ class PaymentService
                 'note' => $catatan,
                 'user_id' => $user->getKey(),
                 'cash_session_id' => $session?->getKey(),
+                'settlement_id' => $settlement?->getKey(),
             ]);
 
             $dibayar = Uang::sen($terkunci->paid_amount) + $sen;
@@ -174,6 +181,107 @@ class PaymentService
 
             return $pembayaran;
         });
+    }
+
+    /**
+     * Pembayaran faktur manual (faktur penjualan atau tagihan pembelian), selalu lewat Pelunasan:
+     * jurnalnya dibuat untuk pelunasan itu, jadi tidak ada event per pembayaran.
+     *
+     * @param  int  $sen  jumlah untuk faktur ini
+     */
+    public function bayarFaktur(Invoice $faktur, int $sen, PaymentMethod $metode, ?string $catatan, User $user, string $tanggal, ?Settlement $settlement = null): Payment
+    {
+        if ($sen <= 0) {
+            throw new AturanBisnisException('Jumlah pembayaran harus lebih dari nol.');
+        }
+
+        app(FiscalPeriodService::class)->ensureOpen($tanggal);
+
+        return DB::transaction(function () use ($faktur, $sen, $metode, $catatan, $user, $tanggal, $settlement) {
+            $terkunci = Invoice::withoutGlobalScopes()->whereKey($faktur->getKey())->lockForUpdate()->firstOrFail();
+
+            if (! $terkunci->isPosted()) {
+                throw new AturanBisnisException("{$terkunci->documentLabel()} berstatus {$terkunci->documentStatus()->label()} dan tidak bisa dibayar.");
+            }
+
+            $sisa = Uang::sen($terkunci->balance);
+            if ($sen > $sisa) {
+                throw new AturanBisnisException("Pembayaran melebihi sisa {$terkunci->number}. Sisa ".Format::rupiah(Uang::keDesimal($sisa)).'.');
+            }
+
+            $pembayaran = Payment::create([
+                'number' => $this->numbers->next($terkunci->isSales() ? DocumentType::CustomerPayment : DocumentType::SupplierPayment, $tanggal),
+                'payable_type' => $terkunci->getMorphClass(),
+                'payable_id' => $terkunci->getKey(),
+                'amount' => Uang::keDesimal($sen),
+                'method' => $metode,
+                'paid_at' => $tanggal,
+                'note' => $catatan,
+                'user_id' => $user->getKey(),
+                'settlement_id' => $settlement?->getKey(),
+            ]);
+
+            $dibayar = Uang::sen($terkunci->paid_amount) + $sen;
+            $sisaBaru = $sisa - $sen;
+            $terkunci->forceFill([
+                'paid_amount' => Uang::keDesimal($dibayar),
+                'balance' => Uang::keDesimal($sisaBaru),
+                'payment_status' => PaymentStatus::dari($dibayar + Uang::sen($terkunci->credited_amount), $sisaBaru),
+            ])->save();
+
+            if ($terkunci->isSales()) {
+                $this->ubahPiutangPelanggan($terkunci->customer_id, -$sen);
+            }
+
+            $faktur->setRawAttributes($terkunci->getAttributes(), true);
+
+            return $pembayaran;
+        });
+    }
+
+    /**
+     * Batalkan satu pembayaran (pelunasan dibatalkan atau giro ditolak): sisa dokumennya kembali,
+     * begitu juga saldo piutang pelanggan. Baris payments tidak dihapus, hanya ditandai batal.
+     */
+    public function batalkanPembayaran(Payment $pembayaran, User $user, string $alasan): void
+    {
+        DB::transaction(function () use ($pembayaran, $user, $alasan) {
+            $terkunci = Payment::withoutGlobalScopes()->whereKey($pembayaran->getKey())->lockForUpdate()->firstOrFail();
+            if ($terkunci->dibatalkan()) {
+                return;
+            }
+
+            $class = Relation::getMorphedModel($terkunci->payable_type) ?? $terkunci->payable_type;
+            $dokumen = $class::withoutGlobalScopes()->whereKey($terkunci->payable_id)->lockForUpdate()->firstOrFail();
+            $sen = Uang::sen($terkunci->amount);
+
+            $dibayar = max(0, Uang::sen($dokumen->paid_amount) - $sen);
+            $sisaBaru = Uang::sen($dokumen->balance) + $sen;
+            $dokumen->forceFill([
+                'paid_amount' => Uang::keDesimal($dibayar),
+                'balance' => Uang::keDesimal($sisaBaru),
+                'payment_status' => PaymentStatus::dari($dibayar + Uang::sen($dokumen->credited_amount ?? 0), $sisaBaru),
+            ])->save();
+
+            $piutang = ($dokumen instanceof Sale && $dokumen->payment_method === PaymentMethod::Receivable)
+                || ($dokumen instanceof Invoice && $dokumen->isSales());
+            if ($piutang) {
+                $this->ubahPiutangPelanggan($dokumen->customer_id, $sen);
+            }
+
+            $terkunci->forceFill(['voided_at' => now(), 'voided_by' => $user->getKey(), 'void_reason' => mb_substr($alasan, 0, 255)])->save();
+        });
+    }
+
+    /** Tambah (sen > 0) atau kurangi saldo piutang pelanggan. */
+    public function ubahPiutangPelanggan(?int $customerId, int $sen): void
+    {
+        if ($customerId === null || $sen === 0) {
+            return;
+        }
+
+        $pelanggan = Customer::withTrashed()->whereKey($customerId)->lockForUpdate()->firstOrFail();
+        $pelanggan->forceFill(['receivable_balance' => Uang::keDesimal(Uang::sen($pelanggan->receivable_balance) + $sen)])->save();
     }
 
     /**

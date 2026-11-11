@@ -9,8 +9,12 @@
 */
 
 use App\Http\Controllers\Accounting\AccountController;
+use App\Http\Controllers\Accounting\BankReconciliationController;
+use App\Http\Controllers\Accounting\CashBankAccountController;
+use App\Http\Controllers\Accounting\CashTransactionController;
 use App\Http\Controllers\Accounting\CostCenterController;
 use App\Http\Controllers\Accounting\FiscalPeriodController;
+use App\Http\Controllers\Accounting\GiroController;
 use App\Http\Controllers\Accounting\JournalController;
 use App\Http\Controllers\Accounting\LedgerController;
 use App\Http\Controllers\Accounting\OpeningBalanceController;
@@ -94,6 +98,51 @@ Route::prefix('akuntansi')->group(function () {
         ->middlewareFor(['create', 'store'], 'permission:accounting.cost-centers.create')
         ->middlewareFor(['edit', 'update'], 'permission:accounting.cost-centers.update')
         ->middlewareFor('destroy', 'permission:accounting.cost-centers.delete');
+
+    // ---- Kas & bank: rekening, transaksi kas, rekonsiliasi bank, giro (Fase 10). ----
+    Route::prefix('kas-bank')->group(function () {
+        Route::get('rekening', [CashBankAccountController::class, 'index'])->middleware('permission:accounting.cash-bank.view')->name('cash-bank-accounts.index');
+        Route::middleware('permission:accounting.cash-bank.update')->name('cash-bank-accounts.')->group(function () {
+            Route::get('rekening/buat', [CashBankAccountController::class, 'create'])->name('create');
+            Route::post('rekening', [CashBankAccountController::class, 'store'])->name('store');
+            Route::get('rekening/{cashBankAccount}/ubah', [CashBankAccountController::class, 'edit'])->whereNumber('cashBankAccount')->name('edit');
+            Route::put('rekening/{cashBankAccount}', [CashBankAccountController::class, 'update'])->whereNumber('cashBankAccount')->name('update');
+        });
+
+        Route::get('transaksi', [CashTransactionController::class, 'index'])->middleware('permission:accounting.cash-bank.view')->name('cash-transactions.index');
+        Route::get('transaksi/ekspor', [CashTransactionController::class, 'export'])->middleware('permission:accounting.cash-bank.export')->name('cash-transactions.export');
+        Route::middleware('permission:accounting.cash-bank.create')->name('cash-transactions.')->group(function () {
+            Route::get('transaksi/buat/{jenis}', [CashTransactionController::class, 'create'])->whereIn('jenis', ['masuk', 'keluar', 'transfer'])->name('create');
+            Route::post('transaksi/{jenis}', [CashTransactionController::class, 'store'])->whereIn('jenis', ['masuk', 'keluar', 'transfer'])->name('store');
+            Route::get('transaksi/{cashTransaction}/ubah', [CashTransactionController::class, 'edit'])->whereNumber('cashTransaction')->name('edit');
+            Route::put('transaksi/{cashTransaction}', [CashTransactionController::class, 'update'])->whereNumber('cashTransaction')->name('update');
+            Route::post('transaksi/{cashTransaction}/posting', [CashTransactionController::class, 'post'])->whereNumber('cashTransaction')->name('post');
+        });
+        Route::get('transaksi/{cashTransaction}', [CashTransactionController::class, 'show'])->whereNumber('cashTransaction')->middleware('permission:accounting.cash-bank.view')->name('cash-transactions.show');
+        Route::post('transaksi/{cashTransaction}/batal', [CashTransactionController::class, 'cancel'])->whereNumber('cashTransaction')
+            ->middleware('permission:accounting.cash-bank.create|accounting.cash-bank.void')->name('cash-transactions.cancel');
+
+        Route::get('rekonsiliasi', [BankReconciliationController::class, 'index'])->middleware('permission:accounting.reconciliation.view')->name('bank-reconciliations.index');
+        Route::get('rekonsiliasi/templat', [BankReconciliationController::class, 'template'])->middleware('permission:accounting.reconciliation.view')->name('bank-reconciliations.template');
+        Route::post('rekonsiliasi', [BankReconciliationController::class, 'store'])->middleware('permission:accounting.reconciliation.create')->name('bank-reconciliations.store');
+        Route::prefix('rekonsiliasi/{bankStatement}')->whereNumber('bankStatement')->name('bank-reconciliations.')->group(function () {
+            Route::get('/', [BankReconciliationController::class, 'show'])->middleware('permission:accounting.reconciliation.view')->name('show');
+            Route::get('laporan', [BankReconciliationController::class, 'report'])->middleware('permission:accounting.reconciliation.view')->name('report');
+            Route::middleware('permission:accounting.reconciliation.create')->group(function () {
+                Route::post('cocokkan-otomatis', [BankReconciliationController::class, 'autoMatch'])->name('auto-match');
+                Route::post('mutasi/{line}/cocokkan', [BankReconciliationController::class, 'match'])->whereNumber('line')->name('match');
+                Route::delete('mutasi/{line}/cocokkan', [BankReconciliationController::class, 'unmatch'])->whereNumber('line')->name('unmatch');
+                Route::post('mutasi/{line}/catat', [BankReconciliationController::class, 'record'])->whereNumber('line')->name('record');
+                Route::delete('/', [BankReconciliationController::class, 'destroy'])->name('destroy');
+            });
+            Route::post('kunci', [BankReconciliationController::class, 'finalize'])->middleware('permission:accounting.reconciliation.approve')->name('finalize');
+        });
+
+        // Giro: izin mengikuti sisi pelunasannya (piutang/hutang), diperiksa di controller.
+        Route::get('giro', [GiroController::class, 'index'])->middleware('permission:pos.receivables.view|purchasing.payables.view')->name('giros.index');
+        Route::post('giro/{settlement}/cair', [GiroController::class, 'clear'])->whereNumber('settlement')->middleware('permission:pos.receivables.create|purchasing.payables.create')->name('giros.clear');
+        Route::post('giro/{settlement}/tolak', [GiroController::class, 'bounce'])->whereNumber('settlement')->middleware('permission:pos.receivables.void|purchasing.payables.void')->name('giros.bounce');
+    });
 
     // ---- Kunci periode: tutup / buka kembali per bulan. ----
     Route::get('kunci-periode', [FiscalPeriodController::class, 'index'])->middleware('permission:accounting.periods.view')->name('fiscal-periods.index');

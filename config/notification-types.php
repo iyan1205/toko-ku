@@ -22,6 +22,12 @@ return [
         'database' => true,
         'mail' => true,
     ],
+    'finance.due' => [
+        'label' => 'Piutang & hutang jatuh tempo',
+        'description' => 'Ringkasan harian tagihan yang jatuh tempo dalam beberapa hari atau sudah lewat.',
+        'database' => true,
+        'mail' => true,
+    ],
     'export.ready' => [
         'label' => 'Ekspor selesai',
         'description' => 'File ekspor data besar siap diunduh, atau gagal dibuat.',

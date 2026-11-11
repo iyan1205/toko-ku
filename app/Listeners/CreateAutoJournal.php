@@ -3,12 +3,17 @@
 namespace App\Listeners;
 
 use App\Events\CustomerPaymentRecorded;
+use App\Events\GiroCleared;
 use App\Events\GoodsReceived;
+use App\Events\InvoiceCancelled;
+use App\Events\InvoicePosted;
 use App\Events\PurchaseReturned;
 use App\Events\PurchaseVoided;
 use App\Events\SaleCompleted;
 use App\Events\SaleReturned;
 use App\Events\SaleVoided;
+use App\Events\SettlementCancelled;
+use App\Events\SettlementPosted;
 use App\Events\StockAdjusted;
 use App\Events\StockOpnameFinalized;
 use App\Events\StockTransferred;
@@ -80,6 +85,31 @@ class CreateAutoJournal
     public function handleStockTransferVoided(StockTransferVoided $event): void
     {
         $this->run("pembatalan transfer stok {$event->transfer->number}", fn () => $this->auto->forStockTransferVoid($event->transfer));
+    }
+
+    public function handleInvoicePosted(InvoicePosted $event): void
+    {
+        $this->run("faktur {$event->invoice->number}", fn () => $this->auto->forInvoice($event->invoice));
+    }
+
+    public function handleInvoiceCancelled(InvoiceCancelled $event): void
+    {
+        $this->run("pembatalan faktur {$event->invoice->number}", fn () => $this->auto->forInvoiceCancel($event->invoice, $event->user));
+    }
+
+    public function handleSettlementPosted(SettlementPosted $event): void
+    {
+        $this->run("pelunasan {$event->settlement->number}", fn () => $this->auto->forSettlement($event->settlement));
+    }
+
+    public function handleSettlementCancelled(SettlementCancelled $event): void
+    {
+        $this->run("pembatalan pelunasan {$event->settlement->number}", fn () => $this->auto->forSettlementCancel($event->settlement, $event->user));
+    }
+
+    public function handleGiroCleared(GiroCleared $event): void
+    {
+        $this->run("pencairan giro {$event->settlement->giro_number}", fn () => $this->auto->forGiroCleared($event->settlement, $event->user));
     }
 
     public function handleCustomerPaymentRecorded(CustomerPaymentRecorded $event): void

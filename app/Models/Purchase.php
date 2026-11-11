@@ -45,6 +45,7 @@ class Purchase extends Model
             'grand_total' => 'decimal:2',
             'paid_amount' => 'decimal:2',
             'returned_amount' => 'decimal:2',
+            'credited_amount' => 'decimal:2',
             'balance' => 'decimal:2',
             'payment_status' => PaymentStatus::class,
             'status' => PurchaseStatus::class,

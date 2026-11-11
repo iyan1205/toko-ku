@@ -26,6 +26,8 @@
         <x-ui.form-section title="Alamat & catatan">
             <x-ui.textarea name="address" label="Alamat" :value="$supplier->address" rows="2" maxlength="1000" />
             <x-ui.textarea name="note" label="Catatan" :value="$supplier->note" rows="2" maxlength="1000" hint="Misal jadwal kirim atau syarat pembayaran." />
+            <x-ui.input name="payment_terms_days" label="Termin pembayaran (hari)" type="number" min="0" max="365" :value="$supplier->payment_terms_days" class="sm:max-w-xs"
+                        hint="Jatuh tempo bawaan tagihan pembelian manual. Kosong = 30 hari." />
 
             <x-slot:footer>
                 <x-ui.button :href="$edit ? route('suppliers.show', $supplier) : route('suppliers.index')" variant="secondary">Batal</x-ui.button>

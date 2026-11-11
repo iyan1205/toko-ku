@@ -14,10 +14,14 @@
 
 <x-app-layout>
     <x-slot name="header">Piutang Pelanggan</x-slot>
-    <x-slot name="description">Penjualan yang belum lunas. Pelunasan bisa dicicil.</x-slot>
+    <x-slot name="description">Penjualan kasir yang belum lunas. Pelunasan bisa dicicil. Faktur manual dan piutang saldo awal ada di Faktur Penjualan; semuanya bisa dilunasi sekaligus lewat Pelunasan Piutang.</x-slot>
     <x-slot name="actions">
         @can('pos.receivables.export')
             <x-ui.export-menu :href="route('receivables.export')" />
+        @endcan
+        <x-ui.button variant="secondary" icon="chart-bar" :href="route('receivable-reports.aging')">Umur &amp; kartu</x-ui.button>
+        @can('pos.receivables.create')
+            <x-ui.button icon="banknotes" :href="route('receivable-settlements.create')">Pelunasan gabungan</x-ui.button>
         @endcan
     </x-slot>
 

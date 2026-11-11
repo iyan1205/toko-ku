@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\CashTransaction;
 use App\Models\Journal;
 use App\Models\PurchaseOrder;
 
@@ -24,6 +25,16 @@ return [
         'journal' => [
             'label' => 'Jurnal umum (manual)',
             'model' => Journal::class,
+            'fields' => ['total' => 'Total'],
+        ],
+        'cash_out' => [
+            'label' => 'Pengeluaran kas',
+            'model' => CashTransaction::class,
+            'fields' => ['total' => 'Total'],
+        ],
+        'cash_transfer' => [
+            'label' => 'Transfer antar rekening',
+            'model' => CashTransaction::class,
             'fields' => ['total' => 'Total'],
         ],
     ],

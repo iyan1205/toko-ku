@@ -12,6 +12,7 @@ use App\Models\Scopes\BranchScope;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Services\Receivables\InvoiceService;
 use App\Support\CurrentBranch;
 use App\Support\Uang;
 use Carbon\CarbonImmutable;
@@ -31,6 +32,8 @@ use Illuminate\Validation\ValidationException;
  * Posting membuat satu jurnal bertanggal balance_date; selisih debit-kredit masuk Ekuitas Saldo
  * Awal. Saldo awal posted tidak diubah: batalkan (jurnalnya dibalik di tanggal yang sama) lalu buat
  * yang baru. Nilai persediaan di sini tidak mengubah jumlah stok (stok diatur di Inventori).
+ * Setiap baris piutang/hutang menjadi faktur saldo awal (Invoice kind opening) yang bisa dilunasi;
+ * saldo awal yang fakturnya sudah dilunasi tidak bisa dibatalkan.
  */
 class OpeningBalanceService
 {
@@ -108,6 +111,8 @@ class OpeningBalanceService
                 attributes: ['branch_id' => $locked->branch_id],
             );
             $locked->moveToStatus(DocumentStatus::Posted, $user);
+            // Piutang/hutang per pihak menjadi faktur saldo awal agar bisa dilunasi dan masuk umur piutang/hutang.
+            app(InvoiceService::class)->createOpeningInvoices($locked, $user);
 
             activity('akuntansi')->performedOn($locked)->causedBy($user)->event('posted')
                 ->withProperties(['total' => $locked->total])
@@ -134,6 +139,7 @@ class OpeningBalanceService
             }
 
             if ($status === DocumentStatus::Posted) {
+                app(InvoiceService::class)->cancelOpeningInvoices($locked, $user, $reason);
                 $journal = $this->journals->find($locked, 'posted');
                 if ($journal !== null && ! $journal->reversal()->exists()) {
                     $this->journals->reverse($journal, "Pembatalan saldo awal {$locked->number}: {$reason}", $user, $locked, 'voided', $locked->balance_date);

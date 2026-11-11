@@ -117,6 +117,10 @@ class SaleService
                 'balance' => Uang::keDesimal($h['total']),
                 'payment_status' => PaymentStatus::dari(0, $h['total']),
                 'status' => PurchaseStatus::Completed,
+                // Penjualan piutang jatuh tempo sesuai termin pelanggan (bawaan Pengaturan: 30 hari).
+                'due_date' => $h['metode'] === PaymentMethod::Receivable
+                    ? $sekarang->copy()->addDays((int) ($h['pelanggan']->payment_terms_days ?? setting('receivables.terms_days', 30)))->toDateString()
+                    : null,
             ])->save();
 
             $ids = array_keys($h['baris']);
@@ -211,6 +215,10 @@ class SaleService
                 throw new AturanBisnisException(
                     "Penjualan {$terkunci->number} sudah menerima pelunasan piutang susulan, sehingga tidak dapat dibatalkan. Gunakan Retur Penjualan."
                 );
+            }
+
+            if (Uang::sen($terkunci->credited_amount) > 0) {
+                throw new AturanBisnisException("Penjualan {$terkunci->number} sudah dikurangi nota kredit. Batalkan nota kreditnya dulu.");
             }
 
             if ($terkunci->returns()->exists()) {

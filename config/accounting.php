@@ -40,6 +40,14 @@ return [
         'inventory_variance' => ['group' => 'Pembelian & persediaan', 'label' => 'Selisih persediaan (opname & penyesuaian stok)', 'default' => '5-2000', 'types' => ['cogs', 'expense']],
         'interbranch' => ['group' => 'Pembelian & persediaan', 'label' => 'Rekening antar cabang (transfer stok antar cabang)', 'default' => '1-1700', 'types' => ['asset', 'liability']],
 
+        'customer_deposit' => ['group' => 'Piutang & hutang', 'label' => 'Uang muka pelanggan', 'default' => '2-1500', 'types' => ['liability'], 'hint' => 'Uang dari pelanggan yang belum dipakai melunasi faktur.'],
+        'supplier_deposit' => ['group' => 'Piutang & hutang', 'label' => 'Uang muka pembelian (ke supplier)', 'default' => '1-1360', 'types' => ['asset']],
+        'credit_note' => ['group' => 'Piutang & hutang', 'label' => 'Nota kredit (bawaan)', 'default' => '4-1300', 'types' => ['revenue', 'expense'], 'hint' => 'Akun bawaan saat membuat nota kredit; bisa diganti per nota.'],
+        'debit_note' => ['group' => 'Piutang & hutang', 'label' => 'Nota debit (bawaan)', 'default' => '5-1500', 'types' => ['cogs', 'expense', 'revenue', 'asset'], 'hint' => 'Akun bawaan saat membuat nota debit; bisa diganti per nota.'],
+        'giro_receivable' => ['group' => 'Piutang & hutang', 'label' => 'Giro/cek diterima (belum cair)', 'default' => '1-1150', 'types' => ['asset']],
+        'giro_payable' => ['group' => 'Piutang & hutang', 'label' => 'Giro/cek dikeluarkan (belum cair)', 'default' => '2-1150', 'types' => ['liability']],
+        'bank_fee' => ['group' => 'Kas & bank', 'label' => 'Biaya administrasi bank', 'default' => '6-1600', 'types' => ['expense'], 'hint' => 'Bawaan untuk biaya transfer dan potongan bank di rekonsiliasi.'],
+
         'salary_expense' => ['group' => 'SDM', 'label' => 'Beban gaji & upah', 'default' => '6-1000', 'types' => ['expense'], 'hint' => 'Dipakai modul Penggajian.'],
         'salary_payable' => ['group' => 'SDM', 'label' => 'Hutang gaji', 'default' => '2-1300', 'types' => ['liability'], 'hint' => 'Dipakai modul Penggajian.'],
 

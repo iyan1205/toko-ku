@@ -13,10 +13,14 @@
 
 <x-app-layout>
     <x-slot name="header">Hutang Supplier</x-slot>
-    <x-slot name="description">Faktur pembelian yang belum lunas. Pembayaran bisa dicicil.</x-slot>
+    <x-slot name="description">Faktur pembelian yang belum lunas. Pembayaran bisa dicicil. Tagihan manual dan hutang saldo awal ada di Tagihan Pembelian; semuanya bisa dibayar sekaligus lewat Pembayaran Hutang.</x-slot>
     <x-slot name="actions">
         @can('purchasing.payables.export')
             <x-ui.export-menu :href="route('payables.export')" />
+        @endcan
+        <x-ui.button variant="secondary" icon="calendar-days" :href="route('payable-reports.schedule')">Jadwal &amp; umur</x-ui.button>
+        @can('purchasing.payables.create')
+            <x-ui.button icon="banknotes" :href="route('payable-settlements.create')">Pembayaran gabungan</x-ui.button>
         @endcan
     </x-slot>
 

@@ -2,12 +2,15 @@
 
 namespace App\Support;
 
+use App\Models\CashTransaction;
 use App\Models\GoodsReceipt;
+use App\Models\Invoice;
 use App\Models\OpeningBalance;
 use App\Models\Purchase;
 use App\Models\PurchaseReturn;
 use App\Models\Sale;
 use App\Models\SaleReturn;
+use App\Models\Settlement;
 use App\Models\StockMovement;
 use App\Models\StockOpname;
 use App\Models\StockTransfer;
@@ -44,6 +47,17 @@ final class DocumentLink
 
     public static function url(?Model $reference, ?User $user): ?string
     {
+        // Dokumen Fase 10: rutenya bergantung jenis (faktur penjualan/tagihan, pelunasan piutang/hutang).
+        if ($reference instanceof Invoice) {
+            return $user?->can($reference->type->permission('view')) ? route($reference->type->routePrefix().'.show', $reference) : null;
+        }
+        if ($reference instanceof Settlement) {
+            return $user?->can($reference->type->permission('view')) ? route($reference->type->routePrefix().'.show', $reference) : null;
+        }
+        if ($reference instanceof CashTransaction) {
+            return $user?->can('accounting.cash-bank.view') ? route('cash-transactions.show', $reference) : null;
+        }
+
         // Penyesuaian stok manual tidak punya dokumen: buka kartu stok produk di gudangnya.
         if ($reference instanceof StockMovement) {
             return $user?->can('inventory.stock-card.view')

@@ -23,5 +23,9 @@ return [
         'purchase' => ['label' => 'Faktur pembelian', 'view' => 'purchasing.invoices.view', 'update' => 'purchasing.invoices.create'],
         'goods_receipt' => ['label' => 'Penerimaan barang', 'view' => 'purchasing.receipts.view', 'update' => 'purchasing.receipts.create'],
         'journal' => ['label' => 'Jurnal', 'view' => 'accounting.journals.view', 'update' => 'accounting.journals.create'],
+        'cash_transaction' => ['label' => 'Transaksi kas', 'view' => 'accounting.cash-bank.view', 'update' => 'accounting.cash-bank.create'],
+        // Faktur manual dan pelunasan: izin mengikuti sisinya (piutang/hutang), lihat attachmentPermission() di modelnya.
+        'invoice' => ['label' => 'Faktur manual'],
+        'settlement' => ['label' => 'Pelunasan'],
     ],
 ];

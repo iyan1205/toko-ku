@@ -51,7 +51,9 @@ return [
                 'sessions' => ['label' => 'Sesi/shift kasir', 'actions' => ['view', 'create', 'approve', 'export']],
                 'returns' => ['label' => 'Retur penjualan', 'actions' => ['view', 'create', 'approve', 'export']],
                 'customers' => ['label' => 'Pelanggan', 'actions' => ['view', 'create', 'update', 'delete', 'import', 'export']],
-                'receivables' => ['label' => 'Piutang pelanggan', 'actions' => ['view', 'create', 'export']],
+                // Piutang: create = terima pelunasan, uang muka, nota kredit; void = batalkan pelunasan/tolak giro.
+                'receivables' => ['label' => 'Piutang pelanggan', 'actions' => ['view', 'create', 'void', 'export']],
+                'invoices' => ['label' => 'Faktur penjualan (manual, non-stok)', 'actions' => ['view', 'create', 'void', 'export']],
             ],
         ],
 
@@ -78,8 +80,9 @@ return [
                 'orders' => ['label' => 'Purchase order', 'actions' => ['view', 'create', 'update', 'delete', 'approve', 'print', 'export']],
                 'invoices' => ['label' => 'Faktur pembelian', 'actions' => ['view', 'create', 'void', 'export']],
                 'receipts' => ['label' => 'Penerimaan barang', 'actions' => ['view', 'create', 'void', 'export']],
+                'bills' => ['label' => 'Tagihan pembelian (manual, non-stok)', 'actions' => ['view', 'create', 'void', 'export']],
                 'returns' => ['label' => 'Retur pembelian', 'actions' => ['view', 'create', 'delete', 'approve', 'export']],
-                'payables' => ['label' => 'Hutang supplier', 'actions' => ['view', 'create', 'export']],
+                'payables' => ['label' => 'Hutang supplier', 'actions' => ['view', 'create', 'void', 'export']],
             ],
         ],
 
@@ -97,7 +100,10 @@ return [
                 'ledger' => ['label' => 'Buku besar', 'actions' => ['view', 'export']],
                 'trial-balance' => ['label' => 'Neraca saldo', 'actions' => ['view', 'export']],
                 'cost-centers' => ['label' => 'Cost center / departemen', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
-                'cash-bank' => ['label' => 'Kas & bank', 'actions' => ['view', 'create', 'update', 'export'], 'planned' => true],
+                // Kas & bank: create = transaksi kas, update = kelola rekening, void = batalkan transaksi yang sudah diposting.
+                'cash-bank' => ['label' => 'Kas & bank', 'actions' => ['view', 'create', 'update', 'void', 'export']],
+                // Rekonsiliasi: create = impor rekening koran dan mencocokkan, approve = mengunci rekonsiliasi.
+                'reconciliation' => ['label' => 'Rekonsiliasi bank', 'actions' => ['view', 'create', 'approve']],
                 'reports' => ['label' => 'Laporan keuangan', 'actions' => ['view', 'export'], 'planned' => true],
                 'closing' => ['label' => 'Tutup buku', 'actions' => ['view', 'approve'], 'planned' => true],
             ],

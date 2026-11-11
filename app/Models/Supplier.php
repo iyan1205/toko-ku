@@ -14,7 +14,7 @@ class Supplier extends Model
     use HasFactory, RecordsActivity, SoftDeletes;
 
     /** `code` dibuat otomatis oleh SupplierService, tidak diisi dari formulir. */
-    protected $fillable = ['code', 'name', 'contact_name', 'phone', 'email', 'address', 'npwp', 'note'];
+    protected $fillable = ['code', 'name', 'contact_name', 'phone', 'email', 'address', 'npwp', 'note', 'payment_terms_days'];
 
     public function purchases(): HasMany
     {

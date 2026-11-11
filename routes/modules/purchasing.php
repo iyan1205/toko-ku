@@ -10,6 +10,9 @@
 | ditulis di atas route ber-parameter agar tidak tertangkap sebagai {id}.
 */
 
+use App\Http\Controllers\Accounting\InvoiceController;
+use App\Http\Controllers\Accounting\PartyLedgerController;
+use App\Http\Controllers\Accounting\SettlementController;
 use App\Http\Controllers\Inventory\ProductLookupController;
 use App\Http\Controllers\Purchasing\GoodsReceiptController;
 use App\Http\Controllers\Purchasing\PayableController;
@@ -94,3 +97,33 @@ Route::get('hutang-supplier/ekspor', [PayableController::class, 'export'])->midd
 Route::get('hutang-supplier', [PayableController::class, 'index'])->middleware('permission:purchasing.payables.view')->name('payables.index');
 Route::post('pembelian/{purchase}/bayar', [PayableController::class, 'store'])
     ->whereNumber('purchase')->middleware('permission:purchasing.payables.create')->name('payables.store');
+
+// ---------------- Hutang: tagihan pembelian manual, pembayaran gabungan, umur, kartu & jadwal (Fase 10) ----------------
+Route::prefix('tagihan-pembelian')->name('purchase-bills.')->group(function () {
+    Route::get('/', [InvoiceController::class, 'index'])->middleware('permission:purchasing.bills.view')->name('index');
+    Route::get('ekspor', [InvoiceController::class, 'export'])->middleware('permission:purchasing.bills.export')->name('export');
+    Route::middleware('permission:purchasing.bills.create')->group(function () {
+        Route::get('buat', [InvoiceController::class, 'create'])->name('create');
+        Route::post('/', [InvoiceController::class, 'store'])->name('store');
+        Route::get('{invoice}/ubah', [InvoiceController::class, 'edit'])->whereNumber('invoice')->name('edit');
+        Route::put('{invoice}', [InvoiceController::class, 'update'])->whereNumber('invoice')->name('update');
+        Route::post('{invoice}/posting', [InvoiceController::class, 'post'])->whereNumber('invoice')->name('post');
+        Route::delete('{invoice}', [InvoiceController::class, 'destroy'])->whereNumber('invoice')->name('destroy');
+    });
+    Route::get('{invoice}', [InvoiceController::class, 'show'])->whereNumber('invoice')->middleware('permission:purchasing.bills.view')->name('show');
+    Route::post('{invoice}/batal', [InvoiceController::class, 'cancel'])->whereNumber('invoice')->middleware('permission:purchasing.bills.create|purchasing.bills.void')->name('cancel');
+});
+
+Route::prefix('hutang-supplier/pembayaran')->name('payable-settlements.')->group(function () {
+    Route::get('/', [SettlementController::class, 'index'])->middleware('permission:purchasing.payables.view')->name('index');
+    Route::get('buat', [SettlementController::class, 'create'])->middleware('permission:purchasing.payables.create')->name('create');
+    Route::post('/', [SettlementController::class, 'store'])->middleware('permission:purchasing.payables.create')->name('store');
+    Route::get('{settlement}', [SettlementController::class, 'show'])->whereNumber('settlement')->middleware('permission:purchasing.payables.view')->name('show');
+    Route::post('{settlement}/batal', [SettlementController::class, 'cancel'])->whereNumber('settlement')->middleware('permission:purchasing.payables.void')->name('cancel');
+});
+
+Route::middleware('permission:purchasing.payables.view')->name('payable-reports.')->group(function () {
+    Route::get('hutang-supplier/jadwal', [PartyLedgerController::class, 'schedule'])->name('schedule');
+    Route::get('hutang-supplier/umur', [PartyLedgerController::class, 'aging'])->name('aging');
+    Route::get('hutang-supplier/kartu', [PartyLedgerController::class, 'card'])->name('card');
+});

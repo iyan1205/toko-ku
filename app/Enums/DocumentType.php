@@ -3,8 +3,10 @@
 namespace App\Enums;
 
 use App\Models\CashSession;
+use App\Models\CashTransaction;
 use App\Models\Cuti;
 use App\Models\GoodsReceipt;
+use App\Models\Invoice;
 use App\Models\Journal;
 use App\Models\OpeningBalance;
 use App\Models\Payment;
@@ -13,6 +15,7 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseReturn;
 use App\Models\Sale;
 use App\Models\SaleReturn;
+use App\Models\Settlement;
 use App\Models\StockOpname;
 use App\Models\StockTransfer;
 use Illuminate\Database\Eloquent\Model;
@@ -41,6 +44,15 @@ enum DocumentType: string
     case Journal = 'journal';
     case Leave = 'leave';
     case OpeningBalance = 'opening_balance';
+    case CashReceipt = 'cash_receipt';
+    case CashDisbursement = 'cash_disbursement';
+    case CashTransfer = 'cash_transfer';
+    case SalesInvoice = 'sales_invoice';
+    case PurchaseBill = 'purchase_bill';
+    case CustomerSettlement = 'customer_settlement';
+    case SupplierSettlement = 'supplier_settlement';
+    case CreditNote = 'credit_note';
+    case DebitNote = 'debit_note';
 
     public function label(): string
     {
@@ -60,6 +72,15 @@ enum DocumentType: string
             self::Journal => 'Jurnal umum',
             self::Leave => 'Pengajuan cuti & izin',
             self::OpeningBalance => 'Saldo awal',
+            self::CashReceipt => 'Penerimaan kas',
+            self::CashDisbursement => 'Pengeluaran kas',
+            self::CashTransfer => 'Transfer antar rekening',
+            self::SalesInvoice => 'Faktur penjualan (manual)',
+            self::PurchaseBill => 'Tagihan pembelian (manual)',
+            self::CustomerSettlement => 'Pelunasan piutang',
+            self::SupplierSettlement => 'Pembayaran hutang (gabungan)',
+            self::CreditNote => 'Nota kredit',
+            self::DebitNote => 'Nota debit',
         };
     }
 
@@ -81,6 +102,15 @@ enum DocumentType: string
             self::Journal => 'JU-{YYYY}{MM}{DD}-{####}',
             self::Leave => 'CT-{#####}',
             self::OpeningBalance => 'SA-{YYYY}{MM}{DD}-{####}',
+            self::CashReceipt => 'BKM-{YYYY}{MM}{DD}-{####}',
+            self::CashDisbursement => 'BKK-{YYYY}{MM}{DD}-{####}',
+            self::CashTransfer => 'TRB-{YYYY}{MM}{DD}-{####}',
+            self::SalesInvoice => 'INV-{YYYY}{MM}{DD}-{####}',
+            self::PurchaseBill => 'BIL-{YYYY}{MM}{DD}-{####}',
+            self::CustomerSettlement => 'PLP-{YYYY}{MM}{DD}-{####}',
+            self::SupplierSettlement => 'PLH-{YYYY}{MM}{DD}-{####}',
+            self::CreditNote => 'NK-{YYYY}{MM}{DD}-{####}',
+            self::DebitNote => 'ND-{YYYY}{MM}{DD}-{####}',
         };
     }
 
@@ -106,6 +136,9 @@ enum DocumentType: string
             self::Journal => Journal::class,
             self::Leave => Cuti::class,
             self::OpeningBalance => OpeningBalance::class,
+            self::CashReceipt, self::CashDisbursement, self::CashTransfer => CashTransaction::class,
+            self::SalesInvoice, self::PurchaseBill => Invoice::class,
+            self::CustomerSettlement, self::SupplierSettlement, self::CreditNote, self::DebitNote => Settlement::class,
         };
     }
 

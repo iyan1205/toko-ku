@@ -42,7 +42,8 @@ trait HasDocumentStatus
             $before = $model->getOriginal('status');
             $before = $before instanceof DocumentStatus ? $before : DocumentStatus::tryFrom((string) $before);
 
-            if ($before?->isLocked() && array_diff(array_keys($model->getDirty()), self::$documentStatusTrail) !== []) {
+            $allowed = [...self::$documentStatusTrail, ...$model->columnsChangeableWhenLocked()];
+            if ($before?->isLocked() && array_diff(array_keys($model->getDirty()), $allowed) !== []) {
                 throw new AturanBisnisException("{$model->documentLabel()} sudah {$before->label()} dan tidak bisa diubah. Koreksi lewat pembatalan atau jurnal balik.");
             }
         });
@@ -52,6 +53,17 @@ trait HasDocumentStatus
                 throw new AturanBisnisException("Hanya draf yang bisa dihapus. {$model->documentLabel()} berstatus {$model->documentStatus()->label()}.");
             }
         });
+    }
+
+    /**
+     * Kolom lain yang tetap boleh berubah setelah posted, misal sisa faktur yang berkurang karena
+     * dibayar. Bawaan: tidak ada.
+     *
+     * @return list<string>
+     */
+    public function columnsChangeableWhenLocked(): array
+    {
+        return [];
     }
 
     public function initializeHasDocumentStatus(): void
