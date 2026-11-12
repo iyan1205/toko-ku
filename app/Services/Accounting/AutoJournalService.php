@@ -303,8 +303,13 @@ class AutoJournalService
             $rows[] = ['account_id' => $this->account($sales ? 'vat_out' : 'vat_in')->id, 'description' => 'PPN',
                 'debit' => $sales ? '0' : (string) $invoice->tax, 'credit' => $sales ? (string) $invoice->tax : '0'];
         }
+        $withheld = Uang::sen($invoice->withholding_amount ?? 0);
         $rows[] = ['account_id' => $this->account($sales ? 'receivable' : 'payable')->id, 'description' => $invoice->party()?->name,
-            'debit' => $sales ? (string) $invoice->total : '0', 'credit' => $sales ? '0' : (string) $invoice->total];
+            'debit' => $sales ? (string) $invoice->total : '0', 'credit' => $sales ? '0' : Uang::keDesimal(Uang::sen($invoice->total) - $withheld)];
+        if (! $sales && $withheld > 0) {
+            $rows[] = ['account_id' => $this->account($invoice->withholding_kind === 'pph4_2' ? 'pph4_2_payable' : 'pph23_payable')->id,
+                'description' => "{$invoice->withholding_name} {$invoice->withholding_rate}%", 'debit' => '0', 'credit' => Uang::keDesimal($withheld)];
+        }
 
         return $this->journals->post($invoice->invoice_date, "{$invoice->type->label()} {$invoice->number} · {$invoice->party()?->name}", $rows, $invoice->postedBy, $invoice, 'posted');
     }

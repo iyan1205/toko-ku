@@ -18,6 +18,7 @@ use App\Http\Controllers\Settings\ReceiptSettingController;
 use App\Http\Controllers\Settings\StoreProfileController;
 use App\Http\Controllers\Settings\SystemStatusController;
 use App\Http\Controllers\Settings\TaxController;
+use App\Http\Controllers\Settings\TaxRateController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('pengaturan')->name('settings.')->group(function () {
@@ -36,6 +37,9 @@ Route::prefix('pengaturan')->name('settings.')->group(function () {
 
     Route::get('pajak', [TaxController::class, 'edit'])->middleware('permission:settings.taxes.view')->name('taxes.edit');
     Route::put('pajak', [TaxController::class, 'update'])->middleware('permission:settings.taxes.update')->name('taxes.update');
+    Route::get('tarif-pajak', [TaxRateController::class, 'index'])->middleware('permission:settings.taxes.view')->name('tax-rates.index');
+    Route::post('tarif-pajak', [TaxRateController::class, 'store'])->middleware('permission:settings.taxes.update')->name('tax-rates.store');
+    Route::delete('tarif-pajak/{taxRate}', [TaxRateController::class, 'destroy'])->whereNumber('taxRate')->middleware('permission:settings.taxes.update')->name('tax-rates.destroy');
 
     Route::get('metode-pembayaran', [PaymentMethodController::class, 'edit'])->middleware('permission:settings.payment-methods.view')->name('payment-methods.edit');
     Route::put('metode-pembayaran', [PaymentMethodController::class, 'update'])->middleware('permission:settings.payment-methods.update')->name('payment-methods.update');

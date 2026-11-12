@@ -103,6 +103,10 @@
                         <div class="flex justify-between"><span class="text-slate-500">Pajak {{ (float) $invoice->tax_rate }}%</span><span class="tabular-nums">@rupiah($invoice->tax)</span></div>
                     @endif
                     <div class="flex justify-between font-semibold text-slate-900"><span>Total</span><span class="tabular-nums">@rupiah($invoice->total)</span></div>
+                    @if ((float) $invoice->withholding_amount > 0)
+                        <div class="flex justify-between"><span class="text-slate-500">{{ $invoice->withholding_name }} {{ (float) $invoice->withholding_rate }}%</span><span class="tabular-nums">− @rupiah($invoice->withholding_amount)</span></div>
+                        <div class="flex justify-between font-semibold text-slate-900"><span>Dibayar ke supplier</span><span class="tabular-nums">{{ \App\Support\Format::rupiah((float) $invoice->total - (float) $invoice->withholding_amount) }}</span></div>
+                    @endif
                 </div>
             </x-slot:footer>
         </x-ui.table>

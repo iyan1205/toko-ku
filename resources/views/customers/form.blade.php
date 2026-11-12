@@ -18,6 +18,7 @@
             <div class="grid gap-5 sm:grid-cols-2">
                 <x-ui.input name="phone" label="Nomor HP" type="tel" :value="$customer->phone" maxlength="20" hint="Bisa dicari di layar Kasir." />
                 <x-ui.input name="email" label="Email" type="email" :value="$customer->email" maxlength="255" />
+                <x-ui.input name="tax_id" label="NPWP / NIK" :value="$customer->tax_id" maxlength="30" hint="Untuk faktur pajak keluaran. Angka, titik, dan strip." />
             </div>
         </x-ui.form-section>
 

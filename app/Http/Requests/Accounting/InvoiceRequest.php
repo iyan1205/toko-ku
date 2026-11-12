@@ -35,6 +35,7 @@ class InvoiceRequest extends FormRequest
             'reference' => ['nullable', 'string', 'max:50'],
             'description' => ['nullable', 'string', 'max:255'],
             'tax_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'withholding_code' => [$this->type() === InvoiceType::Purchase ? 'nullable' : 'prohibited', 'string', 'max:30', 'exists:tax_rates,code'],
             'lines' => ['required', 'array', 'min:1', 'max:50'],
             'lines.*.account_id' => ['nullable', 'integer'],
             'lines.*.cost_center_id' => ['nullable', 'integer'],

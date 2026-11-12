@@ -23,6 +23,7 @@ use App\Http\Controllers\Accounting\JournalController;
 use App\Http\Controllers\Accounting\LedgerController;
 use App\Http\Controllers\Accounting\OpeningBalanceController;
 use App\Http\Controllers\Accounting\RecurringJournalController;
+use App\Http\Controllers\Accounting\TaxReportController;
 use App\Http\Controllers\Accounting\TrialBalanceController;
 use Illuminate\Support\Facades\Route;
 
@@ -175,6 +176,15 @@ Route::prefix('akuntansi')->group(function () {
             Route::post('lepas', [FixedAssetController::class, 'dispose'])->middleware('permission:accounting.assets.void')->name('dispose');
         });
     });
+
+    // ---- Pajak: rekap PPN, daftar & ekspor faktur, bukti potong PPh (Fase 11). ----
+    Route::prefix('pajak')->middleware('permission:accounting.taxes.view')->group(function () {
+        Route::get('ppn', [TaxReportController::class, 'ppn'])->name('taxes.ppn');
+        Route::get('faktur', [TaxReportController::class, 'documents'])->name('taxes.documents');
+        Route::get('bukti-potong', [TaxReportController::class, 'withholdings'])->name('taxes.withholdings');
+    });
+    Route::get('pajak/faktur/ekspor', [TaxReportController::class, 'export'])->middleware('permission:accounting.taxes.export')->name('taxes.export');
+    Route::post('pajak/bukti-potong/{invoice}', [TaxReportController::class, 'updateSlip'])->whereNumber('invoice')->middleware('permission:accounting.taxes.update')->name('taxes.withholdings.update');
 
     // ---- Anggaran dan anggaran vs realisasi (Fase 11). ----
     Route::resource('anggaran', BudgetController::class)

@@ -15,6 +15,7 @@ use App\Models\Invoice;
 use App\Models\SettlementAllocation;
 use App\Models\Supplier;
 use App\Services\Receivables\InvoiceService;
+use App\Services\Tax\TaxRateService;
 use App\Support\Format;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -182,6 +183,7 @@ class InvoiceController extends Controller
             'accounts' => Account::query()->postable()->whereIn('type', $sales ? ['revenue', 'liability', 'equity'] : ['expense', 'cogs', 'asset', 'liability'])->ordered()->get(['id', 'code', 'name', 'type']),
             'defaultAccount' => $sales ? Account::query()->where('code', '4-2000')->value('id') : null,
             'costCenters' => CostCenter::query()->active()->ordered()->get(['id', 'code', 'name']),
+            'withholdings' => $sales ? collect() : app(TaxRateService::class)->options($invoice->invoice_date),
         ];
     }
 }

@@ -20,6 +20,7 @@ class CustomerRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:1000'],
             'note' => ['nullable', 'string', 'max:1000'],
             'payment_terms_days' => ['nullable', 'integer', 'min:0', 'max:365'],
+            'tax_id' => ['nullable', 'string', 'max:30', 'regex:/^[0-9.\-]+$/'],
         ];
     }
 
@@ -32,6 +33,7 @@ class CustomerRequest extends FormRequest
             'address' => 'alamat',
             'note' => 'catatan',
             'payment_terms_days' => 'termin pembayaran',
+            'tax_id' => 'NPWP/NIK',
         ];
     }
 

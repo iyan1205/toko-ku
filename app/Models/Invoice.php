@@ -46,6 +46,10 @@ class Invoice extends Model
             'credited_amount' => 'decimal:2',
             'balance' => 'decimal:2',
             'payment_status' => PaymentStatus::class,
+            'withholding_rate' => 'decimal:2',
+            'withholding_base' => 'decimal:2',
+            'withholding_amount' => 'decimal:2',
+            'withholding_slip_date' => 'date',
             'posted_at' => 'datetime',
             'cancelled_at' => 'datetime',
         ];
@@ -54,7 +58,7 @@ class Invoice extends Model
     /** Faktur posted tetap berkurang sisanya karena pembayaran dan nota. */
     public function columnsChangeableWhenLocked(): array
     {
-        return ['paid_amount', 'credited_amount', 'balance', 'payment_status'];
+        return ['paid_amount', 'credited_amount', 'balance', 'payment_status', 'withholding_slip_number', 'withholding_slip_date'];
     }
 
     public function lines(): HasMany

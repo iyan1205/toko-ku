@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Services\Accounting\AccountMappingService;
 use App\Services\Accounting\FiscalPeriodService;
 use App\Services\PaymentService;
+use App\Services\Tax\TaxRateService;
 use App\Support\Uang;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -47,8 +48,9 @@ class InvoiceService
         $date = CarbonImmutable::parse($data['invoice_date'])->toDateString();
         app(FiscalPeriodService::class)->ensureOpen($date);
         [$party, $rows, $subtotal, $tax, $rate] = $this->validated($type, $data);
+        $withholding = $this->withholding($type, $data['withholding_code'] ?? null, $date, $subtotal);
 
-        return DB::transaction(function () use ($type, $data, $date, $party, $rows, $subtotal, $tax, $rate, $user, $draft) {
+        return DB::transaction(function () use ($type, $data, $date, $party, $rows, $subtotal, $tax, $rate, $withholding, $user, $draft) {
             $invoice = $draft ? $this->lock($draft) : new Invoice(['type' => $type]);
 
             if ($draft && ! $invoice->isEditable()) {
@@ -68,8 +70,15 @@ class InvoiceService
                 'tax_rate' => $rate,
                 'tax' => Uang::keDesimal($tax),
                 'total' => Uang::keDesimal($subtotal + $tax),
-                'balance' => Uang::keDesimal($subtotal + $tax),
+                // PPh yang dipotong tidak dibayar ke supplier, tetapi disetor sendiri ke kas negara.
+                'balance' => Uang::keDesimal($subtotal + $tax - $withholding['amount']),
                 'payment_status' => PaymentStatus::Unpaid,
+                'withholding_code' => $withholding['code'],
+                'withholding_name' => $withholding['name'],
+                'withholding_kind' => $withholding['kind'],
+                'withholding_rate' => $withholding['rate'],
+                'withholding_base' => Uang::keDesimal($withholding['base']),
+                'withholding_amount' => Uang::keDesimal($withholding['amount']),
             ]);
 
             if (! $invoice->exists) {
@@ -296,6 +305,27 @@ class InvoiceService
         $tax = (int) round($subtotal * $rate / 100);
 
         return [$party, $rows, $subtotal, $tax, number_format($rate, 2, '.', '')];
+    }
+
+    /**
+     * PPh potong untuk tagihan pembelian (dasar = subtotal sebelum PPN), tarif berlaku pada tanggal tagihan.
+     *
+     * @return array{code: ?string, name: ?string, kind: ?string, rate: string, base: int, amount: int}
+     */
+    private function withholding(InvoiceType $type, ?string $code, string $date, int $subtotal): array
+    {
+        $none = ['code' => null, 'name' => null, 'kind' => null, 'rate' => '0.00', 'base' => 0, 'amount' => 0];
+        if ($type !== InvoiceType::Purchase || blank($code)) {
+            return $none;
+        }
+
+        $rate = app(TaxRateService::class)->rateFor($code, $date);
+        if ($rate === null) {
+            throw ValidationException::withMessages(['withholding_code' => 'Tarif PPh ini belum berlaku pada tanggal tagihan. Periksa Pengaturan → Tarif Pajak.']);
+        }
+
+        return ['code' => $rate->code, 'name' => $rate->name, 'kind' => $rate->kind, 'rate' => (string) $rate->rate,
+            'base' => $subtotal, 'amount' => (int) round($subtotal * (float) $rate->rate / 100)];
     }
 
     /** @return list<int> akun piutang/hutang/uang muka yang tidak boleh dipakai di baris faktur */

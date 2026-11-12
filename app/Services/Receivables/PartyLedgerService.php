@@ -254,7 +254,8 @@ class PartyLedgerService
         $invoices = Invoice::query()->ofType($receivable ? InvoiceType::Sales : InvoiceType::Purchase)
             ->where($receivable ? 'customer_id' : 'supplier_id', $partyId)->withStatus(DocumentStatus::Posted)->get();
         foreach ($invoices as $invoice) {
-            $add($invoice->invoice_date->toDateString(), 1, $invoice->number, $invoice->displayLabel(), Uang::sen($invoice->total), 0, $invoice);
+            // Tagihan dengan PPh potong: yang terutang ke supplier = total dikurangi PPh.
+            $add($invoice->invoice_date->toDateString(), 1, $invoice->number, $invoice->displayLabel(), Uang::sen($invoice->total) - Uang::sen($invoice->withholding_amount ?? 0), 0, $invoice);
         }
         $payable['invoice'] = $invoices->modelKeys();
 

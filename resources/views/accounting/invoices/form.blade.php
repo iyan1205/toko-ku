@@ -12,6 +12,8 @@
         'lines' => collect(old('lines', $barisAwal))->map(fn ($l) => array_map(fn ($v) => (string) ($v ?? ''), array_merge($kosong, $l)))->values()->all(),
         'kosong' => $kosong,
         'tarif' => (string) old('tax_rate', (float) $invoice->tax_rate),
+        'pph' => (string) old('withholding_code', $invoice->withholding_code ?? ''),
+        'tarifPph' => $withholdings->mapWithKeys(fn ($r) => [$r->code => (float) $r->rate])->all(),
         'errors' => collect($errors->getMessages())->filter(fn ($m, $key) => str_starts_with($key, 'lines.')),
     ];
     $input = 'block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500';
@@ -135,6 +137,22 @@
                     <p class="text-sm text-danger-600">{{ $message }}</p>
                 @enderror
                 <div class="flex justify-between border-t border-slate-200 pt-2 text-base font-semibold text-slate-900"><span>Total</span><span class="tabular-nums" x-text="rp(subtotal + pajak)"></span></div>
+                @if ($withholdings->isNotEmpty())
+                    <div class="mt-2 grid gap-2 border-t border-slate-200 pt-2">
+                        <label for="f-withholding_code" class="text-slate-500">PPh dipotong</label>
+                        <select id="f-withholding_code" name="withholding_code" x-model="pph" class="{{ $input }}">
+                            <option value="">Tidak ada</option>
+                            @foreach ($withholdings as $r)
+                                <option value="{{ $r->code }}">{{ $r->name }} ({{ (float) $r->rate }}%)</option>
+                            @endforeach
+                        </select>
+                        @error('withholding_code')
+                            <p class="text-sm text-danger-600">{{ $message }}</p>
+                        @enderror
+                        <div class="flex justify-between" x-show="pph"><span class="text-slate-500">Dipotong (disetor sendiri)</span><span class="tabular-nums" x-text="'− ' + rp(Math.round(subtotal * (tarifPph[pph] ?? 0) / 100))"></span></div>
+                        <div class="flex justify-between font-semibold text-slate-900" x-show="pph"><span>Dibayar ke supplier</span><span class="tabular-nums" x-text="rp(subtotal + pajak - Math.round(subtotal * (tarifPph[pph] ?? 0) / 100))"></span></div>
+                    </div>
+                @endif
             </div>
         </x-ui.card>
 

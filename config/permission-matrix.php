@@ -101,6 +101,8 @@ return [
                 // Aset: approve = hitung/batalkan penyusutan, void = lepas (jual/hapus) aset.
                 'assets' => ['label' => 'Aset tetap & penyusutan', 'actions' => ['view', 'create', 'update', 'delete', 'approve', 'void', 'export']],
                 'budgets' => ['label' => 'Anggaran', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
+                // Pajak: update = isi nomor bukti potong PPh.
+                'taxes' => ['label' => 'Pajak (PPN & PPh)', 'actions' => ['view', 'update', 'export']],
                 'trial-balance' => ['label' => 'Neraca saldo', 'actions' => ['view', 'export']],
                 'cost-centers' => ['label' => 'Cost center / departemen', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
                 // Kas & bank: create = transaksi kas, update = kelola rekening, void = batalkan transaksi yang sudah diposting.
