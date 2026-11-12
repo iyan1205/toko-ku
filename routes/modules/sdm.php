@@ -12,11 +12,14 @@ use App\Http\Controllers\Sdm\DepartmentController;
 use App\Http\Controllers\Sdm\EmployeeController;
 use App\Http\Controllers\Sdm\EmployeeDocumentController;
 use App\Http\Controllers\Sdm\EmployeeHistoryController;
+use App\Http\Controllers\Sdm\EmployeeRequestController;
 use App\Http\Controllers\Sdm\JadwalController;
 use App\Http\Controllers\Sdm\JenisCutiController;
 use App\Http\Controllers\Sdm\OffboardingController;
 use App\Http\Controllers\Sdm\OrgChartController;
 use App\Http\Controllers\Sdm\PositionController;
+use App\Http\Controllers\Sdm\SelfServiceController;
+use App\Http\Controllers\Sdm\SelfServiceRequestController;
 use App\Http\Controllers\Sdm\ShiftController;
 use Illuminate\Support\Facades\Route;
 
@@ -89,6 +92,37 @@ Route::middleware('permission:sdm.employees.update')->prefix('karyawan/{employee
     Route::post('dokumen', [EmployeeDocumentController::class, 'store'])->name('employees.documents.store');
     Route::delete('dokumen/{document}', [EmployeeDocumentController::class, 'destroy'])->name('employees.documents.destroy');
 });
+
+// ---- Layanan Mandiri (ESS): data milik karyawan yang login sendiri ----
+Route::prefix('saya')->name('ess.')->group(function () {
+    Route::middleware('permission:sdm.self-service.view')->group(function () {
+        Route::get('/', [SelfServiceController::class, 'index'])->name('index');
+        Route::get('profil', [SelfServiceController::class, 'profile'])->name('profile');
+        Route::get('absensi', [SelfServiceController::class, 'attendance'])->name('attendance');
+        Route::get('cuti', [SelfServiceController::class, 'leaves'])->name('leaves');
+        Route::get('slip-gaji', [SelfServiceController::class, 'payslips'])->name('payslips');
+    });
+    Route::middleware('permission:sdm.overtime.create')->group(function () {
+        Route::get('lembur', [SelfServiceRequestController::class, 'overtime'])->name('overtime');
+        Route::post('lembur', [SelfServiceRequestController::class, 'storeOvertime'])->name('overtime.store');
+        Route::post('lembur/{id}/batal', [SelfServiceRequestController::class, 'cancelOvertime'])->whereNumber('id')->name('overtime.cancel');
+    });
+    Route::middleware('permission:sdm.reimbursements.create')->group(function () {
+        Route::get('reimbursement', [SelfServiceRequestController::class, 'reimbursements'])->name('reimbursements');
+        Route::post('reimbursement', [SelfServiceRequestController::class, 'storeReimbursement'])->name('reimbursements.store');
+        Route::post('reimbursement/{id}/batal', [SelfServiceRequestController::class, 'cancelReimbursement'])->whereNumber('id')->name('reimbursements.cancel');
+    });
+});
+
+// ---- Pengajuan lembur & reimbursement (SDM): daftar, ekspor, keputusan langsung tanpa alur ----
+foreach (['lembur' => ['overtime', 'sdm.overtime'], 'reimbursement' => ['reimbursements', 'sdm.reimbursements']] as $jenis => [$name, $izin]) {
+    Route::prefix("pengajuan-{$jenis}")->group(function () use ($name, $izin) {
+        Route::get('/', [EmployeeRequestController::class, 'index'])->middleware("permission:{$izin}.view")->name("{$name}.index");
+        Route::get('ekspor', [EmployeeRequestController::class, 'export'])->middleware("permission:{$izin}.export")->name("{$name}.export");
+        Route::post('{id}/setujui', [EmployeeRequestController::class, 'approve'])->whereNumber('id')->middleware("permission:{$izin}.approve")->name("{$name}.approve");
+        Route::post('{id}/tolak', [EmployeeRequestController::class, 'reject'])->whereNumber('id')->middleware("permission:{$izin}.approve")->name("{$name}.reject");
+    });
+}
 
 // ---- Struktur organisasi dan offboarding (Fase 12) ----
 Route::get('struktur-organisasi', [OrgChartController::class, 'index'])->middleware('permission:sdm.organization.view')->name('org-chart.index');

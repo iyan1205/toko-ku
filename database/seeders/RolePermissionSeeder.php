@@ -26,7 +26,7 @@ class RolePermissionSeeder extends Seeder
     private const GUARD = 'web';
 
     /** Izin yang dipakai semua pegawai untuk dirinya sendiri. */
-    private const SELF_SERVICE = ['sdm.self-service.view', 'sdm.attendances.record', 'sdm.schedules.view', 'sdm.leaves.create'];
+    private const SELF_SERVICE = ['sdm.self-service.view', 'sdm.attendances.record', 'sdm.schedules.view', 'sdm.leaves.create', 'sdm.overtime.create', 'sdm.reimbursements.create'];
 
     /**
      * Hak akses bawaan per peran, berupa pola nama izin ("*" boleh dipakai).

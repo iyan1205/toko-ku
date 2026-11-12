@@ -86,6 +86,10 @@ class AttachmentController extends Controller
 
     private function authorizeFor(Request $request, Model $document, string $action): void
     {
+        // Dokumen milik pengguna sendiri (misal reimbursement dari Layanan Mandiri) boleh mengizinkan pemiliknya.
+        if (method_exists($document, 'allowsAttachmentAccess') && $document->allowsAttachmentAccess($request->user(), $action)) {
+            return;
+        }
         $permission = method_exists($document, 'attachmentPermission') ? $document->attachmentPermission($action) : null;
         abort_unless($permission !== null && $request->user()->can($permission), 403);
     }

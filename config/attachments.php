@@ -28,5 +28,7 @@ return [
         'invoice' => ['label' => 'Faktur manual'],
         'settlement' => ['label' => 'Pelunasan'],
         'employee_document' => ['label' => 'Dokumen karyawan', 'view' => 'sdm.employees.view', 'update' => 'sdm.employees.update'],
+        // Reimbursement: izin HR di attachmentPermission(), pemilik lewat allowsAttachmentAccess() di modelnya.
+        'reimbursement_request' => ['label' => 'Reimbursement'],
     ],
 ];

@@ -73,7 +73,7 @@ class AbsensiController extends Controller
 
         $absensi = $this->service->masuk($request->user(), $data['lokasi'] ?? null, $request->ip(), $request->userAgent());
 
-        return redirect()->route('attendances.index')->with('success', sprintf(
+        return redirect()->route($request->input('kembali') === 'ess' ? 'ess.index' : 'attendances.index')->with('success', sprintf(
             'Absen masuk tercatat pukul %s (%s).',
             $absensi->clock_in->format('H:i'),
             $absensi->status->label(),
@@ -84,7 +84,7 @@ class AbsensiController extends Controller
     {
         $absensi = $this->service->pulang($request->user());
 
-        return redirect()->route('attendances.index')
+        return redirect()->route($request->input('kembali') === 'ess' ? 'ess.index' : 'attendances.index')
             ->with('success', 'Absen pulang tercatat pukul '.$absensi->clock_out->format('H:i').'. Terima kasih!');
     }
 

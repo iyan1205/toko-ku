@@ -639,6 +639,14 @@ Dikerjakan sebelum 5b dan Fase 6 karena mengubah `StockService`, yang dipakai pe
 - 15 izin baru: `accounting.assets.*` (7), `accounting.budgets.*` (5), `accounting.taxes.*` (3); `accounting.reports.*` dan `accounting.closing.*` tidak lagi "planned".
 - Seluruh suite 822/822 lulus.
 
+### Fase 12 — SDM Inti & Layanan Mandiri · XL
+**Status 12 Nov 2026: selesai, menunggu pengecekan pemilik.** Rincian di [ROADMAP.md](ROADMAP.md).
+- Data karyawan: kolom baru di `employees` (data pribadi, pajak/PTKP, BPJS, rekening, kontak darurat, foto, cabang, atasan, grade, alasan berhenti, created_by/updated_by; cabang lama diisi cabang utama), `employee_family_members`, `employee_educations`, `employee_experiences`, `employee_contracts`, `employee_movements`; `EmployeeService`, `EmployeeContractService`, `EmployeeMovementService`.
+- Dokumen & offboarding: `employee_documents` (+lampiran, masa berlaku), `employee_offboardings` + item checklist (`config/sdm.php`), perintah `sdm:proses-harian` (00:50) dan `sdm:pengingat` (07:05, notifikasi `sdm.expiry`).
+- Bagan organisasi dari `employees.supervisor_id`.
+- Layanan Mandiri: route `saya/*` (`ess.*`), `overtime_requests` dan `reimbursement_requests` (status baku, `HasApproval` dokumen `overtime`/`reimbursement`, nomor LBR/RMB bulanan), `EmployeeRequestService` (ajukan, setujui/tolak langsung, batal), lampiran yang bisa dibuka pemilik dokumennya (`allowsAttachmentAccess`).
+- 13 izin baru: `sdm.self-service.view`, `sdm.organization.view`, `sdm.offboarding.*` (3), `sdm.overtime.*` (4), `sdm.reimbursements.*` (4). Semua pegawai mendapat Layanan Mandiri serta mengajukan lembur dan reimbursement.
+
 ### Urutan dan ketergantungan
 ```
 0.5 Persiapan → 1 Fondasi UI → 2 Layout & Menu → 3 Hak Akses → 4 Pengaturan & Dashboard

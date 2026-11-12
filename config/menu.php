@@ -30,6 +30,11 @@ return [
                 'description' => 'Ringkasan penjualan, stok, dan aktivitas toko.',
             ],
             [
+                'key' => 'ess', 'label' => 'Layanan Mandiri', 'icon' => 'identification',
+                'route' => 'ess.index', 'active' => 'ess.*', 'permission' => 'sdm.self-service.view',
+                'description' => 'Profil, absensi, saldo cuti, slip gaji, serta pengajuan cuti, lembur, dan reimbursement Anda.',
+            ],
+            [
                 'key' => 'approvals', 'label' => 'Persetujuan Saya', 'icon' => 'check-badge',
                 'route' => 'approvals.index', 'active' => 'approvals.*', 'permission' => null,
                 'description' => 'Dokumen yang menunggu persetujuan Anda, pengajuan Anda, dan keputusan yang sudah Anda buat.',
@@ -189,6 +194,10 @@ return [
                         'description' => 'Jam masuk dan pulang tiap shift kerja.'],
                     ['key' => 'sdm-leaves', 'label' => 'Cuti & Izin', 'route' => 'leaves.index', 'active' => 'leaves.*', 'permission' => ['sdm.leaves.view', 'sdm.leaves.create', 'sdm.leaves.approve'],
                         'description' => 'Pengajuan cuti dan izin beserta persetujuannya.'],
+                    ['key' => 'sdm-overtime', 'label' => 'Lembur', 'route' => 'overtime.index', 'active' => 'overtime.*', 'permission' => 'sdm.overtime.view',
+                        'description' => 'Pengajuan lembur karyawan dan persetujuannya.'],
+                    ['key' => 'sdm-reimbursements', 'label' => 'Reimbursement', 'route' => 'reimbursements.index', 'active' => 'reimbursements.*', 'permission' => 'sdm.reimbursements.view',
+                        'description' => 'Pengajuan penggantian biaya karyawan beserta buktinya.'],
                     ['key' => 'sdm-leave-types', 'label' => 'Jenis Cuti', 'route' => 'leave-types.index', 'active' => 'leave-types.*', 'permission' => 'sdm.leave-types.view',
                         'description' => 'Jenis cuti, kuota tahunan, dan alur persetujuan.'],
                     ['key' => 'sdm-payroll', 'label' => 'Penggajian', 'status' => 'coming_soon', 'permission' => 'sdm.payroll.view',

@@ -12,11 +12,13 @@ use App\Models\GoodsReceipt;
 use App\Models\Invoice;
 use App\Models\Journal;
 use App\Models\OpeningBalance;
+use App\Models\OvertimeRequest;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseReturn;
+use App\Models\ReimbursementRequest;
 use App\Models\Sale;
 use App\Models\SaleReturn;
 use App\Models\Settlement;
@@ -82,6 +84,8 @@ class AppServiceProvider extends ServiceProvider
             'depreciation_run' => DepreciationRun::class,
             'fiscal_year_closing' => FiscalYearClosing::class,
             'employee_document' => EmployeeDocument::class,
+            'overtime_request' => OvertimeRequest::class,
+            'reimbursement_request' => ReimbursementRequest::class,
         ]);
 
         // Tanda hidup queue worker untuk Pengaturan → Sistem dan ekspor besar (lihat QueueHealth).

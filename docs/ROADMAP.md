@@ -1,6 +1,6 @@
 # Roadmap Toko-ku
 
-Status per 12 Nov 2026, setelah Fase 11 (aset tetap, anggaran, pajak, laporan keuangan, tutup buku). Rincian keputusan dan rencana tiap fase ada di [AUDIT.md](AUDIT.md); spesifikasi di [REDESIGN-TOKOKU.md](REDESIGN-TOKOKU.md), rencana Fase 8–19 di `ROADMAP-ENTERPRISE-TOKOKU.md`. Cara deploy, queue worker, dan scheduler: [DEPLOY.md](DEPLOY.md).
+Status per 12 Nov 2026, setelah Fase 12 (SDM inti dan Layanan Mandiri). Rincian keputusan dan rencana tiap fase ada di [AUDIT.md](AUDIT.md); spesifikasi di [REDESIGN-TOKOKU.md](REDESIGN-TOKOKU.md), rencana Fase 8–19 di `ROADMAP-ENTERPRISE-TOKOKU.md`. Cara deploy, queue worker, dan scheduler: [DEPLOY.md](DEPLOY.md).
 
 ## Ringkasan
 
@@ -11,7 +11,7 @@ Status per 12 Nov 2026, setelah Fase 11 (aset tetap, anggaran, pajak, laporan ke
 | Inventori | Jadi | Multi-gudang, transfer, opname draft → selesai, kartu stok |
 | Pembelian | Jadi | PO → penerimaan parsial → faktur & hutang, retur, tagihan manual, pembayaran gabungan, jadwal, umur & kartu hutang |
 | Akuntansi | Jadi | Bagan akun, saldo awal, jurnal umum & berulang, jurnal otomatis, buku besar, neraca saldo, cost center, kas & bank, rekonsiliasi, giro, aset tetap & penyusutan, anggaran, PPN & PPh 23/4(2), laporan keuangan, tutup buku |
-| SDM | Sebagian | Karyawan, departemen & jabatan, absensi, jadwal, shift, cuti. Penggajian belum |
+| SDM | Sebagian | Data karyawan lengkap, kontrak & mutasi, bagan organisasi, dokumen, offboarding, absensi, jadwal, shift, cuti, Layanan Mandiri (lembur, reimbursement). Penggajian belum |
 | Laporan | Sebagian | Laporan penjualan ada. Pembelian, stok, laba kotor, kinerja kasir belum |
 | Pengguna & Hak Akses | Jadi | Peran dinamis, matriks izin, akses cabang per pengguna, log aktivitas, profil |
 | Pengaturan | Jadi | Profil toko, cabang, pajak, metode bayar, struk, penomoran, kasir, akuntansi, alur persetujuan, sistem, backup |
@@ -88,8 +88,15 @@ Menu yang belum jadi tetap tampil dengan label **Segera Hadir** (diatur di `conf
 - **Laporan keuangan** (Akuntansi → Laporan Keuangan): Laba Rugi (satu periode, per bulan, banding periode sebelumnya atau tahun lalu, per cabang dan cost center), Neraca (dengan pembanding akhir tahun lalu dan pemeriksaan seimbang), Arus Kas metode tidak langsung (kelompok operasi/investasi/pendanaan otomatis dari kode akun, bisa diubah per akun di Bagan Akun), Perubahan Ekuitas. Ekspor Excel/PDF dengan kop toko. Angka akun menuju Buku Besar, lalu ke jurnalnya.
 - **Tutup buku** (Akuntansi → Tutup Buku): checklist tutup bulan (jurnal/kas/faktur yang belum diposting, rekonsiliasi bank, penyusutan, jurnal berulang) lalu kunci periode; **tutup tahun** membuat jurnal penutup per cabang (pendapatan dan beban dinolkan ke Laba Ditahan) dan mengunci semua bulannya. Pembatalan tutup tahun membalik jurnal penutupnya. **Membuka kembali periode yang dikunci kini butuh izin Tutup buku → Setujui** (bukan lagi Kunci periode → Ubah); semua tercatat di log.
 
-### SDM (Fase 7, kerangka)
+### SDM (Fase 7 dan Fase 12)
 - **Karyawan**: daftar, tambah/ubah/hapus, ekspor. Kode otomatis `KRY-0001`. Tautan opsional ke akun login (satu akun untuk satu karyawan); karyawan tanpa akun tetap bisa dicatat.
+- **Data lengkap** (Fase 12): data pribadi, NIK KTP, NPWP, status PTKP, BPJS Kesehatan & Ketenagakerjaan, rekening gaji, kontak darurat, foto, keluarga, pendidikan, pengalaman kerja.
+- **Kepegawaian**: cabang, departemen, jabatan, atasan langsung (tidak boleh melingkar), grade, status kerja Tetap (PKWTT) / Kontrak (PKWT) / Harian / Magang. **Riwayat kontrak** (status kerja ikut kontrak terbaru) dan **mutasi/promosi/demosi**; yang bertanggal ke depan diterapkan otomatis oleh `sdm:proses-harian` (00:50).
+- **Halaman detail karyawan**: profil, keluarga & pendidikan, kontrak, mutasi, dokumen, aset tetap yang dipegang, bawahan.
+- **Bagan organisasi** (SDM → Struktur Organisasi) dari relasi atasan: ciutkan/buka, cari, saring cabang/departemen.
+- **Dokumen karyawan** (KTP, ijazah, sertifikat, dan lainnya) dengan berkas dan masa berlaku. **Pengingat** harian `sdm:pengingat` (07:05) untuk kontrak dan dokumen yang akan berakhir dalam 30 hari.
+- **Offboarding** resign/PHK/kontrak habis: checklist pengembalian barang standar plus aset tetap yang dipegang; saat selesai, karyawan dan akun loginnya dinonaktifkan pada hari terakhir kerja.
+- **Layanan Mandiri** (menu "Layanan Mandiri", ramah ponsel dengan bar navigasi bawah): profil sendiri, absen masuk/pulang, absensi per bulan, saldo cuti dan pengajuan cuti, slip gaji (menunggu modul Penggajian), **pengajuan lembur** (jam mulai–selesai, boleh lewat tengah malam, tidak boleh bentrok) dan **reimbursement** dengan foto/PDF bukti. Pengajuan disetujui/ditolak oleh SDM di SDM → Lembur / Reimbursement, atau lewat alur persetujuan `overtime` (kondisi jam lembur) / `reimbursement` (kondisi total) bila ada yang cocok. Bukti reimbursement hanya bisa dibuka pemiliknya dan SDM.
 - **Departemen & Jabatan**: daftar, tambah/ubah/hapus, ekspor. Tidak bisa dihapus bila masih dipakai karyawan.
 - Absensi, Jadwal, Shift, dan Cuti (sudah ada sebelum redesign) tetap memakai akun login (`user_id`).
 
@@ -121,7 +128,8 @@ Menu yang belum jadi tetap tampil dengan label **Segera Hadir** (diatur di `conf
 ### SDM
 - **Penggajian**: komponen gaji, potongan, hitung dari absensi, slip gaji, dan jurnal beban gaji (rencana event `PayrollPosted` → D Beban Gaji / K Kas atau Hutang Gaji).
 - Absensi, Jadwal, dan Cuti belum bisa untuk karyawan tanpa akun login, karena masih berbasis `user_id`. Rencana: pindah ke `employee_id` dengan migrasi data dari `employees.user_id`.
-- Halaman detail karyawan (riwayat absensi, cuti, dokumen) belum ada; data karyawan dibuka lewat halaman ubah.
+- Lembur dan reimbursement yang disetujui belum dibayar otomatis: upah lembur dihitung di Fase 13/14, reimbursement dibayar lewat Kas & Bank (atau penggajian nanti).
+- Absensi dari Layanan Mandiri belum memeriksa radius lokasi atau foto selfie (Fase 13).
 
 ### Laporan
 - Laporan Pembelian (per supplier, produk, periode), Laporan Stok (per gudang, nilai persediaan), Laba Kotor, Kinerja Kasir.

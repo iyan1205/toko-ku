@@ -120,6 +120,8 @@ supaya pemakaian memori tetap kecil.
 | 00:20 | Jurnal berulang yang jatuh tempo dan jurnal yang dijadwalkan dibalik otomatis (`akuntansi:jurnal-terjadwal`) |
 | 07:00 | Pengingat piutang dan hutang yang jatuh tempo (`keuangan:pengingat-jatuh-tempo`) |
 | Tanggal 1, 00:40 | Penyusutan aset tetap bulan lalu (`aset:penyusutan`, bisa juga `--periode=2026-10`) |
+| 00:50 | SDM: mutasi/promosi yang tanggal efektifnya tiba dan offboarding yang jatuh tempo (`sdm:proses-harian`) |
+| 07:05 | Pengingat kontrak kerja dan dokumen karyawan yang akan berakhir (`sdm:pengingat`) |
 | 01:30 | Backup database (`backup:database`, menyimpan 14 berkas terbaru) |
 | 02:00 | Hapus log aktivitas > 365 hari (`activitylog:clean`) |
 | 02:15 | Hapus hasil impor > 30 hari dan berkas ekspor kedaluwarsa (`model:prune`) |

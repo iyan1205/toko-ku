@@ -124,6 +124,9 @@ return [
                 'organization' => ['label' => 'Struktur organisasi', 'actions' => ['view']],
                 // Offboarding: create = mulai & isi checklist, approve = selesaikan (nonaktifkan karyawan & akun) atau batalkan.
                 'offboarding' => ['label' => 'Offboarding (resign/PHK)', 'actions' => ['view', 'create', 'approve']],
+                // Lembur & reimbursement: create = mengajukan untuk diri sendiri (Layanan Mandiri), view = melihat semua pengajuan.
+                'overtime' => ['label' => 'Lembur', 'actions' => ['view', 'create', 'approve', 'export']],
+                'reimbursements' => ['label' => 'Reimbursement', 'actions' => ['view', 'create', 'approve', 'export']],
                 'departments' => ['label' => 'Departemen & jabatan', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
                 'attendances' => ['label' => 'Absensi', 'actions' => ['view', 'record', 'create', 'update', 'delete', 'export']],
                 'schedules' => ['label' => 'Jadwal kerja', 'actions' => ['view', 'update']],

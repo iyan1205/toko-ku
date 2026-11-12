@@ -9,10 +9,12 @@ use App\Models\GoodsReceipt;
 use App\Models\Invoice;
 use App\Models\Journal;
 use App\Models\OpeningBalance;
+use App\Models\OvertimeRequest;
 use App\Models\Payment;
 use App\Models\Purchase;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseReturn;
+use App\Models\ReimbursementRequest;
 use App\Models\Sale;
 use App\Models\SaleReturn;
 use App\Models\Settlement;
@@ -53,6 +55,8 @@ enum DocumentType: string
     case SupplierSettlement = 'supplier_settlement';
     case CreditNote = 'credit_note';
     case DebitNote = 'debit_note';
+    case Overtime = 'overtime';
+    case Reimbursement = 'reimbursement';
 
     public function label(): string
     {
@@ -81,6 +85,8 @@ enum DocumentType: string
             self::SupplierSettlement => 'Pembayaran hutang (gabungan)',
             self::CreditNote => 'Nota kredit',
             self::DebitNote => 'Nota debit',
+            self::Overtime => 'Pengajuan lembur',
+            self::Reimbursement => 'Pengajuan reimbursement',
         };
     }
 
@@ -111,12 +117,18 @@ enum DocumentType: string
             self::SupplierSettlement => 'PLH-{YYYY}{MM}{DD}-{####}',
             self::CreditNote => 'NK-{YYYY}{MM}{DD}-{####}',
             self::DebitNote => 'ND-{YYYY}{MM}{DD}-{####}',
+            self::Overtime => 'LBR-{YYYY}{MM}-{####}',
+            self::Reimbursement => 'RMB-{YYYY}{MM}-{####}',
         };
     }
 
     public function defaultReset(): NumberingReset
     {
-        return $this === self::Leave ? NumberingReset::Never : NumberingReset::Daily;
+        return match ($this) {
+            self::Leave => NumberingReset::Never,
+            self::Overtime, self::Reimbursement => NumberingReset::Monthly,
+            default => NumberingReset::Daily,
+        };
     }
 
     /** @return class-string<Model> */
@@ -139,6 +151,8 @@ enum DocumentType: string
             self::CashReceipt, self::CashDisbursement, self::CashTransfer => CashTransaction::class,
             self::SalesInvoice, self::PurchaseBill => Invoice::class,
             self::CustomerSettlement, self::SupplierSettlement, self::CreditNote, self::DebitNote => Settlement::class,
+            self::Overtime => OvertimeRequest::class,
+            self::Reimbursement => ReimbursementRequest::class,
         };
     }
 
