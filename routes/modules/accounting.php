@@ -9,7 +9,11 @@
 */
 
 use App\Http\Controllers\Accounting\AccountController;
+use App\Http\Controllers\Accounting\Assets\AssetCategoryController;
+use App\Http\Controllers\Accounting\Assets\DepreciationController;
+use App\Http\Controllers\Accounting\Assets\FixedAssetController;
 use App\Http\Controllers\Accounting\BankReconciliationController;
+use App\Http\Controllers\Accounting\BudgetController;
 use App\Http\Controllers\Accounting\CashBankAccountController;
 use App\Http\Controllers\Accounting\CashTransactionController;
 use App\Http\Controllers\Accounting\CostCenterController;
@@ -143,6 +147,43 @@ Route::prefix('akuntansi')->group(function () {
         Route::post('giro/{settlement}/cair', [GiroController::class, 'clear'])->whereNumber('settlement')->middleware('permission:pos.receivables.create|purchasing.payables.create')->name('giros.clear');
         Route::post('giro/{settlement}/tolak', [GiroController::class, 'bounce'])->whereNumber('settlement')->middleware('permission:pos.receivables.void|purchasing.payables.void')->name('giros.bounce');
     });
+
+    // ---- Aset tetap: kategori, daftar & kartu aset, penyusutan, pelepasan (Fase 11). ----
+    Route::prefix('aset')->group(function () {
+        Route::get('kategori', [AssetCategoryController::class, 'index'])->middleware('permission:accounting.assets.view')->name('asset-categories.index');
+        Route::post('kategori/pasang-standar', [AssetCategoryController::class, 'install'])->middleware('permission:accounting.assets.create')->name('asset-categories.install');
+        Route::get('kategori/buat', [AssetCategoryController::class, 'create'])->middleware('permission:accounting.assets.create')->name('asset-categories.create');
+        Route::post('kategori', [AssetCategoryController::class, 'store'])->middleware('permission:accounting.assets.create')->name('asset-categories.store');
+        Route::get('kategori/{assetCategory}/ubah', [AssetCategoryController::class, 'edit'])->whereNumber('assetCategory')->middleware('permission:accounting.assets.update')->name('asset-categories.edit');
+        Route::put('kategori/{assetCategory}', [AssetCategoryController::class, 'update'])->whereNumber('assetCategory')->middleware('permission:accounting.assets.update')->name('asset-categories.update');
+        Route::delete('kategori/{assetCategory}', [AssetCategoryController::class, 'destroy'])->whereNumber('assetCategory')->middleware('permission:accounting.assets.delete')->name('asset-categories.destroy');
+
+        Route::get('penyusutan', [DepreciationController::class, 'index'])->middleware('permission:accounting.assets.view')->name('depreciation.index');
+        Route::post('penyusutan', [DepreciationController::class, 'store'])->middleware('permission:accounting.assets.approve')->name('depreciation.store');
+        Route::get('penyusutan/{depreciationRun}', [DepreciationController::class, 'show'])->whereNumber('depreciationRun')->middleware('permission:accounting.assets.view')->name('depreciation-runs.show');
+        Route::post('penyusutan/{depreciationRun}/batal', [DepreciationController::class, 'cancel'])->whereNumber('depreciationRun')->middleware('permission:accounting.assets.approve')->name('depreciation-runs.cancel');
+
+        Route::get('/', [FixedAssetController::class, 'index'])->middleware('permission:accounting.assets.view')->name('fixed-assets.index');
+        Route::get('ekspor', [FixedAssetController::class, 'export'])->middleware('permission:accounting.assets.export')->name('fixed-assets.export');
+        Route::get('buat', [FixedAssetController::class, 'create'])->middleware('permission:accounting.assets.create')->name('fixed-assets.create');
+        Route::post('/', [FixedAssetController::class, 'store'])->middleware('permission:accounting.assets.create')->name('fixed-assets.store');
+        Route::prefix('{fixedAsset}')->whereNumber('fixedAsset')->name('fixed-assets.')->group(function () {
+            Route::get('/', [FixedAssetController::class, 'show'])->middleware('permission:accounting.assets.view')->name('show');
+            Route::get('ubah', [FixedAssetController::class, 'edit'])->middleware('permission:accounting.assets.update')->name('edit');
+            Route::put('/', [FixedAssetController::class, 'update'])->middleware('permission:accounting.assets.update')->name('update');
+            Route::post('hapus', [FixedAssetController::class, 'destroy'])->middleware('permission:accounting.assets.delete')->name('destroy');
+            Route::post('lepas', [FixedAssetController::class, 'dispose'])->middleware('permission:accounting.assets.void')->name('dispose');
+        });
+    });
+
+    // ---- Anggaran dan anggaran vs realisasi (Fase 11). ----
+    Route::resource('anggaran', BudgetController::class)
+        ->parameters(['anggaran' => 'budget'])
+        ->names('budgets')
+        ->middlewareFor(['index', 'show'], 'permission:accounting.budgets.view')
+        ->middlewareFor(['create', 'store'], 'permission:accounting.budgets.create')
+        ->middlewareFor(['edit', 'update'], 'permission:accounting.budgets.update')
+        ->middlewareFor('destroy', 'permission:accounting.budgets.delete');
 
     // ---- Kunci periode: tutup / buka kembali per bulan. ----
     Route::get('kunci-periode', [FiscalPeriodController::class, 'index'])->middleware('permission:accounting.periods.view')->name('fiscal-periods.index');

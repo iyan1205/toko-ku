@@ -44,6 +44,7 @@ class ChartOfAccountsService
         ['1-2000', 'Aset Tetap', AccountType::Asset, '1-0000', true],
         ['1-2100', 'Peralatan Toko', AccountType::Asset, '1-2000', false, null, 'Etalase, kulkas, mesin kasir, printer, dan peralatan lain.'],
         ['1-2200', 'Kendaraan', AccountType::Asset, '1-2000', false],
+        ['1-2300', 'Bangunan', AccountType::Asset, '1-2000', false, null, 'Bangunan toko, gudang, atau renovasi permanen.'],
         ['1-2900', 'Akumulasi Penyusutan', AccountType::Asset, '1-2000', false, NormalBalance::Credit, 'Akun kontra aset tetap.'],
 
         ['2-0000', 'Liabilitas', AccountType::Liability, null, true],
@@ -53,6 +54,8 @@ class ChartOfAccountsService
         ['2-1200', 'PPN Keluaran', AccountType::Liability, '2-1000', false, null, 'Pajak yang dipungut dari pelanggan saat penjualan.'],
         ['2-1300', 'Hutang Gaji', AccountType::Liability, '2-1000', false],
         ['2-1400', 'Hutang Pajak Lainnya', AccountType::Liability, '2-1000', false],
+        ['2-1410', 'Hutang PPh 23', AccountType::Liability, '2-1000', false, null, 'PPh 23 yang dipotong dari pembayaran jasa ke supplier dan wajib disetor.'],
+        ['2-1420', 'Hutang PPh 4(2)', AccountType::Liability, '2-1000', false, null, 'PPh final 4 ayat 2 (misal sewa bangunan) yang dipotong dan wajib disetor.'],
         ['2-1500', 'Uang Muka Pelanggan', AccountType::Liability, '2-1000', false, null, 'Uang dari pelanggan yang belum dipakai melunasi faktur.'],
         ['2-1900', 'Hutang Lain-lain', AccountType::Liability, '2-1000', false],
         ['2-2000', 'Liabilitas Jangka Panjang', AccountType::Liability, '2-0000', true],
@@ -70,6 +73,7 @@ class ChartOfAccountsService
         ['4-1200', 'Diskon Penjualan', AccountType::Revenue, '4-0000', false, NormalBalance::Debit, 'Akun kontra pendapatan: potongan harga per barang dan per transaksi di kasir.'],
         ['4-1300', 'Potongan Penjualan', AccountType::Revenue, '4-0000', false, NormalBalance::Debit, 'Akun kontra pendapatan: potongan setelah transaksi lewat nota kredit.'],
         ['4-2000', 'Pendapatan Lain-lain', AccountType::Revenue, '4-0000', false],
+        ['4-2100', 'Laba Pelepasan Aset Tetap', AccountType::Revenue, '4-0000', false, null, 'Selisih harga jual di atas nilai buku aset yang dijual.'],
 
         ['5-0000', 'Harga Pokok Penjualan', AccountType::Cogs, null, true],
         ['5-1000', 'Harga Pokok Penjualan', AccountType::Cogs, '5-0000', false, null, 'Harga modal barang yang terjual.'],
@@ -86,6 +90,7 @@ class ChartOfAccountsService
         ['6-1600', 'Beban Administrasi Bank', AccountType::Expense, '6-0000', false, null, 'Biaya admin, biaya transfer, dan potongan MDR QRIS/EDC.'],
         ['6-1700', 'Beban Pemasaran', AccountType::Expense, '6-0000', false],
         ['6-1900', 'Beban Lain-lain', AccountType::Expense, '6-0000', false],
+        ['6-1950', 'Rugi Pelepasan Aset Tetap', AccountType::Expense, '6-0000', false, null, 'Nilai buku aset yang dijual di bawah harga atau dihapus.'],
     ];
 
     /** Pasang akun standar yang belum ada. Mengembalikan jumlah akun yang ditambahkan. */

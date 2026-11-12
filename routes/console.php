@@ -24,6 +24,9 @@ Schedule::call(fn () => QueueHealth::schedulerBeat())->name('schedule-heartbeat'
 // Jurnal berulang yang jatuh tempo dan jurnal yang dijadwalkan dibalik otomatis (Akuntansi).
 Schedule::command('akuntansi:jurnal-terjadwal')->dailyAt('00:20')->withoutOverlapping();
 
+// Penyusutan aset tetap bulan lalu (tanggal 1, sebelum backup).
+Schedule::command('aset:penyusutan')->monthlyOn(1, '00:40')->withoutOverlapping();
+
 // Pengingat piutang dan hutang yang jatuh tempo (notifikasi lonceng + email).
 Schedule::command('keuangan:pengingat-jatuh-tempo')->dailyAt('07:00')->withoutOverlapping();
 

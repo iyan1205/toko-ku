@@ -3,6 +3,8 @@
 namespace App\Support;
 
 use App\Models\CashTransaction;
+use App\Models\DepreciationRun;
+use App\Models\FixedAsset;
 use App\Models\GoodsReceipt;
 use App\Models\Invoice;
 use App\Models\OpeningBalance;
@@ -53,6 +55,12 @@ final class DocumentLink
         }
         if ($reference instanceof Settlement) {
             return $user?->can($reference->type->permission('view')) ? route($reference->type->routePrefix().'.show', $reference) : null;
+        }
+        if ($reference instanceof FixedAsset) {
+            return $user?->can('accounting.assets.view') ? route('fixed-assets.show', $reference) : null;
+        }
+        if ($reference instanceof DepreciationRun) {
+            return $user?->can('accounting.assets.view') ? route('depreciation-runs.show', $reference) : null;
         }
         if ($reference instanceof CashTransaction) {
             return $user?->can('accounting.cash-bank.view') ? route('cash-transactions.show', $reference) : null;

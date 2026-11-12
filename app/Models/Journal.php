@@ -49,6 +49,8 @@ class Journal extends Model
         'cash_transaction' => 'Kas & bank',
         'invoice' => 'Faktur manual',
         'settlement' => 'Pelunasan',
+        'fixed_asset' => 'Aset tetap',
+        'depreciation_run' => 'Penyusutan',
     ];
 
     protected $fillable = ['number', 'journal_date', 'description', 'source_type', 'source_id', 'source_event', 'reversal_of_id', 'total', 'user_id'];

@@ -53,6 +53,11 @@ return [
 
         'opening_equity' => ['group' => 'Ekuitas', 'label' => 'Ekuitas saldo awal', 'default' => '3-9000', 'types' => ['equity'], 'hint' => 'Penyeimbang saat saldo awal diposting.'],
         'retained_earnings' => ['group' => 'Ekuitas', 'label' => 'Laba ditahan', 'default' => '3-3000', 'types' => ['equity'], 'hint' => 'Dipakai tutup buku tahunan.'],
+
+        'asset_disposal_gain' => ['group' => 'Aset tetap & pajak', 'label' => 'Laba pelepasan aset tetap', 'default' => '4-2100', 'types' => ['revenue']],
+        'asset_disposal_loss' => ['group' => 'Aset tetap & pajak', 'label' => 'Rugi pelepasan aset tetap', 'default' => '6-1950', 'types' => ['expense']],
+        'pph23_payable' => ['group' => 'Aset tetap & pajak', 'label' => 'Hutang PPh 23', 'default' => '2-1410', 'types' => ['liability'], 'hint' => 'PPh 23 yang dipotong di tagihan pembelian jasa.'],
+        'pph4_2_payable' => ['group' => 'Aset tetap & pajak', 'label' => 'Hutang PPh 4(2)', 'default' => '2-1420', 'types' => ['liability'], 'hint' => 'PPh final 4(2) yang dipotong di tagihan pembelian.'],
     ],
 
     // Metode pembayaran tanpa akun khusus memakai peran ini. Metode yang tidak tercantum memakai 'bank'.

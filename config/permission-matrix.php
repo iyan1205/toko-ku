@@ -98,6 +98,9 @@ return [
                 // Kunci periode: update = menutup dan membuka kembali bulan.
                 'periods' => ['label' => 'Kunci periode', 'actions' => ['view', 'update']],
                 'ledger' => ['label' => 'Buku besar', 'actions' => ['view', 'export']],
+                // Aset: approve = hitung/batalkan penyusutan, void = lepas (jual/hapus) aset.
+                'assets' => ['label' => 'Aset tetap & penyusutan', 'actions' => ['view', 'create', 'update', 'delete', 'approve', 'void', 'export']],
+                'budgets' => ['label' => 'Anggaran', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
                 'trial-balance' => ['label' => 'Neraca saldo', 'actions' => ['view', 'export']],
                 'cost-centers' => ['label' => 'Cost center / departemen', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
                 // Kas & bank: create = transaksi kas, update = kelola rekening, void = batalkan transaksi yang sudah diposting.
