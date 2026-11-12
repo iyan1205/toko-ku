@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\CashBankAccount;
 use App\Models\CashTransaction;
 use App\Models\DepreciationRun;
+use App\Models\FiscalYearClosing;
 use App\Models\FixedAsset;
 use App\Models\GoodsReceipt;
 use App\Models\Invoice;
@@ -78,6 +79,7 @@ class AppServiceProvider extends ServiceProvider
             'settlement' => Settlement::class,
             'fixed_asset' => FixedAsset::class,
             'depreciation_run' => DepreciationRun::class,
+            'fiscal_year_closing' => FiscalYearClosing::class,
         ]);
 
         // Tanda hidup queue worker untuk Pengaturan → Sistem dan ekspor besar (lihat QueueHealth).

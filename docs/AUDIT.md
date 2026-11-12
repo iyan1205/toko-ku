@@ -628,6 +628,17 @@ Dikerjakan sebelum 5b dan Fase 6 karena mengubah `StockService`, yang dipakai pe
 - 14 izin baru: `pos.invoices.*` (4), `purchasing.bills.*` (4), `accounting.reconciliation.*` (3), `pos.receivables.void`, `purchasing.payables.void`, `accounting.cash-bank.void`; `accounting.cash-bank.*` tidak lagi "planned".
 - Seluruh suite 802/802 lulus.
 
+### Fase 11 — Aset, Anggaran, Pajak, Laporan Keuangan, Tutup Buku · XL
+**Status 12 Nov 2026: selesai, menunggu pengecekan pemilik.** Rincian di [ROADMAP.md](ROADMAP.md).
+- Aset tetap: `asset_categories`, `fixed_assets`, `depreciation_runs`, `asset_depreciations` (unik per aset + periode); `DepreciationCalculator` (garis lurus = (harga - nilai sisa) / umur, sisa pembulatan di bulan terakhir; saldo menurun = nilai buku x tarif / 12, tidak di bawah nilai sisa), `FixedAssetService` (jurnal perolehan, pelepasan dengan laba/rugi, hapus = jurnal balik), `DepreciationService` (satu run dan satu jurnal per cabang per periode, mengejar bulan terlewat, batal hanya run terakhir), perintah `aset:penyusutan` (tanggal 1, 00:40).
+- Anggaran: `budgets` + `budget_lines` (akun x bulan), satu anggaran per tahun + cakupan cabang/cost center; `BudgetService::report()` membandingkan dengan realisasi jurnal posted.
+- Pajak: `tax_rates` (PPh 23 / 4(2), berlaku per tanggal, diatur di Pengaturan → Tarif Pajak), kolom potongan PPh di `invoices`, `customers.tax_id`; `TaxRateService`, `TaxReportService` (rekap PPN dari akun PPN keluaran/masukan, daftar faktur, bukti potong), `TaxDocumentsExport` dengan kolom dari `config/tax-export.php`.
+- Laporan keuangan: `FinancialReportService` (Laba Rugi multi-kolom, Neraca, Arus Kas tidak langsung, Perubahan Ekuitas; satu struktur baris untuk layar/Excel/PDF), `accounts.cash_flow` (kelompok arus kas per akun, kosong = otomatis dari kode akun). Jurnal saldo awal tidak dihitung sebagai arus kas.
+- Tutup buku: `fiscal_year_closings`, `ClosingService` (checklist bulan, jurnal penutup per cabang ke Laba Ditahan, kunci 12 bulan, batal = jurnal balik). Membuka kembali periode dipindah dari `accounting.periods.update` ke `accounting.closing.approve`.
+- 5 akun standar baru (1-2300, 2-1410, 2-1420, 4-2100, 6-1950) dan 4 peran pemetaan baru (laba/rugi pelepasan aset, hutang PPh 23, hutang PPh 4(2)).
+- 15 izin baru: `accounting.assets.*` (7), `accounting.budgets.*` (5), `accounting.taxes.*` (3); `accounting.reports.*` dan `accounting.closing.*` tidak lagi "planned".
+- Seluruh suite 822/822 lulus.
+
 ### Urutan dan ketergantungan
 ```
 0.5 Persiapan → 1 Fondasi UI → 2 Layout & Menu → 3 Hak Akses → 4 Pengaturan & Dashboard

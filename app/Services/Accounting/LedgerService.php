@@ -47,7 +47,8 @@ class LedgerService
      */
     public function applyFilters($query, array $f, string $journals = 'journals', string $lines = 'journal_lines'): void
     {
-        if (($scope = $this->branches->scopeIds()) !== null) {
+        // '_semua_cabang' hanya dipakai proses internal (tutup buku); tidak bisa datang dari isian pengguna.
+        if (empty($f['_semua_cabang']) && ($scope = $this->branches->scopeIds()) !== null) {
             $query->whereIn("{$journals}.branch_id", $scope ?: [0]);
         }
 

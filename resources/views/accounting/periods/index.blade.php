@@ -2,6 +2,7 @@
 @use('App\Enums\FiscalPeriodStatus')
 @use('App\Support\Format')
 @php($bolehUbah = auth()->user()->can('accounting.periods.update'))
+@php($bolehBuka = auth()->user()->can('accounting.closing.approve'))
 
 <x-app-layout>
     <x-slot name="header">Kunci Periode</x-slot>
@@ -59,14 +60,14 @@
                     @endif
                 </x-ui.table.td>
                 <x-ui.table.td align="right">
-                    @if ($bolehUbah && ! $b['future'])
-                        @if ($b['status'] === FiscalPeriodStatus::Closed)
+                    @if (! $b['future'])
+                        @if ($b['status'] === FiscalPeriodStatus::Closed && $bolehBuka)
                             <x-ui.button variant="secondary" size="sm" icon="lock-open" x-data x-on:click="$dispatch('open-modal', 'buka-{{ $kunci }}')">Buka kembali</x-ui.button>
                             <x-ui.void-dialog :name="'buka-'.$kunci" :action="route('fiscal-periods.reopen', [$b['year'], $b['month']])"
                                               :title="'Buka kembali periode '.$b['label'].'?'" confirm="Ya, buka kembali" label="Alasan membuka kembali">
                                 Transaksi bertanggal di bulan ini bisa dibuat dan diubah lagi. Tutup kembali setelah koreksi selesai.
                             </x-ui.void-dialog>
-                        @else
+                        @elseif ($b['status'] !== FiscalPeriodStatus::Closed && $bolehUbah)
                             <x-ui.button variant="secondary" size="sm" icon="lock-closed"
                                          x-data x-on:click="$dispatch('konfirmasi-hapus', {
                                              action: {{ \Illuminate\Support\Js::from(route('fiscal-periods.close', [$b['year'], $b['month']])) }},

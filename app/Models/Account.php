@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\AccountType;
+use App\Enums\CashFlowGroup;
 use App\Enums\NormalBalance;
 use App\Models\Concerns\RecordsActivity;
 use Illuminate\Database\Eloquent\Builder;
@@ -22,7 +23,7 @@ class Account extends Model
 {
     use HasFactory, RecordsActivity, SoftDeletes;
 
-    protected $fillable = ['code', 'name', 'type', 'normal_balance', 'parent_id', 'is_header', 'is_cash_bank', 'is_active', 'description'];
+    protected $fillable = ['code', 'name', 'type', 'normal_balance', 'parent_id', 'is_header', 'is_cash_bank', 'cash_flow', 'is_active', 'description'];
 
     protected function casts(): array
     {
@@ -31,6 +32,7 @@ class Account extends Model
             'normal_balance' => NormalBalance::class,
             'is_header' => 'boolean',
             'is_cash_bank' => 'boolean',
+            'cash_flow' => CashFlowGroup::class,
             'is_system' => 'boolean',
             'is_active' => 'boolean',
         ];

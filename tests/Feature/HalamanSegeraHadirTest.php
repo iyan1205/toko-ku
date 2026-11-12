@@ -20,10 +20,10 @@ class HalamanSegeraHadirTest extends TestCase
     public function test_menu_yang_belum_tersedia_menampilkan_halaman_segera_hadir(): void
     {
         $this->actingAs($this->buatPengguna(RoleName::Akuntan))
-            ->get(route('coming-soon', 'accounting-reports'))
+            ->get(route('coming-soon', 'reports-gross-profit'))
             ->assertOk()
-            ->assertSee('Laporan Keuangan')
-            ->assertSee('Laba rugi, neraca, dan arus kas.')
+            ->assertSee('Laba Kotor')
+            ->assertSee('Laba kotor per produk, kategori, dan periode.')
             ->assertSee('Fitur ini sedang disiapkan');
     }
 
@@ -34,12 +34,13 @@ class HalamanSegeraHadirTest extends TestCase
         $this->get(route('coming-soon', 'tidak-ada'))->assertNotFound();
         $this->get(route('coming-soon', 'inventory-products'))->assertNotFound();
         $this->get(route('coming-soon', 'accounting-coa'))->assertNotFound();
+        $this->get(route('coming-soon', 'accounting-reports'))->assertNotFound();
     }
 
     public function test_pengguna_tanpa_hak_akses_menu_ditolak(): void
     {
         $this->actingAs($this->buatPengguna(RoleName::Kasir))
-            ->get(route('coming-soon', 'accounting-reports'))
+            ->get(route('coming-soon', 'reports-gross-profit'))
             ->assertForbidden();
     }
 }

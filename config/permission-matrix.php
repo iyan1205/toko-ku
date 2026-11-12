@@ -109,8 +109,9 @@ return [
                 'cash-bank' => ['label' => 'Kas & bank', 'actions' => ['view', 'create', 'update', 'void', 'export']],
                 // Rekonsiliasi: create = impor rekening koran dan mencocokkan, approve = mengunci rekonsiliasi.
                 'reconciliation' => ['label' => 'Rekonsiliasi bank', 'actions' => ['view', 'create', 'approve']],
-                'reports' => ['label' => 'Laporan keuangan', 'actions' => ['view', 'export'], 'planned' => true],
-                'closing' => ['label' => 'Tutup buku', 'actions' => ['view', 'approve'], 'planned' => true],
+                'reports' => ['label' => 'Laporan keuangan', 'actions' => ['view', 'export']],
+                // Tutup buku: approve = tutup/batal tutup tahun dan membuka kembali periode yang dikunci.
+                'closing' => ['label' => 'Tutup buku', 'actions' => ['view', 'approve']],
             ],
         ],
 

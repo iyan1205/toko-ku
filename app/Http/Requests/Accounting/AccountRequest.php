@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Accounting;
 
 use App\Enums\AccountType;
+use App\Enums\CashFlowGroup;
 use App\Enums\NormalBalance;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -39,6 +40,7 @@ class AccountRequest extends FormRequest
             'parent_id' => ['nullable', 'integer', Rule::exists('accounts', 'id')->where('is_header', true)->whereNull('deleted_at'), Rule::notIn(array_filter([$id]))],
             'is_header' => ['boolean'],
             'is_cash_bank' => ['boolean'],
+            'cash_flow' => ['nullable', Rule::enum(CashFlowGroup::class)],
             'is_active' => ['boolean'],
             'description' => ['nullable', 'string', 'max:255'],
         ];

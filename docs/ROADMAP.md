@@ -1,6 +1,6 @@
 # Roadmap Toko-ku
 
-Status per 11 Nov 2026, setelah Fase 10 (kas & bank, piutang, hutang). Rincian keputusan dan rencana tiap fase ada di [AUDIT.md](AUDIT.md); spesifikasi di [REDESIGN-TOKOKU.md](REDESIGN-TOKOKU.md), rencana Fase 8–19 di `ROADMAP-ENTERPRISE-TOKOKU.md`. Cara deploy, queue worker, dan scheduler: [DEPLOY.md](DEPLOY.md).
+Status per 12 Nov 2026, setelah Fase 11 (aset tetap, anggaran, pajak, laporan keuangan, tutup buku). Rincian keputusan dan rencana tiap fase ada di [AUDIT.md](AUDIT.md); spesifikasi di [REDESIGN-TOKOKU.md](REDESIGN-TOKOKU.md), rencana Fase 8–19 di `ROADMAP-ENTERPRISE-TOKOKU.md`. Cara deploy, queue worker, dan scheduler: [DEPLOY.md](DEPLOY.md).
 
 ## Ringkasan
 
@@ -10,7 +10,7 @@ Status per 11 Nov 2026, setelah Fase 10 (kas & bank, piutang, hutang). Rincian k
 | Kasir (POS) | Jadi | Layar kasir baru, split bayar, pajak, sesi kasir, retur, piutang, faktur penjualan manual, pelunasan gabungan, umur & kartu piutang |
 | Inventori | Jadi | Multi-gudang, transfer, opname draft → selesai, kartu stok |
 | Pembelian | Jadi | PO → penerimaan parsial → faktur & hutang, retur, tagihan manual, pembayaran gabungan, jadwal, umur & kartu hutang |
-| Akuntansi | Sebagian | Bagan akun, saldo awal, jurnal umum & berulang, pemetaan akun, jurnal otomatis, buku besar, neraca saldo, cost center, kunci periode, kas & bank, rekonsiliasi bank, giro. Laporan keuangan dan tutup buku belum |
+| Akuntansi | Jadi | Bagan akun, saldo awal, jurnal umum & berulang, jurnal otomatis, buku besar, neraca saldo, cost center, kas & bank, rekonsiliasi, giro, aset tetap & penyusutan, anggaran, PPN & PPh 23/4(2), laporan keuangan, tutup buku |
 | SDM | Sebagian | Karyawan, departemen & jabatan, absensi, jadwal, shift, cuti. Penggajian belum |
 | Laporan | Sebagian | Laporan penjualan ada. Pembelian, stok, laba kotor, kinerja kasir belum |
 | Pengguna & Hak Akses | Jadi | Peran dinamis, matriks izin, akses cabang per pengguna, log aktivitas, profil |
@@ -78,6 +78,16 @@ Menu yang belum jadi tetap tampil dengan label **Segera Hadir** (diatur di `conf
 - **Saldo awal**: piutang/hutang per pihak dari saldo awal kini menjadi faktur saldo awal yang bisa dilunasi dan masuk umur/kartu. Saldo awal yang sudah diposting sebelum Fase 10 dibuatkan lewat `php artisan keuangan:faktur-saldo-awal` (sekali, aman diulang).
 - Semua dijurnal otomatis lewat pemetaan akun (peran baru: uang muka pelanggan/pembelian, nota kredit/debit, giro diterima/dikeluarkan, biaya administrasi bank).
 
+### Aset, anggaran, pajak, laporan keuangan, tutup buku (Fase 11)
+- **Kategori aset** (Akuntansi → Aset Tetap → Kategori): umur manfaat (bulan), metode garis lurus atau saldo menurun (tarif % per tahun), akun aset/akumulasi/beban. Tombol "Pasang kategori standar" (kelompok 1, kelompok 2, bangunan).
+- **Aset tetap**: kode otomatis, kategori, tanggal & harga perolehan, nilai sisa, lokasi, penanggung jawab (karyawan atau nama), cost center, nomor seri, lampiran. Saat disimpan dijurnal D Aset | K akun pembayaran; aset lama bisa dicatat dengan akumulasi penyusutan awal. **Kartu aset** menampilkan riwayat dan sisa jadwal penyusutan.
+- **Penyusutan bulanan**: scheduler `aset:penyusutan` tanggal 1 pukul 00:40 menyusutkan bulan lalu (satu jurnal per cabang: D Beban Penyusutan | K Akumulasi, per cost center). Bulan yang terlewat ikut dikejar. Bisa juga dijalankan manual dari halaman Penyusutan dan dibatalkan selama belum ada penyusutan sesudahnya.
+- **Pelepasan aset**: dijual (uang ke rekening kas/bank) atau dihapus; laba/rugi pelepasan otomatis ke 4-2100 / 6-1950. Syaratnya penyusutan sudah dihitung sampai bulan sebelum pelepasan.
+- **Anggaran** (Akuntansi → Anggaran): nilai per akun pendapatan/HPP/beban per bulan, untuk semua cabang atau satu cabang/cost center; salin ke tahun berikutnya. Laporan anggaran vs realisasi dengan persentase dan peringatan (beban melebihi anggaran, pendapatan di bawah target).
+- **Pajak**: tarif PPh 23 dan PPh 4(2) di Pengaturan → Tarif Pajak dengan tanggal berlaku (bawaan PPh 23 jasa/sewa 2%, PPh 4(2) sewa bangunan 10%, konstruksi 1,75%). Tagihan pembelian manual bisa memotong PPh: hutang ke supplier berkurang dan potongannya masuk Hutang PPh 23 / 4(2). Akuntansi → Pajak: **Rekap PPN** per masa (keluaran, masukan, kurang/lebih bayar), **Faktur PPN** keluaran/masukan dengan ekspor Excel/CSV yang kolomnya diatur di `config/tax-export.php`, dan **Bukti potong PPh** per masa dengan isian nomor dan tanggal bukti potong. NPWP/NIK pelanggan kini bisa diisi.
+- **Laporan keuangan** (Akuntansi → Laporan Keuangan): Laba Rugi (satu periode, per bulan, banding periode sebelumnya atau tahun lalu, per cabang dan cost center), Neraca (dengan pembanding akhir tahun lalu dan pemeriksaan seimbang), Arus Kas metode tidak langsung (kelompok operasi/investasi/pendanaan otomatis dari kode akun, bisa diubah per akun di Bagan Akun), Perubahan Ekuitas. Ekspor Excel/PDF dengan kop toko. Angka akun menuju Buku Besar, lalu ke jurnalnya.
+- **Tutup buku** (Akuntansi → Tutup Buku): checklist tutup bulan (jurnal/kas/faktur yang belum diposting, rekonsiliasi bank, penyusutan, jurnal berulang) lalu kunci periode; **tutup tahun** membuat jurnal penutup per cabang (pendapatan dan beban dinolkan ke Laba Ditahan) dan mengunci semua bulannya. Pembatalan tutup tahun membalik jurnal penutupnya. **Membuka kembali periode yang dikunci kini butuh izin Tutup buku → Setujui** (bukan lagi Kunci periode → Ubah); semua tercatat di log.
+
 ### SDM (Fase 7, kerangka)
 - **Karyawan**: daftar, tambah/ubah/hapus, ekspor. Kode otomatis `KRY-0001`. Tautan opsional ke akun login (satu akun untuk satu karyawan); karyawan tanpa akun tetap bisa dicatat.
 - **Departemen & Jabatan**: daftar, tambah/ubah/hapus, ekspor. Tidak bisa dihapus bila masih dipakai karyawan.
@@ -97,8 +107,10 @@ Menu yang belum jadi tetap tampil dengan label **Segera Hadir** (diatur di `conf
 ## Belum dibangun
 
 ### Akuntansi
-- **Laporan Keuangan**: Laba Rugi, Neraca, Arus Kas.
-- **Tutup Buku**: checklist tutup bulan, jurnal penutup tahun, dan buka kembali hanya oleh peran tertentu. Kunci periode bulanan sudah ada (Fase 8).
+- Penyusutan memakai bulan penuh sejak bulan perolehan (tanpa prorata harian); revaluasi, penurunan nilai, dan pemindahan aset antar cabang belum ada.
+- Pembelian aset lewat faktur pembelian/tagihan belum otomatis membuat aset; catat asetnya di Aset Tetap dengan akun pembayaran Hutang Usaha bila perlu.
+- PPh baru untuk tagihan pembelian manual (bukan faktur pembelian barang). e-Bupot dan e-Faktur dikirim manual dari berkas ekspor; format kolomnya perlu dicek dengan versi aplikasi DJP yang dipakai.
+- Laporan keuangan dihitung langsung dari jurnal (belum ada tabel ringkasan); untuk data bertahun-tahun mungkin perlu cache/queue.
 - Halaman lama Piutang Pelanggan / Hutang Supplier masih hanya menampilkan penjualan kasir / faktur pembelian; faktur manual dan saldo awal ada di Faktur Penjualan / Tagihan Pembelian, dan semuanya muncul bersama di Pelunasan, umur, dan kartu.
 - Rekonsiliasi bank menghitung pencatatan buku yang belum cocok hanya di dalam periode rekening koran; pencatatan lama sebelum rekonsiliasi pertama tidak ikut.
 - Batas kredit pelanggan dan pengingat ke pelanggan (bukan ke pengguna) direncanakan di Fase 15.
@@ -119,7 +131,6 @@ Menu yang belum jadi tetap tampil dengan label **Segera Hadir** (diatur di `conf
 - Impor produk masih memakai halaman lamanya (semua-atau-tidak-sama-sekali); belum dipindah ke kerangka impor baru.
 - Persetujuan baru dipakai purchase order dan jurnal manual. Retur penjualan/pembelian, stok opname, dan cuti masih memakai persetujuan lamanya (cuti punya alur bertahap sendiri).
 - Transfer stok antar cabang tercatat di cabang gudang asal dan dijurnal di kedua cabang lewat Rekening Antar Cabang; status kirim/terima dan barang dalam perjalanan direncanakan di Fase 16.
-- Buku besar dan neraca saldo sudah bisa per cabang (Fase 9); laporan keuangan per cabang menyusul di Fase 11.
 - Multi-perusahaan: tabel `companies` sudah ada, tetapi hanya satu perusahaan yang dipakai (Fase 17).
 
 ### Lain-lain

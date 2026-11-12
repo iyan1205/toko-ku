@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\CashTransaction;
 use App\Models\DepreciationRun;
+use App\Models\FiscalYearClosing;
 use App\Models\FixedAsset;
 use App\Models\GoodsReceipt;
 use App\Models\Invoice;
@@ -58,6 +59,9 @@ final class DocumentLink
         }
         if ($reference instanceof FixedAsset) {
             return $user?->can('accounting.assets.view') ? route('fixed-assets.show', $reference) : null;
+        }
+        if ($reference instanceof FiscalYearClosing) {
+            return $user?->can('accounting.closing.view') ? route('closing.index', ['tahun' => $reference->fiscal_year]) : null;
         }
         if ($reference instanceof DepreciationRun) {
             return $user?->can('accounting.assets.view') ? route('depreciation-runs.show', $reference) : null;

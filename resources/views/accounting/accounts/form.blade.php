@@ -36,6 +36,8 @@
                 <x-ui.select name="parent_id" label="Akun induk" :options="$parents->mapWithKeys(fn ($p) => [$p->id => $p->code.' '.$p->name.' ('.$p->type->label().')'])" :selected="$account->parent_id" placeholder="Tanpa induk" />
             </div>
             <x-ui.input name="description" label="Deskripsi" :value="$account->description" maxlength="255" />
+            <x-ui.select name="cash_flow" label="Kelompok arus kas" :options="collect(\App\Enums\CashFlowGroup::cases())->mapWithKeys(fn ($g) => [$g->value => $g->label()])" :selected="$account->cash_flow?->value"
+                         placeholder="Otomatis" hint="Hanya untuk akun neraca. Otomatis: aset tetap = investasi, hutang jangka panjang dan modal = pendanaan, lainnya = operasi." />
         </x-ui.form-section>
 
         <x-ui.form-section title="Status">

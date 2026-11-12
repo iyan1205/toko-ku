@@ -16,7 +16,9 @@ use App\Http\Controllers\Accounting\BankReconciliationController;
 use App\Http\Controllers\Accounting\BudgetController;
 use App\Http\Controllers\Accounting\CashBankAccountController;
 use App\Http\Controllers\Accounting\CashTransactionController;
+use App\Http\Controllers\Accounting\ClosingController;
 use App\Http\Controllers\Accounting\CostCenterController;
+use App\Http\Controllers\Accounting\FinancialReportController;
 use App\Http\Controllers\Accounting\FiscalPeriodController;
 use App\Http\Controllers\Accounting\GiroController;
 use App\Http\Controllers\Accounting\JournalController;
@@ -197,8 +199,22 @@ Route::prefix('akuntansi')->group(function () {
 
     // ---- Kunci periode: tutup / buka kembali per bulan. ----
     Route::get('kunci-periode', [FiscalPeriodController::class, 'index'])->middleware('permission:accounting.periods.view')->name('fiscal-periods.index');
-    Route::prefix('kunci-periode/{tahun}/{bulan}')->whereNumber(['tahun', 'bulan'])->middleware('permission:accounting.periods.update')->group(function () {
-        Route::post('tutup', [FiscalPeriodController::class, 'close'])->name('fiscal-periods.close');
-        Route::post('buka', [FiscalPeriodController::class, 'reopen'])->name('fiscal-periods.reopen');
+    Route::prefix('kunci-periode/{tahun}/{bulan}')->whereNumber(['tahun', 'bulan'])->group(function () {
+        Route::post('tutup', [FiscalPeriodController::class, 'close'])->middleware('permission:accounting.periods.update')->name('fiscal-periods.close');
+        // Membuka kembali periode hanya untuk peran dengan izin Tutup buku → Setujui.
+        Route::post('buka', [FiscalPeriodController::class, 'reopen'])->middleware('permission:accounting.closing.approve')->name('fiscal-periods.reopen');
     });
+
+    // ---- Laporan keuangan dan tutup buku (Fase 11). ----
+    Route::middleware('permission:accounting.reports.view')->prefix('laporan')->group(function () {
+        Route::get('/', [FinancialReportController::class, 'index'])->name('financial-reports.index');
+        Route::get('laba-rugi', [FinancialReportController::class, 'show'])->name('financial-reports.income');
+        Route::get('neraca', [FinancialReportController::class, 'show'])->name('financial-reports.balance');
+        Route::get('arus-kas', [FinancialReportController::class, 'show'])->name('financial-reports.cash-flow');
+        Route::get('perubahan-ekuitas', [FinancialReportController::class, 'show'])->name('financial-reports.equity');
+    });
+    Route::get('tutup-buku', [ClosingController::class, 'index'])->middleware('permission:accounting.closing.view')->name('closing.index');
+    Route::get('tutup-buku/{tahun}/{bulan}', [ClosingController::class, 'checklist'])->whereNumber(['tahun', 'bulan'])->middleware('permission:accounting.closing.view')->name('closing.checklist');
+    Route::post('tutup-buku/{tahun}', [ClosingController::class, 'closeYear'])->whereNumber('tahun')->middleware('permission:accounting.closing.approve')->name('closing.close-year');
+    Route::post('tutup-buku/batal/{fiscalYearClosing}', [ClosingController::class, 'cancelYear'])->whereNumber('fiscalYearClosing')->middleware('permission:accounting.closing.approve')->name('closing.cancel-year');
 });
