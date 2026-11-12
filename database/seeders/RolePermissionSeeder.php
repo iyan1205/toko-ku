@@ -48,6 +48,7 @@ class RolePermissionSeeder extends Seeder
                 'reports.*',
                 'sdm.employees.view', 'sdm.departments.view',
                 'sdm.attendances.*', 'sdm.schedules.*', 'sdm.shifts.*', 'sdm.leaves.*',
+                ...self::SELF_SERVICE,
             ],
 
             RoleName::Kasir->value => [

@@ -154,5 +154,6 @@ class LayananMandiriTest extends TestCase
         $this->get(route('overtime.index'))->assertForbidden();
         $this->get(route('reimbursements.index'))->assertForbidden();
         $this->actingAs($this->buatPengguna(RoleName::Purchasing))->get(route('ess.index'))->assertOk();
+        $this->actingAs($this->buatPengguna(RoleName::Admin))->get(route('ess.overtime'))->assertOk();
     }
 }

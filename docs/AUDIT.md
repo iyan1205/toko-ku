@@ -645,7 +645,7 @@ Dikerjakan sebelum 5b dan Fase 6 karena mengubah `StockService`, yang dipakai pe
 - Dokumen & offboarding: `employee_documents` (+lampiran, masa berlaku), `employee_offboardings` + item checklist (`config/sdm.php`), perintah `sdm:proses-harian` (00:50) dan `sdm:pengingat` (07:05, notifikasi `sdm.expiry`).
 - Bagan organisasi dari `employees.supervisor_id`.
 - Layanan Mandiri: route `saya/*` (`ess.*`), `overtime_requests` dan `reimbursement_requests` (status baku, `HasApproval` dokumen `overtime`/`reimbursement`, nomor LBR/RMB bulanan), `EmployeeRequestService` (ajukan, setujui/tolak langsung, batal), lampiran yang bisa dibuka pemilik dokumennya (`allowsAttachmentAccess`).
-- 13 izin baru: `sdm.self-service.view`, `sdm.organization.view`, `sdm.offboarding.*` (3), `sdm.overtime.*` (4), `sdm.reimbursements.*` (4). Semua pegawai mendapat Layanan Mandiri serta mengajukan lembur dan reimbursement.
+- 13 izin baru: `sdm.self-service.view`, `sdm.organization.view`, `sdm.offboarding.*` (3), `sdm.overtime.*` (4), `sdm.reimbursements.*` (4). Semua peran pegawai (termasuk Admin) mendapat Layanan Mandiri serta mengajukan lembur dan reimbursement.
 
 ### Urutan dan ketergantungan
 ```
