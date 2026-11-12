@@ -10,8 +10,12 @@ use App\Http\Controllers\Sdm\AbsensiController;
 use App\Http\Controllers\Sdm\CutiController;
 use App\Http\Controllers\Sdm\DepartmentController;
 use App\Http\Controllers\Sdm\EmployeeController;
+use App\Http\Controllers\Sdm\EmployeeDocumentController;
+use App\Http\Controllers\Sdm\EmployeeHistoryController;
 use App\Http\Controllers\Sdm\JadwalController;
 use App\Http\Controllers\Sdm\JenisCutiController;
+use App\Http\Controllers\Sdm\OffboardingController;
+use App\Http\Controllers\Sdm\OrgChartController;
 use App\Http\Controllers\Sdm\PositionController;
 use App\Http\Controllers\Sdm\ShiftController;
 use Illuminate\Support\Facades\Route;
@@ -75,11 +79,34 @@ Route::resource('jenis-cuti', JenisCutiController::class)
 
 // ---- Karyawan (relasi opsional ke akun login lewat employees.user_id) ----
 Route::get('karyawan/ekspor', [EmployeeController::class, 'export'])->middleware('permission:sdm.employees.export')->name('employees.export');
+// Foto: pemegang sdm.employees.view atau karyawan itu sendiri (dicek di controller).
+Route::get('karyawan/{employee}/foto', [EmployeeController::class, 'photo'])->middleware('permission:sdm.employees.view|sdm.self-service.view')->name('employees.photo');
+Route::middleware('permission:sdm.employees.update')->prefix('karyawan/{employee}')->group(function () {
+    Route::post('kontrak', [EmployeeHistoryController::class, 'storeContract'])->name('employees.contracts.store');
+    Route::delete('kontrak/{contract}', [EmployeeHistoryController::class, 'destroyContract'])->name('employees.contracts.destroy');
+    Route::post('mutasi', [EmployeeHistoryController::class, 'storeMovement'])->name('employees.movements.store');
+    Route::delete('mutasi/{movement}', [EmployeeHistoryController::class, 'destroyMovement'])->name('employees.movements.destroy');
+    Route::post('dokumen', [EmployeeDocumentController::class, 'store'])->name('employees.documents.store');
+    Route::delete('dokumen/{document}', [EmployeeDocumentController::class, 'destroy'])->name('employees.documents.destroy');
+});
+
+// ---- Struktur organisasi dan offboarding (Fase 12) ----
+Route::get('struktur-organisasi', [OrgChartController::class, 'index'])->middleware('permission:sdm.organization.view')->name('org-chart.index');
+Route::get('offboarding', [OffboardingController::class, 'index'])->middleware('permission:sdm.offboarding.view')->name('offboardings.index');
+Route::get('offboarding/{offboarding}', [OffboardingController::class, 'show'])->whereNumber('offboarding')->middleware('permission:sdm.offboarding.view')->name('offboardings.show');
+Route::post('karyawan/{employee}/offboarding', [OffboardingController::class, 'store'])->middleware('permission:sdm.offboarding.create')->name('offboardings.store');
+Route::middleware('permission:sdm.offboarding.create')->prefix('offboarding/{offboarding}')->whereNumber('offboarding')->group(function () {
+    Route::post('checklist', [OffboardingController::class, 'addItem'])->name('offboardings.items.store');
+    Route::post('checklist/{item}', [OffboardingController::class, 'toggleItem'])->whereNumber('item')->name('offboardings.items.toggle');
+});
+Route::middleware('permission:sdm.offboarding.approve')->prefix('offboarding/{offboarding}')->whereNumber('offboarding')->group(function () {
+    Route::post('selesai', [OffboardingController::class, 'complete'])->name('offboardings.complete');
+    Route::post('batal', [OffboardingController::class, 'cancel'])->name('offboardings.cancel');
+});
 Route::resource('karyawan', EmployeeController::class)
     ->parameters(['karyawan' => 'employee'])
     ->names('employees')
-    ->except('show')
-    ->middlewareFor('index', 'permission:sdm.employees.view')
+    ->middlewareFor(['index', 'show'], 'permission:sdm.employees.view')
     ->middlewareFor(['create', 'store'], 'permission:sdm.employees.create')
     ->middlewareFor(['edit', 'update'], 'permission:sdm.employees.update')
     ->middlewareFor('destroy', 'permission:sdm.employees.delete');

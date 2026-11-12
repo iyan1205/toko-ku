@@ -27,6 +27,12 @@ Schedule::command('akuntansi:jurnal-terjadwal')->dailyAt('00:20')->withoutOverla
 // Penyusutan aset tetap bulan lalu (tanggal 1, sebelum backup).
 Schedule::command('aset:penyusutan')->monthlyOn(1, '00:40')->withoutOverlapping();
 
+// SDM: mutasi/promosi yang tanggal efektifnya tiba (dan offboarding yang jatuh tempo).
+Schedule::command('sdm:proses-harian')->dailyAt('00:50')->withoutOverlapping();
+
+// Pengingat kontrak kerja dan dokumen karyawan yang akan berakhir (lonceng + email ke HR).
+Schedule::command('sdm:pengingat')->dailyAt('07:05')->withoutOverlapping();
+
 // Pengingat piutang dan hutang yang jatuh tempo (notifikasi lonceng + email).
 Schedule::command('keuangan:pengingat-jatuh-tempo')->dailyAt('07:00')->withoutOverlapping();
 

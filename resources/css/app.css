@@ -140,6 +140,70 @@ html.sidebar-ciut .sidebar-item { @apply lg:justify-center lg:px-0; }
     }
 }
 
+/*
+|| Bagan organisasi (SDM → Struktur Organisasi): pohon atas-bawah, garis penghubung dari ::before/::after.
+|| Ditulis di luar @layer karena kelasnya dipakai lewat Blade rekursif.
+*/
+.org-tree ul {
+    display: flex;
+    justify-content: center;
+    padding-top: 1.25rem;
+    position: relative;
+}
+.org-tree li {
+    list-style: none;
+    position: relative;
+    padding: 1.25rem 0.5rem 0;
+    text-align: center;
+}
+.org-tree li::before,
+.org-tree li::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 50%;
+    width: 50%;
+    height: 1.25rem;
+    border-top: 1px solid rgb(203 213 225);
+}
+.org-tree li::after {
+    right: auto;
+    left: 50%;
+    border-left: 1px solid rgb(203 213 225);
+}
+.org-tree li:only-child::before,
+.org-tree li:only-child::after {
+    display: none;
+}
+.org-tree li:only-child {
+    padding-top: 0;
+}
+.org-tree li:first-child::before,
+.org-tree li:last-child::after {
+    border: 0 none;
+}
+.org-tree li:last-child::before {
+    border-right: 1px solid rgb(203 213 225);
+}
+.org-tree ul ul::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    height: 1.25rem;
+    border-left: 1px solid rgb(203 213 225);
+}
+.org-tree > ul {
+    padding-top: 0;
+}
+.org-tree > ul > li {
+    padding-top: 0;
+}
+.org-tree > ul > li::before,
+.org-tree > ul > li::after {
+    display: none;
+}
+
 @layer utilities {
     /* Angka uang sejajar rapi di kolom tabel. */
     .angka-rata {

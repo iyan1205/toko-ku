@@ -118,7 +118,12 @@ return [
         'sdm' => [
             'label' => 'SDM',
             'features' => [
+                // Karyawan: update = juga riwayat kontrak dan mutasi/promosi.
                 'employees' => ['label' => 'Karyawan', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
+                'self-service' => ['label' => 'Layanan mandiri karyawan (ESS)', 'actions' => ['view']],
+                'organization' => ['label' => 'Struktur organisasi', 'actions' => ['view']],
+                // Offboarding: create = mulai & isi checklist, approve = selesaikan (nonaktifkan karyawan & akun) atau batalkan.
+                'offboarding' => ['label' => 'Offboarding (resign/PHK)', 'actions' => ['view', 'create', 'approve']],
                 'departments' => ['label' => 'Departemen & jabatan', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
                 'attendances' => ['label' => 'Absensi', 'actions' => ['view', 'record', 'create', 'update', 'delete', 'export']],
                 'schedules' => ['label' => 'Jadwal kerja', 'actions' => ['view', 'update']],

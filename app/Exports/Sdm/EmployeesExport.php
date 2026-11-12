@@ -4,6 +4,7 @@ namespace App\Exports\Sdm;
 
 use App\Enums\EmploymentType;
 use App\Exports\ListExport;
+use App\Models\Branch;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Position;
@@ -19,7 +20,7 @@ class EmployeesExport extends ListExport
 
     protected function baseQuery(): Builder
     {
-        return Employee::query()->with(['department:id,name', 'position:id,name', 'user:id,name,email'])->filter($this->filters);
+        return Employee::query()->with(['branch:id,name', 'department:id,name', 'position:id,name', 'supervisor:id,name', 'user:id,name,email'])->filter($this->filters);
     }
 
     protected function defaultOrder(Builder $query): void
@@ -37,8 +38,11 @@ class EmployeesExport extends ListExport
         return [
             ['label' => 'Kode', 'value' => fn (Employee $e) => $e->code],
             ['label' => 'Nama', 'value' => fn (Employee $e) => $e->name],
+            ['label' => 'Cabang', 'value' => fn (Employee $e) => $e->branch?->name],
             ['label' => 'Departemen', 'value' => fn (Employee $e) => $e->department?->name],
             ['label' => 'Jabatan', 'value' => fn (Employee $e) => $e->position?->name],
+            ['label' => 'Atasan', 'value' => fn (Employee $e) => $e->supervisor?->name],
+            ['label' => 'Grade', 'value' => fn (Employee $e) => $e->grade],
             ['label' => 'Status Kerja', 'value' => fn (Employee $e) => $e->employment_type->label()],
             ['label' => 'Mulai Kerja', 'value' => fn (Employee $e) => $e->join_date, 'type' => 'date'],
             ['label' => 'Telepon', 'value' => fn (Employee $e) => $e->phone],
@@ -54,6 +58,7 @@ class EmployeesExport extends ListExport
 
         return array_filter([
             'Pencarian' => $f['cari'] ?? null,
+            'Cabang' => isset($f['cabang']) ? Branch::withTrashed()->find($f['cabang'])?->name : null,
             'Departemen' => isset($f['departemen']) ? Department::find($f['departemen'])?->name : null,
             'Jabatan' => isset($f['jabatan']) ? Position::find($f['jabatan'])?->name : null,
             'Status kerja' => isset($f['jenis']) ? EmploymentType::tryFrom($f['jenis'])?->label() : null,

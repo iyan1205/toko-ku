@@ -27,5 +27,6 @@ return [
         // Faktur manual dan pelunasan: izin mengikuti sisinya (piutang/hutang), lihat attachmentPermission() di modelnya.
         'invoice' => ['label' => 'Faktur manual'],
         'settlement' => ['label' => 'Pelunasan'],
+        'employee_document' => ['label' => 'Dokumen karyawan', 'view' => 'sdm.employees.view', 'update' => 'sdm.employees.update'],
     ],
 ];

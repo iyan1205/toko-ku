@@ -175,6 +175,10 @@ return [
                 'children' => [
                     ['key' => 'sdm-employees', 'label' => 'Karyawan', 'route' => 'employees.index', 'active' => 'employees.*', 'permission' => 'sdm.employees.view',
                         'description' => 'Data karyawan, terhubung ke akun login bila ada.'],
+                    ['key' => 'sdm-org-chart', 'label' => 'Struktur Organisasi', 'route' => 'org-chart.index', 'active' => 'org-chart.*', 'permission' => 'sdm.organization.view',
+                        'description' => 'Bagan organisasi dari atasan langsung tiap karyawan.'],
+                    ['key' => 'sdm-offboarding', 'label' => 'Offboarding', 'route' => 'offboardings.index', 'active' => 'offboardings.*', 'permission' => 'sdm.offboarding.view',
+                        'description' => 'Karyawan yang resign atau di-PHK: checklist pengembalian barang dan aset, lalu akun dinonaktifkan.'],
                     ['key' => 'sdm-departments', 'label' => 'Departemen & Jabatan', 'route' => 'departments.index', 'active' => ['departments.*', 'positions.*'], 'permission' => 'sdm.departments.view',
                         'description' => 'Struktur departemen dan jabatan karyawan.'],
                     ['key' => 'sdm-attendances', 'label' => 'Absensi', 'route' => 'attendances.index', 'active' => 'attendances.*', 'permission' => ['sdm.attendances.view', 'sdm.attendances.record'],

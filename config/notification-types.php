@@ -28,6 +28,12 @@ return [
         'database' => true,
         'mail' => true,
     ],
+    'sdm.expiry' => [
+        'label' => 'Kontrak & dokumen karyawan',
+        'description' => 'Ringkasan harian kontrak kerja dan dokumen karyawan yang akan atau sudah berakhir.',
+        'database' => true,
+        'mail' => true,
+    ],
     'export.ready' => [
         'label' => 'Ekspor selesai',
         'description' => 'File ekspor data besar siap diunduh, atau gagal dibuat.',

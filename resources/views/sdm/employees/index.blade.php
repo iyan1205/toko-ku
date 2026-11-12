@@ -17,6 +17,9 @@
     <x-ui.table :paginator="$employees">
         <x-slot:toolbar>
             <x-ui.filter-bar placeholder="Cari kode, nama, telepon, atau email">
+                @if ($branches->count() > 1)
+                    <x-ui.select name="cabang" label="Cabang" hide-label :options="$branches->pluck('name', 'id')" :selected="request('cabang')" placeholder="Semua cabang" />
+                @endif
                 <x-ui.select name="departemen" label="Departemen" hide-label :options="$departments->pluck('name', 'id')" :selected="request('departemen')" placeholder="Semua departemen" />
                 <x-ui.select name="jabatan" label="Jabatan" hide-label :options="$positions->pluck('name', 'id')" :selected="request('jabatan')" placeholder="Semua jabatan" />
                 <x-ui.select name="jenis" label="Status kerja" hide-label :options="collect(EmploymentType::cases())->mapWithKeys(fn ($t) => [$t->value => $t->label()])" :selected="request('jenis')" placeholder="Semua status kerja" />
@@ -36,12 +39,12 @@
         @forelse ($employees as $e)
             <tr @class(['opacity-60' => ! $e->is_active])>
                 <x-ui.table.td>
-                    <p class="font-medium text-slate-900">{{ $e->name }}</p>
+                    <a href="{{ route('employees.show', $e) }}" class="font-medium text-slate-900 hover:text-primary-700 hover:underline">{{ $e->name }}</a>
                     <p class="font-mono text-xs text-slate-500">{{ $e->code }}@if ($e->phone) · {{ $e->phone }}@endif</p>
                 </x-ui.table.td>
                 <x-ui.table.td>
                     <p class="text-slate-700">{{ $e->department?->name ?? '—' }}</p>
-                    <p class="text-xs text-slate-500">{{ $e->position?->name ?? '—' }}</p>
+                    <p class="text-xs text-slate-500">{{ $e->position?->name ?? '—' }}{{ $e->branch && $branches->count() > 1 ? ' · '.$e->branch->name : '' }}</p>
                 </x-ui.table.td>
                 <x-ui.table.td>
                     <x-ui.badge color="neutral">{{ $e->employment_type->label() }}</x-ui.badge>
