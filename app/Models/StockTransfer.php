@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
-use App\Enums\PurchaseStatus;
+use App\Enums\StockTransferStatus;
 use App\Models\Concerns\BelongsToBranch;
+use App\Models\Scopes\BranchScope;
+use App\Support\CurrentBranch;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,9 +13,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
- * Transfer stok antar gudang. Selesai saat disimpan; kesalahan dibatalkan (void) lewat
- * StockTransferService, tidak diedit atau dihapus. Status memakai PurchaseStatus
- * (completed/voided) seperti penjualan dan pembelian.
+ * Transfer stok antar gudang. Gudang dalam satu cabang: selesai saat disimpan. Antar cabang: dikirim
+ * (dalam perjalanan) lalu diterima gudang tujuan. Kesalahan dibatalkan (void) lewat StockTransferService,
+ * tidak diedit atau dihapus. Terlihat oleh cabang gudang asal dan cabang gudang tujuan.
  */
 class StockTransfer extends Model
 {
@@ -25,8 +27,9 @@ class StockTransfer extends Model
     {
         return [
             'transfer_date' => 'date',
-            'status' => PurchaseStatus::class,
+            'status' => StockTransferStatus::class,
             'voided_at' => 'datetime',
+            'received_at' => 'datetime',
         ];
     }
 
@@ -62,7 +65,52 @@ class StockTransfer extends Model
 
     public function dibatalkan(): bool
     {
-        return $this->status === PurchaseStatus::Voided;
+        return $this->status === StockTransferStatus::Voided;
+    }
+
+    /** Antar cabang = kedua gudang punya cabang dan cabangnya berbeda (gudang tanpa cabang dipakai bersama). */
+    public static function isInterBranch(?Warehouse $from, ?Warehouse $to): bool
+    {
+        return $from?->branch_id !== null && $to?->branch_id !== null && (int) $from->branch_id !== (int) $to->branch_id;
+    }
+
+    public function inTransit(): bool
+    {
+        return $this->status === StockTransferStatus::InTransit;
+    }
+
+    public function receivedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'received_by')->withTrashed();
+    }
+
+    /** Ada barang yang kurang saat diterima (hilang/rusak di perjalanan). */
+    public function hasShortage(): bool
+    {
+        return $this->items->contains(fn (StockTransferItem $i) => $i->received_quantity !== null && (float) $i->received_quantity < (float) $i->quantity);
+    }
+
+    /**
+     * Transfer cabang aktif: dari gudang cabang ini ATAU ke gudang cabang ini (penerima melihat kiriman masuk).
+     */
+    public function scopeVisible(Builder $query): Builder
+    {
+        $ids = app(CurrentBranch::class)->scopeIds();
+
+        return $query->withoutGlobalScope(BranchScope::class)
+            ->when($ids !== null, fn (Builder $q) => $q->where(fn (Builder $w) => $w->whereIn($w->qualifyColumn('branch_id'), $ids)
+                ->orWhereIn('to_warehouse_id', Warehouse::withTrashed()->whereIn('branch_id', $ids)->select('id'))));
+    }
+
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        return static::query()->visible()->where($field ?? $this->getRouteKeyName(), $value)->first();
+    }
+
+    /** Diubah juga oleh cabang penerima (terima barang), jadi tidak dibatasi cabang aktif. */
+    protected function guardsBranchAccess(): bool
+    {
+        return false;
     }
 
     /** @param array{cari?:?string,gudang?:?int,status?:?string,dari?:?string,sampai?:?string} $f */

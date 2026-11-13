@@ -114,6 +114,10 @@ class JurnalOtomatisStokTest extends TestCase
             'note' => null, 'items' => [['product_id' => $this->ayam->id, 'quantity' => '4']], // 4 x 7.000
         ], $this->admin);
 
+        // Antar cabang dua langkah (Fase 16): dikirim = jurnal keluar di cabang asal; diterima = jurnal masuk di cabang tujuan.
+        $this->assertSame(['transfer_out'], Journal::withoutGlobalScope(BranchScope::class)->where('source_type', 'stock_transfer')->pluck('source_event')->all());
+        app(StockTransferService::class)->receive($transfer, [], null, $this->admin);
+
         $jurnal = Journal::withoutGlobalScope(BranchScope::class)->where('source_type', 'stock_transfer')->orderBy('id')->get();
         $this->assertSame(['transfer_out', 'transfer_in'], $jurnal->pluck('source_event')->all());
         $this->assertSame([$utama->id, $jabong->id], $jurnal->pluck('branch_id')->all());

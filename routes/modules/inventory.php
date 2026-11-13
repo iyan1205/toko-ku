@@ -12,6 +12,7 @@ use App\Http\Controllers\Inventory\CategoryController;
 use App\Http\Controllers\Inventory\ProductController;
 use App\Http\Controllers\Inventory\ProductLookupController;
 use App\Http\Controllers\Inventory\RecipeController;
+use App\Http\Controllers\Inventory\ReorderController;
 use App\Http\Controllers\Inventory\StockController;
 use App\Http\Controllers\Inventory\StockOpnameController;
 use App\Http\Controllers\Inventory\StockTransferController;
@@ -56,6 +57,10 @@ Route::get('stok', [StockController::class, 'index'])->middleware('permission:in
 Route::get('stok/ekspor', [StockController::class, 'export'])->middleware('permission:inventory.stock.export')->name('stock.export');
 Route::get('stok/kedaluwarsa', [StockController::class, 'expiring'])->middleware('permission:inventory.stock.view')->name('stock.expiring');
 Route::get('stok/kedaluwarsa/ekspor', [StockController::class, 'exportExpiring'])->middleware('permission:inventory.stock.export')->name('stock.expiring.export');
+Route::get('stok/pesan-ulang', [ReorderController::class, 'index'])->middleware('permission:inventory.reorder.view')->name('reorder.index');
+Route::post('stok/pesan-ulang', [ReorderController::class, 'store'])->middleware('permission:inventory.reorder.create')->name('reorder.store');
+Route::get('stok/min-maks', [ReorderController::class, 'levels'])->middleware('permission:inventory.reorder.update')->name('reorder.levels');
+Route::put('stok/min-maks', [ReorderController::class, 'saveLevels'])->middleware('permission:inventory.reorder.update')->name('reorder.levels.save');
 Route::get('stok/mutasi', [StockController::class, 'movements'])->middleware('permission:inventory.stock-card.view')->name('stock.movements');
 Route::get('stok/mutasi/ekspor', [StockController::class, 'exportMovements'])->middleware('permission:inventory.stock-card.export')->name('stock.movements.export');
 Route::middleware('permission:inventory.adjustments.create')->group(function () {
@@ -67,6 +72,7 @@ Route::middleware('permission:inventory.adjustments.create')->group(function () 
 Route::get('transfer-stok/ekspor', [StockTransferController::class, 'export'])->middleware('permission:inventory.transfers.export')->name('stock-transfers.export');
 Route::get('transfer-stok/cari-produk', ProductLookupController::class)->middleware('permission:inventory.transfers.create')->name('stock-transfers.products');
 Route::get('transfer-stok/{stockTransfer}/surat-jalan', [StockTransferController::class, 'print'])->middleware('permission:inventory.transfers.print')->name('stock-transfers.print');
+Route::post('transfer-stok/{stockTransfer}/terima', [StockTransferController::class, 'receive'])->middleware('permission:inventory.transfers.receive')->name('stock-transfers.receive');
 Route::post('transfer-stok/{stockTransfer}/batal', [StockTransferController::class, 'void'])->middleware('permission:inventory.transfers.void')->name('stock-transfers.void');
 Route::resource('transfer-stok', StockTransferController::class)
     ->parameters(['transfer-stok' => 'stockTransfer'])->names('stock-transfers')

@@ -86,6 +86,8 @@ return [
                         'description' => 'Posisi stok semua produk per gudang dan penyesuaian manual.'],
                     ['key' => 'inventory-stock-card', 'label' => 'Kartu Stok', 'route' => 'stock.movements', 'active' => 'stock.movements', 'permission' => 'inventory.stock-card.view',
                         'description' => 'Riwayat setiap pergerakan stok: masuk, keluar, dan penyesuaian.'],
+                    ['key' => 'inventory-reorder', 'label' => 'Pesan Ulang', 'route' => 'reorder.index', 'active' => 'reorder.*', 'permission' => 'inventory.reorder.view',
+                        'description' => 'Saran pemesanan dari stok min/maks per gudang, langsung jadi draft PO.'],
                     ['key' => 'inventory-expiring', 'label' => 'Mendekati Kedaluwarsa', 'route' => 'stock.expiring', 'active' => 'stock.expiring*', 'permission' => 'inventory.stock.view',
                         'description' => 'Batch yang akan atau sudah kedaluwarsa, terdekat dulu.'],
                     ['key' => 'inventory-transfers', 'label' => 'Mutasi/Transfer Stok', 'route' => 'stock-transfers.index', 'active' => 'stock-transfers.*', 'permission' => 'inventory.transfers.view',

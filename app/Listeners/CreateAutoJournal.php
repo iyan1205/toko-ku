@@ -16,6 +16,7 @@ use App\Events\SettlementCancelled;
 use App\Events\SettlementPosted;
 use App\Events\StockAdjusted;
 use App\Events\StockOpnameFinalized;
+use App\Events\StockTransferReceived;
 use App\Events\StockTransferred;
 use App\Events\StockTransferVoided;
 use App\Events\SupplierPaymentRecorded;
@@ -80,6 +81,11 @@ class CreateAutoJournal
     public function handleStockTransferred(StockTransferred $event): void
     {
         $this->run("transfer stok {$event->transfer->number}", fn () => $this->auto->forStockTransfer($event->transfer));
+    }
+
+    public function handleStockTransferReceived(StockTransferReceived $event): void
+    {
+        $this->run("penerimaan transfer stok {$event->transfer->number}", fn () => $this->auto->forStockTransferReceipt($event->transfer));
     }
 
     public function handleStockTransferVoided(StockTransferVoided $event): void

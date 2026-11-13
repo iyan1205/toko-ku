@@ -13,6 +13,18 @@
         @endif
     </x-slot>
 
+    @if ($transfer->inTransit())
+        <x-ui.alert type="warning" class="mb-6" title="Barang dalam perjalanan">
+            Stok sudah keluar dari {{ $transfer->fromWarehouse->name }} dan belum masuk ke {{ $transfer->toWarehouse->name }}.
+            Petugas gudang tujuan menerimanya setelah barang datang.
+        </x-ui.alert>
+    @elseif ($transfer->received_at)
+        <x-ui.alert :type="$transfer->hasShortage() ? 'warning' : 'success'" class="mb-6">
+            Diterima {{ $transfer->receivedBy?->name }} pada {{ Format::tanggal($transfer->received_at, true) }}{{ $transfer->hasShortage() ? ' dengan kekurangan (dicatat sebagai selisih persediaan)' : '' }}.
+            {{ $transfer->receive_note }}
+        </x-ui.alert>
+    @endif
+
     @if ($transfer->dibatalkan())
         <x-ui.alert type="danger" class="mb-6" title="Transfer ini dibatalkan">
             Oleh {{ $transfer->voidedBy?->name }} pada {{ Format::tanggal($transfer->voided_at, true) }}. Alasan: {{ $transfer->void_reason }}.
@@ -38,7 +50,10 @@
         <x-ui.table :sticky="false" class="lg:col-span-2">
             <x-slot:head>
                 <x-ui.table.th>Produk</x-ui.table.th>
-                <x-ui.table.th align="right">Jumlah</x-ui.table.th>
+                <x-ui.table.th align="right">Dikirim</x-ui.table.th>
+                @if ($transfer->received_at)
+                    <x-ui.table.th align="right">Diterima</x-ui.table.th>
+                @endif
             </x-slot:head>
             @foreach ($transfer->items as $item)
                 <tr>
@@ -47,6 +62,11 @@
                         <p class="text-xs text-slate-500">{{ $item->sku }}</p>
                     </x-ui.table.td>
                     <x-ui.table.td align="right" numeric>{{ Format::jumlah($item->quantity) }} {{ $item->unit_name }}</x-ui.table.td>
+                    @if ($transfer->received_at)
+                        <x-ui.table.td align="right" numeric @class(['text-warning-700 font-medium' => (float) $item->received_quantity < (float) $item->quantity])>
+                            {{ Format::jumlah($item->received_quantity ?? $item->quantity) }}
+                        </x-ui.table.td>
+                    @endif
                 </tr>
             @endforeach
             <x-slot:footer>
@@ -59,6 +79,27 @@
             </x-slot:footer>
         </x-ui.table>
     </div>
+
+    @if ($transfer->inTransit() && auth()->user()->can('inventory.transfers.receive'))
+        <form method="POST" action="{{ route('stock-transfers.receive', $transfer) }}" class="mt-6" x-data="{ kirim: false }" x-on:submit="kirim = true">
+            @csrf
+            <x-ui.card title="Terima barang" description="Isi jumlah yang benar-benar datang. Kekurangan dicatat sebagai selisih persediaan.">
+                <div class="grid gap-3">
+                    @foreach ($transfer->items as $item)
+                        <div class="grid items-center gap-2 sm:grid-cols-3">
+                            <label for="terima-{{ $item->id }}" class="text-sm text-slate-700 sm:col-span-2">{{ $item->product_name }} <span class="text-slate-500">(dikirim {{ Format::jumlah($item->quantity) }} {{ $item->unit_name }})</span></label>
+                            <input id="terima-{{ $item->id }}" type="number" name="received[{{ $item->id }}]" min="0" max="{{ (float) $item->quantity }}" step="0.001"
+                                   value="{{ old('received.'.$item->id, (float) $item->quantity) }}" class="block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                        </div>
+                    @endforeach
+                    <x-ui.input name="receive_note" label="Catatan penerimaan" maxlength="255" placeholder="Opsional, misal 2 karton penyok" />
+                </div>
+                <x-slot:footer>
+                    <x-ui.button type="submit" icon="inbox-arrow-down" x-bind:disabled="kirim">Terima barang</x-ui.button>
+                </x-slot:footer>
+            </x-ui.card>
+        </form>
+    @endif
 
     @if (! $transfer->dibatalkan() && auth()->user()->can('inventory.transfers.void'))
         <x-ui.void-dialog name="batal-transfer" :action="route('stock-transfers.void', $transfer)" :title="'Batalkan '.$transfer->number.'?'">

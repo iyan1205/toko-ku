@@ -3,8 +3,9 @@
 namespace App\Services\Inventory;
 
 use App\Enums\DocumentType;
-use App\Enums\PurchaseStatus;
 use App\Enums\StockMovementType;
+use App\Enums\StockTransferStatus;
+use App\Events\StockTransferReceived;
 use App\Events\StockTransferred;
 use App\Events\StockTransferVoided;
 use App\Exceptions\AturanBisnisException;
@@ -15,15 +16,22 @@ use App\Models\Warehouse;
 use App\Services\Accounting\FiscalPeriodService;
 use App\Services\Settings\DocumentNumberService;
 use App\Services\StockService;
+use App\Support\Format;
 use App\Support\Uang;
 use App\Support\UnitConversion;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Transfer stok antar gudang. Langsung selesai: dalam satu transaksi, setiap produk keluar dari
- * gudang asal (TransferOut) lalu masuk ke gudang tujuan (TransferIn). Total products.stock tidak
- * berubah. Pembatalan membalik kedua mutasi; ditolak bila barang sudah keluar dari gudang tujuan.
+ * Transfer stok antar gudang.
+ *
+ *   - Gudang dalam satu cabang: langsung selesai. Setiap produk keluar dari gudang asal (TransferOut)
+ *     lalu masuk ke gudang tujuan (TransferIn) dalam satu transaksi.
+ *   - Antar cabang: dikirim dulu (stok keluar dari gudang asal, status Dalam perjalanan), lalu diterima
+ *     gudang tujuan dengan jumlah yang benar-benar datang. Kekurangan dicatat sebagai selisih persediaan.
+ *
+ * Batch, kedaluwarsa, biaya, dan nomor seri ikut pindah. Pembatalan membalik mutasinya; transfer yang
+ * sudah diterima ditolak bila barang sudah keluar dari gudang tujuan atau ada kekurangan saat diterima.
  */
 class StockTransferService
 {
@@ -65,7 +73,8 @@ class StockTransferService
                 'note' => $data['note'] ?? null,
                 'user_id' => $user->getKey(),
             ]);
-            $transfer->forceFill(['status' => PurchaseStatus::Completed])->save();
+            $antarCabang = StockTransfer::isInterBranch($dari, $ke);
+            $transfer->forceFill(['status' => $antarCabang ? StockTransferStatus::InTransit : StockTransferStatus::Completed])->save();
 
             // Urut product_id: urutan kunci baris sama di semua transaksi (mencegah deadlock).
             ksort($baris);
@@ -83,8 +92,10 @@ class StockTransferService
 
                 // Gagal dengan "Stok tidak mencukupi." bila stok gudang asal kurang; seluruh transfer dibatalkan.
                 $keluar = $this->stok->catat($p, StockMovementType::TransferOut, '-'.$jumlah, $transfer, "Transfer {$transfer->number} ke {$ke->name}", $user, $dari);
-                // Batch, kedaluwarsa, biaya, dan nomor seri ikut pindah ke gudang tujuan.
-                $this->stok->catat($p, StockMovementType::TransferIn, $jumlah, $transfer, "Transfer {$transfer->number} dari {$dari->name}", $user, $ke, ['from_movement' => $keluar]);
+                if (! $antarCabang) {
+                    // Batch, kedaluwarsa, biaya, dan nomor seri ikut pindah ke gudang tujuan.
+                    $this->stok->catat($p, StockMovementType::TransferIn, $jumlah, $transfer, "Transfer {$transfer->number} dari {$dari->name}", $user, $ke, ['from_movement' => $keluar]);
+                }
             }
 
             activity('inventori')->performedOn($transfer)->causedBy($user)->event('created')
@@ -107,13 +118,29 @@ class StockTransferService
         app(FiscalPeriodService::class)->ensureOpen(now());
 
         return DB::transaction(function () use ($transfer, $alasan, $user) {
-            $terkunci = StockTransfer::whereKey($transfer->getKey())->lockForUpdate()->with(['items', 'fromWarehouse', 'toWarehouse'])->firstOrFail();
+            $terkunci = StockTransfer::query()->visible()->whereKey($transfer->getKey())->lockForUpdate()->with(['items', 'fromWarehouse', 'toWarehouse'])->firstOrFail();
 
             if ($terkunci->dibatalkan()) {
                 throw new AturanBisnisException('Transfer ini sudah dibatalkan.');
             }
 
             $catatan = "Pembatalan transfer {$terkunci->number}: {$alasan}";
+
+            if ($terkunci->inTransit()) {
+                // Belum diterima: barang kembali ke gudang asal dari lot aslinya.
+                foreach ($terkunci->items->sortBy('product_id') as $item) {
+                    $p = Product::withTrashed()->findOrFail($item->product_id);
+                    $this->stok->catat($p, StockMovementType::TransferOut, $item->quantity, $terkunci, $catatan, $user, $terkunci->fromWarehouse,
+                        ['reverse_of' => StockService::mutasiDokumen($terkunci, $p->id, -1)]);
+                }
+                $this->tandaiBatal($terkunci, $alasan, $user);
+
+                return $terkunci;
+            }
+
+            if ($terkunci->hasShortage()) {
+                throw new AturanBisnisException("Transfer {$terkunci->number} diterima dengan kekurangan, jadi tidak bisa dibatalkan. Buat transfer baru ke arah sebaliknya untuk barang yang ada.");
+            }
 
             try {
                 foreach ($terkunci->items->sortBy('product_id') as $item) {
@@ -130,21 +157,79 @@ class StockTransferService
                 );
             }
 
-            $terkunci->forceFill([
-                'status' => PurchaseStatus::Voided,
-                'voided_at' => now(),
-                'voided_by' => $user->getKey(),
-                'void_reason' => $alasan,
-            ])->save();
-
-            activity('inventori')->performedOn($terkunci)->causedBy($user)->event('voided')
-                ->withProperties(['alasan' => $alasan])
-                ->log("Transfer stok {$terkunci->number} dibatalkan");
-
-            StockTransferVoided::dispatch($terkunci);
+            $this->tandaiBatal($terkunci, $alasan, $user);
 
             return $terkunci;
         });
+    }
+
+    /**
+     * Terima transfer antar cabang di gudang tujuan. $jumlah: item_id => jumlah diterima (tidak boleh
+     * melebihi yang dikirim; kosong = sesuai kiriman). Kekurangan tidak masuk stok dan dijurnal sebagai selisih.
+     *
+     * @param  array<int|string, mixed>  $jumlah
+     */
+    public function receive(StockTransfer $transfer, array $jumlah, ?string $catatan, User $user): StockTransfer
+    {
+        app(FiscalPeriodService::class)->ensureOpen(now());
+
+        return DB::transaction(function () use ($transfer, $jumlah, $catatan, $user) {
+            $terkunci = StockTransfer::query()->visible()->whereKey($transfer->getKey())->lockForUpdate()->with(['items', 'fromWarehouse', 'toWarehouse'])->firstOrFail();
+
+            if (! $terkunci->inTransit()) {
+                throw new AturanBisnisException("Transfer {$terkunci->number} berstatus {$terkunci->status->label()}, tidak ada yang perlu diterima.");
+            }
+
+            $errors = [];
+            foreach ($terkunci->items->sortBy('product_id') as $item) {
+                $milli = array_key_exists($item->id, $jumlah) && $jumlah[$item->id] !== null && $jumlah[$item->id] !== ''
+                    ? Uang::milli($jumlah[$item->id]) : Uang::milli($item->quantity);
+                if ($milli < 0 || $milli > Uang::milli($item->quantity)) {
+                    $errors["received.{$item->id}"] = "{$item->product_name}: jumlah diterima 0 sampai ".Format::jumlah($item->quantity).'.';
+
+                    continue;
+                }
+                $item->forceFill(['received_quantity' => Uang::milliKeDesimal($milli)])->save();
+                if ($milli > 0) {
+                    $p = Product::withTrashed()->findOrFail($item->product_id);
+                    $keluar = StockService::mutasiDokumen($terkunci, $p->id, -1)->first();
+                    $this->stok->catat($p, StockMovementType::TransferIn, Uang::milliKeDesimal($milli), $terkunci,
+                        "Terima transfer {$terkunci->number} dari {$terkunci->fromWarehouse->name}", $user, $terkunci->toWarehouse, ['from_movement' => $keluar]);
+                }
+            }
+            if ($errors !== []) {
+                throw ValidationException::withMessages($errors);
+            }
+
+            $terkunci->forceFill([
+                'status' => StockTransferStatus::Completed, 'received_at' => now(), 'received_by' => $user->getKey(),
+                'receive_note' => $catatan ? mb_substr(trim($catatan), 0, 255) : null,
+            ])->save();
+
+            activity('inventori')->performedOn($terkunci)->causedBy($user)->event('received')
+                ->withProperties(['kurang' => $terkunci->fresh('items')->hasShortage()])
+                ->log("Transfer stok {$terkunci->number} diterima di {$terkunci->toWarehouse->name}");
+
+            StockTransferReceived::dispatch($terkunci);
+
+            return $terkunci;
+        });
+    }
+
+    private function tandaiBatal(StockTransfer $transfer, string $alasan, User $user): void
+    {
+        $transfer->forceFill([
+            'status' => StockTransferStatus::Voided,
+            'voided_at' => now(),
+            'voided_by' => $user->getKey(),
+            'void_reason' => $alasan,
+        ])->save();
+
+        activity('inventori')->performedOn($transfer)->causedBy($user)->event('voided')
+            ->withProperties(['alasan' => $alasan])
+            ->log("Transfer stok {$transfer->number} dibatalkan");
+
+        StockTransferVoided::dispatch($transfer);
     }
 
     /**

@@ -2,7 +2,7 @@
 
 namespace App\Exports\Inventory;
 
-use App\Enums\PurchaseStatus;
+use App\Enums\StockTransferStatus;
 use App\Exports\ListExport;
 use App\Models\StockTransfer;
 use App\Models\Warehouse;
@@ -17,7 +17,7 @@ class StockTransfersExport extends ListExport
 
     protected function baseQuery(): Builder
     {
-        return StockTransfer::query()
+        return StockTransfer::query()->visible()
             ->with(['fromWarehouse:id,name', 'toWarehouse:id,name', 'user:id,name'])
             ->withCount('items')
             ->withSum('items as total_quantity', 'quantity')
@@ -60,7 +60,7 @@ class StockTransfersExport extends ListExport
         return array_filter([
             'Pencarian' => $f['cari'] ?? null,
             'Gudang' => isset($f['gudang']) ? Warehouse::withTrashed()->find($f['gudang'])?->name : null,
-            'Status' => isset($f['status']) ? PurchaseStatus::tryFrom($f['status'])?->label() : null,
+            'Status' => isset($f['status']) ? StockTransferStatus::tryFrom($f['status'])?->label() : null,
             'Periode' => isset($f['dari']) || isset($f['sampai']) ? trim(($f['dari'] ?? '…').' s.d. '.($f['sampai'] ?? '…')) : null,
         ]);
     }

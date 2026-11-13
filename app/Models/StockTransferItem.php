@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StockTransferItem extends Model
 {
-    protected $fillable = ['product_id', 'product_name', 'sku', 'unit_name', 'quantity'];
+    protected $fillable = ['product_id', 'product_name', 'sku', 'unit_name', 'quantity', 'received_quantity'];
 
     protected function casts(): array
     {
-        return ['quantity' => 'decimal:3'];
+        return ['quantity' => 'decimal:3', 'received_quantity' => 'decimal:3'];
     }
 
     public function transfer(): BelongsTo

@@ -5,6 +5,7 @@ namespace App\Services\Accounting;
 use App\Enums\PaymentMethod;
 use App\Enums\SettlementType;
 use App\Enums\StockMovementType;
+use App\Enums\StockTransferStatus;
 use App\Models\Account;
 use App\Models\GoodsReceipt;
 use App\Models\Invoice;
@@ -255,7 +256,7 @@ class AutoJournalService
         $from = $transfer->fromWarehouse;
         $to = $transfer->toWarehouse;
 
-        if ($from === null || $to === null || (int) $from->branch_id === (int) $to->branch_id) {
+        if (! StockTransfer::isInterBranch($from, $to)) {
             return [];
         }
 
@@ -268,12 +269,33 @@ class AutoJournalService
 
         $description = "Transfer stok {$transfer->number}: {$from->name} ke {$to->name}";
         $out = (new JournalLines)->debit($this->account('interbranch'), $value, "Barang dikirim ke {$to->name}")->credit($this->account('inventory'), $value, 'Persediaan keluar');
-        $in = (new JournalLines)->debit($this->account('inventory'), $value, 'Persediaan masuk')->credit($this->account('interbranch'), $value, "Barang diterima dari {$from->name}");
+        $journals = [$this->journals->post($transfer->transfer_date, $description, $out->all(), $transfer->user, $transfer, 'transfer_out', attributes: ['branch_id' => (int) $from->branch_id])];
 
-        return [
-            $this->journals->post($transfer->transfer_date, $description, $out->all(), $transfer->user, $transfer, 'transfer_out', attributes: ['branch_id' => (int) $from->branch_id]),
-            $this->journals->post($transfer->transfer_date, $description, $in->all(), $transfer->user, $transfer, 'transfer_in', attributes: ['branch_id' => (int) $to->branch_id]),
-        ];
+        // Transfer lama (sebelum dua langkah) langsung selesai: jurnal masuk ikut dibuat sekarang.
+        if ($transfer->status !== StockTransferStatus::InTransit) {
+            $in = (new JournalLines)->debit($this->account('inventory'), $value, 'Persediaan masuk')->credit($this->account('interbranch'), $value, "Barang diterima dari {$from->name}");
+            $journals[] = $this->journals->post($transfer->transfer_date, $description, $in->all(), $transfer->user, $transfer, 'transfer_in', attributes: ['branch_id' => (int) $to->branch_id]);
+        }
+
+        return $journals;
+    }
+
+    /** Transfer antar cabang diterima: persediaan masuk di cabang penerima, kekurangan menjadi selisih persediaan. */
+    public function forStockTransferReceipt(StockTransfer $transfer): ?Journal
+    {
+        $transfer->loadMissing(['fromWarehouse', 'toWarehouse', 'receivedBy', 'user']);
+        $sent = $this->movementCost($transfer, -1) ?? 0;
+        $received = $this->movementCost($transfer, 1) ?? 0;
+        if ($sent <= 0) {
+            return null;
+        }
+
+        $lines = (new JournalLines)->debit($this->account('inventory'), $received, 'Persediaan masuk')
+            ->debit($this->account('inventory_variance'), $sent - $received, 'Kekurangan barang saat diterima')
+            ->credit($this->account('interbranch'), $sent, "Barang diterima dari {$transfer->fromWarehouse?->name}");
+
+        return $this->journals->post($transfer->received_at ?? now(), "Terima transfer stok {$transfer->number}: {$transfer->fromWarehouse?->name} ke {$transfer->toWarehouse?->name}",
+            $lines->all(), $transfer->receivedBy ?? $transfer->user, $transfer, 'transfer_in', attributes: ['branch_id' => (int) $transfer->toWarehouse?->branch_id]);
     }
 
     /** @return list<Journal> */
@@ -433,7 +455,7 @@ class AutoJournalService
      */
     private function movementCost(Model $document, int $arah): ?int
     {
-        $rows = StockMovement::query()->where('reference_type', $document->getMorphClass())->where('reference_id', $document->getKey())
+        $rows = StockMovement::query()->withoutGlobalScope(BranchScope::class)->where('reference_type', $document->getMorphClass())->where('reference_id', $document->getKey())
             ->where('quantity', $arah > 0 ? '>' : '<', 0)->get(['total_cost']);
         if ($rows->isEmpty()) {
             return null;

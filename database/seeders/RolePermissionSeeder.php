@@ -64,8 +64,8 @@ class RolePermissionSeeder extends Seeder
                 'inventory.products.view', 'inventory.categories.view', 'inventory.units.view', 'inventory.recipes.view',
                 'inventory.stock.*', 'inventory.stock-card.*', 'inventory.adjustments.*',
                 'inventory.opnames.view', 'inventory.opnames.create', 'inventory.opnames.export',
-                'inventory.transfers.view', 'inventory.transfers.create', 'inventory.transfers.print', 'inventory.transfers.export',
-                'inventory.warehouses.view',
+                'inventory.transfers.view', 'inventory.transfers.create', 'inventory.transfers.receive', 'inventory.transfers.print', 'inventory.transfers.export',
+                'inventory.warehouses.view', 'inventory.reorder.view', 'inventory.reorder.update',
                 'purchasing.suppliers.view', 'purchasing.orders.view', 'purchasing.orders.print',
                 'purchasing.receipts.view', 'purchasing.receipts.create',
                 'reports.stock.*',
@@ -74,7 +74,7 @@ class RolePermissionSeeder extends Seeder
 
             RoleName::Purchasing->value => [
                 'inventory.products.view', 'inventory.stock.view',
-                'purchasing.suppliers.*',
+                'purchasing.suppliers.*', 'inventory.reorder.view', 'inventory.reorder.create',
                 'purchasing.orders.view', 'purchasing.orders.create', 'purchasing.orders.update', 'purchasing.orders.delete',
                 'purchasing.orders.print', 'purchasing.orders.export',
                 'purchasing.invoices.view', 'purchasing.invoices.create', 'purchasing.invoices.export',

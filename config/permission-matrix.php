@@ -67,7 +67,10 @@ return [
                 'stock-card' => ['label' => 'Kartu stok', 'actions' => ['view', 'export']],
                 'adjustments' => ['label' => 'Penyesuaian stok', 'actions' => ['create']],
                 'opnames' => ['label' => 'Stok opname', 'actions' => ['view', 'create', 'approve', 'export']],
-                'transfers' => ['label' => 'Mutasi/transfer stok', 'actions' => ['view', 'create', 'void', 'print', 'export']],
+                // Transfer: receive = terima kiriman antar cabang di gudang tujuan.
+                'transfers' => ['label' => 'Mutasi/transfer stok', 'actions' => ['view', 'create', 'receive', 'void', 'print', 'export']],
+                // Pesan ulang: update = atur stok min/maks per gudang, create = buat draft PO dari saran.
+                'reorder' => ['label' => 'Stok min/maks & pesan ulang', 'actions' => ['view', 'update', 'create']],
                 'warehouses' => ['label' => 'Gudang/lokasi', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
                 'recipes' => ['label' => 'Resep (BOM)', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
             ],

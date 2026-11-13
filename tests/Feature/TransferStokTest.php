@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Enums\PurchaseStatus;
 use App\Enums\RoleName;
 use App\Enums\StockMovementType;
+use App\Enums\StockTransferStatus;
 use App\Models\Product;
 use App\Models\StockMovement;
 use App\Models\StockTransfer;
@@ -63,7 +63,7 @@ class TransferStokTest extends TestCase
 
         $transfer = StockTransfer::sole();
         $response->assertRedirect(route('stock-transfers.show', $transfer));
-        $this->assertSame(PurchaseStatus::Completed, $transfer->status);
+        $this->assertSame(StockTransferStatus::Completed, $transfer->status);
         $this->assertSame(6.0, $this->stokGudang($this->utama));
         $this->assertSame(4.0, $this->stokGudang($this->belakang));
         $this->assertSame(10.0, (float) $this->ayam->fresh()->stock);
@@ -103,7 +103,7 @@ class TransferStokTest extends TestCase
             ->post(route('stock-transfers.void', $transfer), ['alasan' => 'Salah pilih gudang'])
             ->assertRedirect(route('stock-transfers.show', $transfer));
 
-        $this->assertSame(PurchaseStatus::Voided, $transfer->fresh()->status);
+        $this->assertSame(StockTransferStatus::Voided, $transfer->fresh()->status);
         $this->assertSame('Salah pilih gudang', $transfer->fresh()->void_reason);
         $this->assertSame(10.0, $this->stokGudang($this->utama));
         $this->assertSame(0.0, $this->stokGudang($this->belakang));
@@ -121,7 +121,7 @@ class TransferStokTest extends TestCase
             ->post(route('stock-transfers.void', $transfer), ['alasan' => 'Salah pilih gudang'])
             ->assertSessionHas('error');
 
-        $this->assertSame(PurchaseStatus::Completed, $transfer->fresh()->status);
+        $this->assertSame(StockTransferStatus::Completed, $transfer->fresh()->status);
         $this->assertSame(1.0, $this->stokGudang($this->belakang));
     }
 

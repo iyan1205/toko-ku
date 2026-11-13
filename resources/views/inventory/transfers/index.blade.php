@@ -3,7 +3,7 @@
 
 <x-app-layout>
     <x-slot name="header">Transfer Stok</x-slot>
-    <x-slot name="description">Pindahkan stok antar gudang. Transfer langsung selesai saat disimpan.</x-slot>
+    <x-slot name="description">Pindahkan stok antar gudang. Dalam satu cabang langsung selesai; antar cabang dikirim dulu lalu diterima gudang tujuan.</x-slot>
     <x-slot name="actions">
         @can('inventory.transfers.export')
             <x-ui.export-menu :href="route('stock-transfers.export')" />
@@ -13,11 +13,18 @@
         @endcan
     </x-slot>
 
+    @if ($dalamPerjalanan['count'] > 0)
+        <a href="{{ route('stock-transfers.index', ['status' => 'in_transit']) }}" class="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-warning-200 bg-warning-50 px-4 py-3 text-sm text-warning-900 hover:bg-warning-100">
+            <x-ui.icon name="truck" class="h-5 w-5" />
+            <span><strong>{{ $dalamPerjalanan['count'] }} transfer dalam perjalanan</strong>, nilai barang @rupiah($dalamPerjalanan['value']). Klik untuk melihat dan menerimanya.</span>
+        </a>
+    @endif
+
     <x-ui.table :paginator="$transfers">
         <x-slot:toolbar>
             <x-ui.filter-bar placeholder="Cari nomor, produk, atau catatan">
                 <x-ui.select name="gudang" label="Gudang" hide-label :options="$gudang->pluck('name', 'id')" :selected="request('gudang')" placeholder="Semua gudang" />
-                <x-ui.select name="status" label="Status" hide-label :options="['completed' => 'Selesai', 'voided' => 'Dibatalkan']" :selected="request('status')" placeholder="Semua status" />
+                <x-ui.select name="status" label="Status" hide-label :options="['in_transit' => 'Dalam perjalanan', 'completed' => 'Selesai', 'voided' => 'Dibatalkan']" :selected="request('status')" placeholder="Semua status" />
                 <x-ui.input name="dari" label="Dari tanggal" hide-label type="date" :value="request('dari')" />
                 <x-ui.input name="sampai" label="Sampai tanggal" hide-label type="date" :value="request('sampai')" />
             </x-ui.filter-bar>

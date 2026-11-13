@@ -7,6 +7,7 @@ use App\Events\StockAdjusted;
 use App\Exceptions\AturanBisnisException;
 use App\Models\Product;
 use App\Models\ProductSerial;
+use App\Models\Scopes\BranchScope;
 use App\Models\StockLot;
 use App\Models\StockMovement;
 use App\Models\StockMovementLot;
@@ -214,7 +215,8 @@ class StockService
      */
     public static function mutasiDokumen(Model $dokumen, int $productId, int $arah): Collection
     {
-        return StockMovement::query()
+        // Lintas cabang: transfer antar cabang punya mutasi di dua cabang.
+        return StockMovement::query()->withoutGlobalScope(BranchScope::class)
             ->where('reference_type', $dokumen->getMorphClass())->where('reference_id', $dokumen->getKey())
             ->where('product_id', $productId)->where('quantity', $arah > 0 ? '>' : '<', 0)
             ->orderBy('id')->get();
