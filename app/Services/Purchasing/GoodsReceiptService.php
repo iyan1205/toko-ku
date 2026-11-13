@@ -115,6 +115,7 @@ class GoodsReceiptService
                     "Penerimaan {$receipt->number} atas {$po->number}",
                     $user,
                     $gudang,
+                    ['unit_cost' => Uang::perUnit($total, $milli)] + StockService::opsiBaris($data['batches'][$itemId] ?? []),
                 );
 
                 $baris[$poItem->product_id] = ['milli' => $milli, 'harga' => $harga, 'diskon' => $diskon];
@@ -178,6 +179,7 @@ class GoodsReceiptService
                         $catatan,
                         $user,
                         $terkunci->warehouse,
+                        ['reverse_of' => StockService::mutasiDokumen($terkunci, $item->product_id, 1)],
                     );
                 }
             } catch (AturanBisnisException $e) {

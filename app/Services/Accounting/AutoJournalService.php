@@ -97,7 +97,8 @@ class AutoJournalService
         }
         $lines->credit($this->account('vat_out'), $tax);
 
-        $cost = $sale->items->sum(fn ($item) => Uang::kali(Uang::milli($item->quantity), Uang::sen($item->cost_price)));
+        $cost = $this->movementCost($sale, -1)
+            ?? $sale->items->sum(fn ($item) => Uang::kali(Uang::milli($item->quantity), Uang::sen($item->cost_price)));
         $lines->debit($this->account('cogs'), $cost, 'Harga pokok penjualan');
         $lines->credit($this->account('inventory'), $cost, 'Persediaan keluar');
 
@@ -126,7 +127,8 @@ class AutoJournalService
         $lines->credit($this->account('receivable'), Uang::sen($return->receivable_reduction), 'Mengurangi piutang transaksi');
         $lines->credit($this->paymentAccount($return->refund_method ?? PaymentMethod::Cash), Uang::sen($return->refund_amount), 'Uang dikembalikan ke pelanggan');
 
-        $cost = $return->items->sum(fn ($item) => Uang::kali(Uang::milli($item->quantity), Uang::sen($item->saleItem?->cost_price ?? 0)));
+        $cost = $this->movementCost($return, 1)
+            ?? $return->items->sum(fn ($item) => Uang::kali(Uang::milli($item->quantity), Uang::sen($item->saleItem?->cost_price ?? 0)));
         $lines->debit($this->account('inventory'), $cost, 'Persediaan kembali');
         $lines->credit($this->account('cogs'), $cost, 'Harga pokok penjualan');
 
@@ -198,12 +200,15 @@ class AutoJournalService
     {
         $opname->loadMissing(['items', 'warehouse', 'finalizedBy', 'user']);
         $prices = $this->costPrices($opname->items->pluck('product_id')->all());
-        [$gain, $loss] = [0, 0];
+        [$gain, $loss] = [$this->movementCost($opname, 1), $this->movementCost($opname, -1)];
 
-        foreach ($opname->items as $item) {
-            $milli = Uang::milli($item->difference);
-            $value = Uang::kali(abs($milli), $prices[$item->product_id] ?? 0);
-            $milli > 0 ? $gain += $value : $loss += $value;
+        if ($gain === null || $loss === null) {
+            [$gain, $loss] = [0, 0];
+            foreach ($opname->items as $item) {
+                $milli = Uang::milli($item->difference);
+                $value = Uang::kali(abs($milli), $prices[$item->product_id] ?? 0);
+                $milli > 0 ? $gain += $value : $loss += $value;
+            }
         }
 
         $lines = $this->inventoryChange($gain, 'Kelebihan stok hasil opname')->merge($this->inventoryChange(-$loss, 'Kekurangan stok hasil opname'));
@@ -219,7 +224,9 @@ class AutoJournalService
     {
         $movement->loadMissing(['product', 'warehouse', 'user']);
         $milli = Uang::milli($movement->quantity);
-        $value = Uang::kali(abs($milli), Uang::sen($movement->product?->purchase_price ?? 0));
+        $value = $movement->total_cost !== null
+            ? abs(Uang::sen($movement->total_cost))
+            : Uang::kali(abs($milli), Uang::sen($movement->product?->purchase_price ?? 0));
 
         $label = match ($movement->type) {
             StockMovementType::Damaged => 'Barang rusak',
@@ -253,7 +260,8 @@ class AutoJournalService
         }
 
         $prices = $this->costPrices($transfer->items->pluck('product_id')->all());
-        $value = $transfer->items->sum(fn ($item) => Uang::kali(Uang::milli($item->quantity), $prices[$item->product_id] ?? 0));
+        $value = $this->movementCost($transfer, -1)
+            ?? $transfer->items->sum(fn ($item) => Uang::kali(Uang::milli($item->quantity), $prices[$item->product_id] ?? 0));
         if ($value <= 0) {
             return [];
         }
@@ -417,6 +425,24 @@ class AutoJournalService
         }
 
         return $lines;
+    }
+
+    /**
+     * Total biaya (sen, positif) mutasi stok dokumen ini dari mesin biaya persediaan ($arah 1 = masuk, -1 = keluar).
+     * Null bila dokumen tanpa mutasi atau ada mutasi lama tanpa biaya (sebelum Fase 16): pemanggil memakai harga beli.
+     */
+    private function movementCost(Model $document, int $arah): ?int
+    {
+        $rows = StockMovement::query()->where('reference_type', $document->getMorphClass())->where('reference_id', $document->getKey())
+            ->where('quantity', $arah > 0 ? '>' : '<', 0)->get(['total_cost']);
+        if ($rows->isEmpty()) {
+            return null;
+        }
+        if ($rows->contains(fn ($m) => $m->total_cost === null)) {
+            return null;
+        }
+
+        return abs($rows->sum(fn ($m) => Uang::sen($m->total_cost)));
     }
 
     /**

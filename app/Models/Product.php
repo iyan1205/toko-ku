@@ -30,11 +30,16 @@ class Product extends Model
         'purchase_price',
         'selling_price',
         'min_stock',
+        'track_batches',
+        'track_serials',
         'discount_percent',
         'photo',
         'description',
         'is_active',
     ];
+
+    /** Nilai bawaan kolom baru, supaya model baru (sebelum dimuat ulang) tidak menganggapnya berubah. */
+    protected $attributes = ['track_batches' => false, 'track_serials' => false];
 
     protected function casts(): array
     {
@@ -45,6 +50,8 @@ class Product extends Model
             'min_stock' => 'decimal:3',
             'discount_percent' => 'decimal:2',
             'is_active' => 'boolean',
+            'track_batches' => 'boolean',
+            'track_serials' => 'boolean',
         ];
     }
 
@@ -78,6 +85,16 @@ class Product extends Model
         return round((float) ($this->relationLoaded('warehouseStocks')
             ? $this->warehouseStocks->firstWhere('warehouse_id', $id)?->quantity
             : $this->warehouseStocks()->where('warehouse_id', $id)->value('quantity')), 3);
+    }
+
+    public function lots(): HasMany
+    {
+        return $this->hasMany(StockLot::class);
+    }
+
+    public function serials(): HasMany
+    {
+        return $this->hasMany(ProductSerial::class);
     }
 
     public function stockMovements(): HasMany

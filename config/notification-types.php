@@ -34,6 +34,12 @@ return [
         'database' => true,
         'mail' => true,
     ],
+    'inventory.expiry' => [
+        'label' => 'Barang mendekati kedaluwarsa',
+        'description' => 'Ringkasan harian batch stok yang akan atau sudah kedaluwarsa.',
+        'database' => true,
+        'mail' => false,
+    ],
     'export.ready' => [
         'label' => 'Ekspor selesai',
         'description' => 'File ekspor data besar siap diunduh, atau gagal dibuat.',

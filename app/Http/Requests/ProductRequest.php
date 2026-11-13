@@ -28,6 +28,8 @@ class ProductRequest extends FormRequest
             'discount_percent' => $this->filled('discount_percent') ? $this->input('discount_percent') : 0,
             'min_stock' => $this->filled('min_stock') ? $this->input('min_stock') : 0,
             'is_active' => $this->boolean('is_active'),
+            'track_batches' => $this->boolean('track_batches'),
+            'track_serials' => $this->boolean('track_serials'),
             'remove_photo' => $this->boolean('remove_photo'),
         ]);
     }
@@ -51,6 +53,8 @@ class ProductRequest extends FormRequest
             'remove_photo' => ['boolean'],
             'description' => ['nullable', 'string', 'max:2000'],
             'is_active' => ['boolean'],
+            'track_batches' => ['boolean'],
+            'track_serials' => ['boolean'],
         ];
     }
 

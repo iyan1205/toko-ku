@@ -69,7 +69,9 @@ class StockExport extends ListExport
                 ? fn (Builder $q, string $dir) => $q->orderBy(WarehouseStock::selectRaw('COALESCE(SUM(quantity), 0)')
                     ->whereColumn('warehouse_stocks.product_id', 'products.id')->where('warehouse_id', $warehouseId), $dir)
                 : 'stock',
-            'value' => fn (Builder $q, string $dir) => $q->orderByRaw('(stock * purchase_price) '.($dir === 'desc' ? 'desc' : 'asc')),
+            'value' => fn (Builder $q, string $dir) => $q->orderBy(WarehouseStock::selectRaw('COALESCE(SUM(value), 0)')
+                ->whereColumn('warehouse_stocks.product_id', 'products.id')->where('quantity', '>', 0)
+                ->when($warehouseId, fn ($w) => $w->where('warehouse_id', $warehouseId)), $dir),
         ];
     }
 
@@ -101,12 +103,13 @@ class StockExport extends ListExport
         return $columns;
     }
 
-    /** Nilai persediaan: stok (gudang terpilih, atau total) × harga beli. Stok minus tidak bernilai. */
+    /** Nilai persediaan dari mesin biaya (FIFO/rata-rata): gudang terpilih, atau semua gudang yang tampil. Stok minus tidak bernilai. */
     public function value(Product $product): float
     {
-        $quantity = isset($this->filters['gudang']) ? $product->stockIn((int) $this->filters['gudang']) : (float) $product->stock;
-
-        return round(max($quantity, 0) * (float) $product->purchase_price, 2);
+        return round($product->warehouseStocks
+            ->when(isset($this->filters['gudang']), fn ($rows) => $rows->where('warehouse_id', (int) $this->filters['gudang']))
+            ->filter(fn ($row) => (float) $row->quantity > 0)
+            ->sum(fn ($row) => (float) $row->value), 2);
     }
 
     protected function filterSummary(): array

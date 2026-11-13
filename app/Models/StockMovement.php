@@ -7,6 +7,7 @@ use App\Models\Concerns\BelongsToBranch;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use LogicException;
 
@@ -22,7 +23,7 @@ class StockMovement extends Model
 
     protected $fillable = [
         'warehouse_id', 'product_id', 'type', 'reference_type', 'reference_id',
-        'quantity', 'stock_before', 'stock_after', 'note', 'user_id',
+        'quantity', 'stock_before', 'stock_after', 'note', 'user_id', 'unit_cost', 'total_cost',
     ];
 
     protected function casts(): array
@@ -32,6 +33,8 @@ class StockMovement extends Model
             'quantity' => 'decimal:3',
             'stock_before' => 'decimal:3',
             'stock_after' => 'decimal:3',
+            'unit_cost' => 'decimal:2',
+            'total_cost' => 'decimal:2',
             'created_at' => 'datetime',
         ];
     }
@@ -40,6 +43,12 @@ class StockMovement extends Model
     {
         static::updating(fn () => throw new LogicException('Riwayat stok tidak boleh diubah.'));
         static::deleting(fn () => throw new LogicException('Riwayat stok tidak boleh dihapus.'));
+    }
+
+    /** Lot yang dipakai/diisi mutasi ini. */
+    public function lots(): HasMany
+    {
+        return $this->hasMany(StockMovementLot::class);
     }
 
     public function product(): BelongsTo

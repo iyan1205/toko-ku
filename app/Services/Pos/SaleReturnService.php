@@ -19,6 +19,7 @@ use App\Models\User;
 use App\Models\Warehouse;
 use App\Services\Accounting\FiscalPeriodService;
 use App\Services\PaymentService;
+use App\Services\SaleService;
 use App\Services\Settings\DocumentNumberService;
 use App\Services\StockService;
 use App\Support\Format;
@@ -144,6 +145,7 @@ class SaleReturnService
                     "Retur {$retur->number} dari pelanggan: {$retur->reason}",
                     $user,
                     $gudang,
+                    ['reverse_of' => SaleService::mutasiAsal($retur->sale, $baris->product_id)],
                 );
             }
 

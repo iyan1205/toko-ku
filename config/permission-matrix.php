@@ -173,6 +173,7 @@ return [
                 'taxes' => ['label' => 'Pajak', 'actions' => ['view', 'update']],
                 'payment-methods' => ['label' => 'Metode pembayaran', 'actions' => ['view', 'update']],
                 'pos' => ['label' => 'Kasir', 'actions' => ['view', 'update']],
+                'inventory' => ['label' => 'Inventori (metode HPP, kedaluwarsa)', 'actions' => ['view', 'update']],
                 'sdm' => ['label' => 'SDM (hari kerja, absensi, lembur)', 'actions' => ['view', 'update']],
                 'accounting' => ['label' => 'Akuntansi (jurnal otomatis & pemetaan akun)', 'actions' => ['view', 'update']],
                 'receipts' => ['label' => 'Struk & printer', 'actions' => ['view', 'update']],

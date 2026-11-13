@@ -62,6 +62,20 @@
                                    class="block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
                             <p class="mt-1 text-xs text-slate-500">sisa {{ Format::jumlah($sisa) }} {{ $item->unit_name }}</p>
                             @error('items.'.$item->id) <p class="mt-1 text-xs text-danger-600">{{ $message }}</p> @enderror
+                            @if ($item->product?->track_batches)
+                                <div class="mt-2 grid gap-1">
+                                    <input type="text" name="batches[{{ $item->id }}][batch_number]" value="{{ old('batches.'.$item->id.'.batch_number') }}" maxlength="50" placeholder="Nomor batch"
+                                           aria-label="Nomor batch {{ $item->product_name }}" class="block w-full rounded-lg border-slate-300 text-sm uppercase shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                    <input type="date" name="batches[{{ $item->id }}][expiry_date]" value="{{ old('batches.'.$item->id.'.expiry_date') }}"
+                                           aria-label="Kedaluwarsa {{ $item->product_name }}" title="Tanggal kedaluwarsa" class="block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                    @error('batches.'.$item->id.'.batch_number') <p class="text-xs text-danger-600">{{ $message }}</p> @enderror
+                                </div>
+                            @endif
+                            @if ($item->product?->track_serials)
+                                <textarea name="batches[{{ $item->id }}][serials]" rows="2" placeholder="Nomor seri, dipisah koma/baris" aria-label="Nomor seri {{ $item->product_name }}"
+                                          class="mt-2 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">{{ old('batches.'.$item->id.'.serials') }}</textarea>
+                                @error('batches.'.$item->id.'.serials') <p class="mt-1 text-xs text-danger-600">{{ $message }}</p> @enderror
+                            @endif
                         @else
                             <span class="text-xs">Sudah diterima semua</span>
                         @endif

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Inventory;
 
 use App\Enums\StockMovementType;
+use App\Exports\Inventory\ExpiringLotsExport;
 use App\Exports\Inventory\StockExport;
 use App\Exports\Inventory\StockMovementsExport;
 use App\Exports\ListExport;
@@ -10,6 +11,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StockAdjustmentRequest;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\StockLot;
 use App\Models\Warehouse;
 use App\Models\WarehouseStock;
 use App\Services\StockService;
@@ -52,6 +54,38 @@ class StockController extends Controller
         ]);
     }
 
+    /** Batch yang sudah/akan kedaluwarsa (Pengaturan → Inventori: jumlah hari). */
+    public function expiring(Request $request): View
+    {
+        $filter = $this->expiringFilter($request);
+        $list = ExpiringLotsExport::fromRequest($request, $filter);
+
+        return view('inventory.stock.expiring', [
+            'list' => $list,
+            'lots' => $list->paginate(25),
+            'filter' => $filter,
+            'days' => $list->days(),
+            'gudang' => Warehouse::query()->inCurrentBranch()->ordered()->get(['id', 'name']),
+        ]);
+    }
+
+    public function exportExpiring(Request $request): Response
+    {
+        return ExpiringLotsExport::fromRequest($request, $this->expiringFilter($request))->download(ListExport::formatFrom($request));
+    }
+
+    /** @return array<string, mixed> */
+    private function expiringFilter(Request $request): array
+    {
+        return $request->validate([
+            'hari' => ['nullable', 'integer', 'min:0', 'max:3650'],
+            'gudang' => ['nullable', 'integer'],
+            'cari' => ['nullable', 'string', 'max:100'],
+            'sort' => ['nullable', 'string'],
+            'dir' => ['nullable', 'in:asc,desc'],
+        ]);
+    }
+
     public function export(Request $request): Response
     {
         $format = ListExport::formatFrom($request);
@@ -83,7 +117,7 @@ class StockController extends Controller
     public function createAdjustment(Request $request): View
     {
         $gudang = Warehouse::query()->active()->inCurrentBranch()->ordered()->get(['id', 'name', 'is_default']);
-        $produk = Product::aktif()->with('unit:id,name')->orderBy('name')->get(['id', 'sku', 'name', 'stock', 'unit_id']);
+        $produk = Product::aktif()->with('unit:id,name')->orderBy('name')->get(['id', 'sku', 'name', 'stock', 'unit_id', 'track_batches', 'track_serials']);
 
         // Stok tiap produk per gudang aktif, untuk menampilkan "stok saat ini" di formulir.
         $stok = WarehouseStock::query()->whereIn('warehouse_id', $gudang->modelKeys())->where('quantity', '!=', 0)
@@ -91,7 +125,16 @@ class StockController extends Controller
             ->groupBy('product_id')
             ->map(fn ($rows) => $rows->mapWithKeys(fn (WarehouseStock $row) => [$row->warehouse_id => (float) $row->quantity]));
 
+        // Batch yang bersisa per produk & gudang (produk berbatch), untuk memilih batch yang dikurangi.
+        $lots = StockLot::query()->available()->whereIn('warehouse_id', $gudang->modelKeys())
+            ->whereIn('product_id', $produk->where('track_batches', true)->modelKeys())->consumeOrder()->get()
+            ->groupBy('product_id')
+            ->map(fn ($rows) => $rows->groupBy('warehouse_id')->map(fn ($r) => $r->map(fn (StockLot $l) => [
+                'id' => $l->id, 'label' => $l->label().' · sisa '.Format::jumlah($l->quantity),
+            ])->values()));
+
         return view('inventory.stock.adjust', [
+            'lots' => $lots,
             'produk' => $produk,
             'gudang' => $gudang,
             'stok' => $stok,
@@ -114,6 +157,8 @@ class StockController extends Controller
             $request->input('note'),
             $request->user(),
             $gudang,
+            StockService::opsiBaris($request->only(['batch_number', 'expiry_date', 'serials']))
+                + array_filter(['lot_id' => $request->integer('lot_id') ?: null]),
         );
 
         return redirect()->route('stock.movements', ['produk' => $produk->id])
@@ -123,16 +168,13 @@ class StockController extends Controller
     /** Nilai persediaan (stok positif × harga beli) di satu gudang, atau semua gudang. */
     private function inventoryValue(?Warehouse $gudang): float
     {
-        if ($gudang === null) {
-            return (float) Product::query()->where('stock', '>', 0)->selectRaw('COALESCE(SUM(stock * purchase_price), 0) as nilai')->value('nilai');
-        }
-
+        // Nilai dari mesin biaya persediaan (FIFO / rata-rata), per gudang.
         return (float) WarehouseStock::query()
             ->join('products', 'products.id', '=', 'warehouse_stocks.product_id')
-            ->where('warehouse_stocks.warehouse_id', $gudang->getKey())
+            ->whereNull('products.deleted_at')
+            ->when($gudang, fn ($q) => $q->where('warehouse_stocks.warehouse_id', $gudang->getKey()))
             ->where('warehouse_stocks.quantity', '>', 0)
-            ->selectRaw('COALESCE(SUM(warehouse_stocks.quantity * products.purchase_price), 0) as nilai')
-            ->value('nilai');
+            ->sum('warehouse_stocks.value');
     }
 
     /** @return array<string, mixed> */

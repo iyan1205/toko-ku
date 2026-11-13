@@ -13,6 +13,7 @@ use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\PurchaseReturn;
+use App\Models\StockMovement;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Services\Accounting\FiscalPeriodService;
@@ -135,6 +136,8 @@ class PurchaseReturnService
                         "Retur {$retur->number} ke supplier: {$retur->reason}",
                         $user,
                         $retur->warehouse,
+                        // Ambil dari lot pembelian asal dulu (biaya dan batch yang sama).
+                        ['reverse_of' => $this->mutasiPembelian($faktur, $baris->product_id)],
                     );
                 }
             } catch (AturanBisnisException $e) {
@@ -191,6 +194,18 @@ class PurchaseReturnService
                 ->withProperties(['nomor' => $retur->number])
                 ->log("Draft retur pembelian {$retur->number} dihapus");
         });
+    }
+
+    /**
+     * Mutasi masuk dari pembelian asal (faktur langsung, atau penerimaan barang yang membuat faktur itu).
+     *
+     * @return Collection<int, StockMovement>
+     */
+    private function mutasiPembelian(Purchase $faktur, int $productId): Collection
+    {
+        $dokumen = $faktur->goodsReceipt ?? $faktur;
+
+        return StockService::mutasiDokumen($dokumen, $productId, 1);
     }
 
     private function ensureReturnable(Purchase $faktur): void

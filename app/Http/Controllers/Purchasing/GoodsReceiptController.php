@@ -57,7 +57,7 @@ class GoodsReceiptController extends Controller
             ]);
         }
 
-        $order = PurchaseOrder::with(['supplier', 'warehouse', 'items'])->findOrFail($poId);
+        $order = PurchaseOrder::with(['supplier', 'warehouse', 'items.product:id,track_batches,track_serials'])->findOrFail($poId);
 
         if (! $order->status->canReceive()) {
             return redirect()->route('purchase-orders.show', $order)

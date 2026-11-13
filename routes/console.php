@@ -36,6 +36,9 @@ Schedule::command('sdm:pengingat')->dailyAt('07:05')->withoutOverlapping();
 // Pengingat piutang dan hutang yang jatuh tempo (notifikasi lonceng + email).
 Schedule::command('keuangan:pengingat-jatuh-tempo')->dailyAt('07:00')->withoutOverlapping();
 
+// Batch stok yang mendekati/sudah lewat kedaluwarsa (Fase 16).
+Schedule::command('stok:kedaluwarsa')->dailyAt('07:10')->withoutOverlapping();
+
 // Cadangan database harian (Pengaturan → Backup). Menyimpan 14 berkas terbaru.
 Schedule::command('backup:database')->dailyAt('01:30');
 

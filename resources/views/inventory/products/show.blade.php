@@ -106,4 +106,40 @@
             </ul>
         </x-ui.card>
     @endcan
+    @if ($produk->track_batches)
+        <x-ui.card title="Batch & kedaluwarsa" class="mt-6" :padding="false">
+            <ul class="divide-y divide-slate-100">
+                @forelse ($lots as $lot)
+                    <li class="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
+                        <div>
+                            <span class="font-mono text-xs font-semibold text-slate-900">{{ $lot->batch_number ?? 'Tanpa batch' }}</span>
+                            <span class="text-slate-500">· {{ $lot->warehouse?->name }}</span>
+                            @if ($lot->expiry_date)
+                                <x-ui.badge :color="$lot->isExpired() ? 'danger' : ($lot->expiry_date->lte(today()->addDays((int) setting('inventory.expiry_warning_days', 30))) ? 'warning' : 'neutral')" class="ml-1">
+                                    exp {{ Format::tanggal($lot->expiry_date) }}
+                                </x-ui.badge>
+                            @endif
+                        </div>
+                        <span class="tabular-nums text-slate-900">{{ Format::jumlah($lot->quantity) }} {{ $produk->unit?->name }}</span>
+                    </li>
+                @empty
+                    <li class="px-5 py-6 text-center text-sm text-slate-500">Belum ada batch yang bersisa.</li>
+                @endforelse
+            </ul>
+        </x-ui.card>
+    @endif
+
+    @if ($produk->track_serials)
+        <x-ui.card title="Nomor seri di stok" class="mt-6">
+            @if ($serials->isEmpty())
+                <p class="text-sm text-slate-500">Belum ada nomor seri di stok.</p>
+            @else
+                <div class="flex flex-wrap gap-2">
+                    @foreach ($serials as $s)
+                        <span class="rounded bg-slate-100 px-2 py-1 font-mono text-xs text-slate-700" title="{{ $s->warehouse?->name }}">{{ $s->serial_number }}</span>
+                    @endforeach
+                </div>
+            @endif
+        </x-ui.card>
+    @endif
 </x-app-layout>

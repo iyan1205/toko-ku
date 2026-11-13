@@ -54,6 +54,8 @@ Route::resource('satuan', UnitController::class)
 // ---- Stok & kartu stok ----
 Route::get('stok', [StockController::class, 'index'])->middleware('permission:inventory.stock.view')->name('stock.index');
 Route::get('stok/ekspor', [StockController::class, 'export'])->middleware('permission:inventory.stock.export')->name('stock.export');
+Route::get('stok/kedaluwarsa', [StockController::class, 'expiring'])->middleware('permission:inventory.stock.view')->name('stock.expiring');
+Route::get('stok/kedaluwarsa/ekspor', [StockController::class, 'exportExpiring'])->middleware('permission:inventory.stock.export')->name('stock.expiring.export');
 Route::get('stok/mutasi', [StockController::class, 'movements'])->middleware('permission:inventory.stock-card.view')->name('stock.movements');
 Route::get('stok/mutasi/ekspor', [StockController::class, 'exportMovements'])->middleware('permission:inventory.stock-card.export')->name('stock.movements.export');
 Route::middleware('permission:inventory.adjustments.create')->group(function () {

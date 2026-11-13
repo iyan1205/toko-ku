@@ -22,6 +22,10 @@ class StockAdjustmentRequest extends FormRequest
             'direction' => ['required_if:type,'.StockMovementType::Adjustment->value, 'nullable', Rule::in(['in', 'out'])],
             'quantity' => ['required', 'numeric', 'gt:0', 'max:999999999'],
             'note' => ['required', 'string', 'max:255'],
+            'batch_number' => ['nullable', 'string', 'max:50'],
+            'expiry_date' => ['nullable', 'date'],
+            'lot_id' => ['nullable', 'integer', Rule::exists('stock_lots', 'id')->where('product_id', $this->integer('product_id'))],
+            'serials' => ['nullable', 'string', 'max:5000'],
         ];
     }
 

@@ -15,7 +15,7 @@ class WarehouseStock extends Model
 
     protected function casts(): array
     {
-        return ['quantity' => 'decimal:3'];
+        return ['quantity' => 'decimal:3', 'value' => 'decimal:2'];
     }
 
     public function warehouse(): BelongsTo

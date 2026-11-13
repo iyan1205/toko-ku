@@ -5,6 +5,7 @@ namespace App\Http\Requests\Purchasing;
 use App\Rules\OpenPeriod;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /** Penerimaan barang dari PO. items = purchase_order_item_id => jumlah diterima. */
 class GoodsReceiptRequest extends FormRequest
@@ -38,7 +39,40 @@ class GoodsReceiptRequest extends FormRequest
             'update_cost' => ['boolean'],
             'items' => ['required', 'array'],
             'items.*' => ['nullable', 'numeric', 'min:0', 'max:99999.999', 'decimal:0,3'],
+            // Batch & kedaluwarsa / nomor seri per baris PO (produk yang melacaknya).
+            'batches' => ['nullable', 'array'],
+            'batches.*.batch_number' => ['nullable', 'string', 'max:50'],
+            'batches.*.expiry_date' => ['nullable', 'date'],
+            'batches.*.serials' => ['nullable', 'string', 'max:5000'],
         ];
+    }
+
+    /** Produk dengan batch wajib diisi nomor batch; produk bernomor seri wajib diisi seri sebanyak jumlahnya. */
+    public function after(): array
+    {
+        return [function (Validator $validator) {
+            $order = $this->route('purchaseOrder');
+            if ($order === null || $validator->errors()->isNotEmpty()) {
+                return;
+            }
+            $items = $order->items()->with('product:id,name,track_batches,track_serials')->get()->keyBy('id');
+            foreach ((array) $this->input('items', []) as $id => $qty) {
+                $item = $items[(int) $id] ?? null;
+                if ($item === null || (float) $qty <= 0 || $item->product === null) {
+                    continue;
+                }
+                $batch = (array) $this->input("batches.{$id}", []);
+                if ($item->product->track_batches && blank($batch['batch_number'] ?? null)) {
+                    $validator->errors()->add("batches.{$id}.batch_number", "Isi nomor batch {$item->product_name}.");
+                }
+                if ($item->product->track_serials) {
+                    $serials = preg_split('/[\s,;]+/', (string) ($batch['serials'] ?? ''), -1, PREG_SPLIT_NO_EMPTY);
+                    if (count(array_unique($serials)) !== (int) $qty || floor((float) $qty) != (float) $qty) {
+                        $validator->errors()->add("batches.{$id}.serials", "Isi {$qty} nomor seri {$item->product_name} (dipisah koma atau baris baru).");
+                    }
+                }
+            }
+        }];
     }
 
     public function attributes(): array

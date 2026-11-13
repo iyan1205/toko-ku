@@ -14,6 +14,7 @@ use App\Models\Customer;
 use App\Models\HeldSale;
 use App\Models\Product;
 use App\Models\Sale;
+use App\Models\StockMovement;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Services\Accounting\FiscalPeriodService;
@@ -23,6 +24,7 @@ use App\Services\Settings\TaxSettingsService;
 use App\Support\Format;
 use App\Support\Uang;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -130,7 +132,7 @@ class SaleService
                 $b = $h['baris'][$id];
                 $p = $b['produk'];
 
-                $penjualan->items()->create([
+                $baris = $penjualan->items()->create([
                     'product_id' => $p->getKey(),
                     'product_name' => $p->name,
                     'sku' => $p->sku,
@@ -143,7 +145,7 @@ class SaleService
                 ]);
 
                 // Menolak dengan "Stok tidak mencukupi." bila stok gudang kurang, dan seluruh transaksi dibatalkan.
-                $this->stok->catat(
+                $mutasi = $this->stok->catat(
                     $p,
                     StockMovementType::Sale,
                     '-'.Uang::milliKeDesimal($b['milli']),
@@ -151,7 +153,10 @@ class SaleService
                     "Penjualan {$penjualan->number}",
                     $kasir,
                     $gudang,
+                    ['serials' => $b['serials'] ?? []],
                 );
+                // HPP per unit dari mesin biaya persediaan (FIFO / rata-rata), bukan harga beli terakhir.
+                $baris->forceFill(['cost_price' => $mutasi->unit_cost])->save();
             }
 
             if ($h['metode'] === PaymentMethod::Receivable) {
@@ -239,6 +244,7 @@ class SaleService
                     "Pembatalan penjualan {$terkunci->number}: {$alasan}",
                     $user,
                     $gudang,
+                    ['reverse_of' => $this->mutasiAsal($terkunci, $item->product_id)],
                 );
             }
 
@@ -492,5 +498,15 @@ class SaleService
             'diterima' => $tunai + $nonTunai,
             'kembalian' => $kembalian,
         ];
+    }
+
+    /**
+     * Mutasi keluar penjualan untuk satu produk (dibalik saat pembatalan/retur supaya lot dan HPP aslinya kembali).
+     *
+     * @return Collection<int, StockMovement>
+     */
+    public static function mutasiAsal(Sale $penjualan, int $productId): Collection
+    {
+        return StockService::mutasiDokumen($penjualan, $productId, -1);
     }
 }

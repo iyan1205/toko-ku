@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\StockLot;
 use App\Models\Unit;
 use App\Models\Warehouse;
 use App\Models\WarehouseStock;
@@ -42,11 +43,20 @@ class ProductFactory extends Factory
                     return;
                 }
 
+                $warehouseId = ($gudang ?? Warehouse::default())->getKey();
                 (new WarehouseStock)->forceFill([
-                    'warehouse_id' => ($gudang ?? Warehouse::default())->getKey(),
+                    'warehouse_id' => $warehouseId,
                     'product_id' => $produk->getKey(),
                     'quantity' => $jumlah,
+                    'value' => round($jumlah * (float) $produk->purchase_price, 2),
                 ])->save();
+                // Seperti stok awal saat Fase 16 dipasang: satu lot dengan biaya = harga beli.
+                if ($jumlah > 0) {
+                    (new StockLot)->forceFill([
+                        'product_id' => $produk->getKey(), 'warehouse_id' => $warehouseId, 'received_at' => now()->subDay(),
+                        'unit_cost' => $produk->purchase_price, 'quantity_in' => $jumlah, 'quantity' => $jumlah,
+                    ])->save();
+                }
             });
     }
 }

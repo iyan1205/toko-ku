@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers\Inventory;
 
-use App\Http\Controllers\Controller;
-
 use App\Exceptions\ImportGagalException;
-use App\Exports\ProductImportTemplate;
 use App\Exports\ListExport;
+use App\Exports\ProductImportTemplate;
 use App\Exports\ProductsExport;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\ImportProductRequest;
 use App\Http\Requests\ProductRequest;
 use App\Imports\ProductsImport;
@@ -74,6 +73,13 @@ class ProductController extends Controller
                 ->map(fn (Warehouse $w) => ['gudang' => $w, 'jumlah' => $product->stockIn($w)])
                 ->filter(fn (array $row) => ($row['gudang']->is_active && ! $row['gudang']->trashed()) || $row['jumlah'] != 0.0)
                 ->values(),
+            // Batch yang masih bersisa (FEFO) dan nomor seri yang ada di stok.
+            'lots' => $product->track_batches
+                ? $product->lots()->available()->with('warehouse:id,name')->consumeOrder()->get()
+                : collect(),
+            'serials' => $product->track_serials
+                ? $product->serials()->where('status', 'in_stock')->with('warehouse:id,name')->orderBy('serial_number')->limit(200)->get()
+                : collect(),
             'riwayat' => auth()->user()->can('inventory.stock-card.view')
                 ? $product->stockMovements()->with(['user', 'warehouse:id,name'])->orderByDesc('id')->limit(5)->get()
                 : collect(),

@@ -76,15 +76,18 @@ class PurchaseService
             $pembelian = $this->simpanFaktur($supplier, $gudang, $data, $hitung, $user);
             $this->simpanBaris($pembelian, $produk, $hitung['baris'], $data['update_cost'] ?? true);
 
+            $isian = collect($data['items'] ?? [])->keyBy(fn ($row) => (int) ($row['product_id'] ?? 0));
             foreach ($ids as $id) {
+                $b = $hitung['baris'][$id];
                 $this->stok->catat(
                     $produk[$id],
                     StockMovementType::Purchase,
-                    Uang::milliKeDesimal($hitung['baris'][$id]['milli']),
+                    Uang::milliKeDesimal($b['milli']),
                     $pembelian,
                     "Pembelian {$pembelian->number} dari {$supplier->name}",
                     $user,
                     $gudang,
+                    ['unit_cost' => Uang::perUnit($b['total'], $b['milli'])] + StockService::opsiBaris((array) ($isian[$id] ?? [])),
                 );
             }
 
@@ -164,6 +167,7 @@ class PurchaseService
                         "Pembatalan pembelian {$terkunci->number}: {$alasan}",
                         $user,
                         $gudang,
+                        ['reverse_of' => StockService::mutasiDokumen($terkunci, $item->product_id, 1)],
                     );
                 }
             } catch (AturanBisnisException $e) {

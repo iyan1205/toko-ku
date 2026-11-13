@@ -62,6 +62,13 @@
             </p>
         </x-ui.form-section>
 
+        <x-ui.form-section title="Pelacakan stok" description="Opsional, untuk barang dengan tanggal kedaluwarsa atau bernomor seri.">
+            <x-ui.checkbox name="track_batches" label="Lacak batch & tanggal kedaluwarsa" :checked="(bool) $produk->track_batches" unchecked-value="0"
+                           hint="Nomor batch wajib diisi saat barang diterima. Stok keluar memakai batch yang kedaluwarsa paling dekat (FEFO); batch kedaluwarsa tidak dijual di kasir." />
+            <x-ui.checkbox name="track_serials" label="Lacak nomor seri per unit" :checked="(bool) $produk->track_serials" unchecked-value="0"
+                           hint="Nomor seri wajib diisi saat barang diterima (satu per unit); jumlah selalu bilangan bulat." />
+        </x-ui.form-section>
+
         <x-ui.form-section title="Foto & deskripsi" description="Opsional. Foto tampil di daftar produk dan kasir.">
             @if ($edit && $produk->photoUrl())
                 <div class="flex items-center gap-4">

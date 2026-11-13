@@ -11,6 +11,9 @@
         'arah' => old('direction', 'in'),
         'stok' => $stok,
         'satuan' => $produk->mapWithKeys(fn ($p) => [$p->id => $p->unit?->name])->all(),
+        'batch' => $produk->where('track_batches', true)->pluck('id')->map(fn ($id) => (string) $id)->values()->all(),
+        'seri' => $produk->where('track_serials', true)->pluck('id')->map(fn ($id) => (string) $id)->values()->all(),
+        'lots' => $lots,
     ];
 @endphp
 
@@ -21,6 +24,10 @@
     <form method="POST" action="{{ route('stock.adjust.store') }}" class="grid gap-8"
           x-data="{ ...{{ \Illuminate\Support\Js::from($awal) }},
                     get stokKini() { return Number((this.stok[this.produk] || {})[this.gudang] || 0); },
+                    get masuk() { return this.jenis === 'adjustment' && this.arah === 'in' },
+                    get berbatch() { return this.batch.includes(this.produk) },
+                    get berseri() { return this.seri.includes(this.produk) },
+                    get pilihanLot() { return (this.lots[this.produk] || {})[this.gudang] || [] },
                     angka(v) { return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 3 }).format(v); } }">
         @csrf
 
@@ -66,6 +73,20 @@
 
             <x-ui.input name="quantity" label="Jumlah" type="number" min="0.001" step="0.001" required
                         hint="Gunakan desimal untuk satuan seperti KG atau LITER." />
+            <div class="grid gap-5 sm:grid-cols-2" x-show="berbatch && masuk" x-cloak>
+                <x-ui.input name="batch_number" label="Nomor batch" maxlength="50" style="text-transform: uppercase" />
+                <x-ui.input name="expiry_date" label="Kedaluwarsa" type="date" />
+            </div>
+            <div x-show="berbatch && ! masuk" x-cloak>
+                <label for="f-lot" class="block text-sm font-medium text-slate-700">Batch yang dikurangi</label>
+                <select id="f-lot" name="lot_id" class="mt-1 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                    <option value="">Otomatis (kedaluwarsa terdekat dulu)</option>
+                    <template x-for="l in pilihanLot" x-bind:key="l.id"><option x-bind:value="l.id" x-text="l.label"></option></template>
+                </select>
+            </div>
+            <div x-show="berseri" x-cloak>
+                <x-ui.textarea name="serials" label="Nomor seri" rows="2" hint="Satu per unit, dipisah koma atau baris baru. Kosongkan saat mengurangi untuk memakai seri terlama." />
+            </div>
             <x-ui.input name="note" label="Alasan" maxlength="255" required
                         hint="Contoh: stok awal, botol pecah saat bongkar muat, selisih hitungan rak." />
 

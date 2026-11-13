@@ -80,8 +80,9 @@ class StockTransferService
                 ]);
 
                 // Gagal dengan "Stok tidak mencukupi." bila stok gudang asal kurang; seluruh transfer dibatalkan.
-                $this->stok->catat($p, StockMovementType::TransferOut, '-'.$jumlah, $transfer, "Transfer {$transfer->number} ke {$ke->name}", $user, $dari);
-                $this->stok->catat($p, StockMovementType::TransferIn, $jumlah, $transfer, "Transfer {$transfer->number} dari {$dari->name}", $user, $ke);
+                $keluar = $this->stok->catat($p, StockMovementType::TransferOut, '-'.$jumlah, $transfer, "Transfer {$transfer->number} ke {$ke->name}", $user, $dari);
+                // Batch, kedaluwarsa, biaya, dan nomor seri ikut pindah ke gudang tujuan.
+                $this->stok->catat($p, StockMovementType::TransferIn, $jumlah, $transfer, "Transfer {$transfer->number} dari {$dari->name}", $user, $ke, ['from_movement' => $keluar]);
             }
 
             activity('inventori')->performedOn($transfer)->causedBy($user)->event('created')
@@ -115,8 +116,10 @@ class StockTransferService
             try {
                 foreach ($terkunci->items->sortBy('product_id') as $item) {
                     $p = Product::withTrashed()->findOrFail($item->product_id);
-                    $this->stok->catat($p, StockMovementType::TransferIn, '-'.$item->quantity, $terkunci, $catatan, $user, $terkunci->toWarehouse);
-                    $this->stok->catat($p, StockMovementType::TransferOut, $item->quantity, $terkunci, $catatan, $user, $terkunci->fromWarehouse);
+                    $this->stok->catat($p, StockMovementType::TransferIn, '-'.$item->quantity, $terkunci, $catatan, $user, $terkunci->toWarehouse,
+                        ['reverse_of' => StockService::mutasiDokumen($terkunci, $p->id, 1)]);
+                    $this->stok->catat($p, StockMovementType::TransferOut, $item->quantity, $terkunci, $catatan, $user, $terkunci->fromWarehouse,
+                        ['reverse_of' => StockService::mutasiDokumen($terkunci, $p->id, -1)]);
                 }
             } catch (AturanBisnisException $e) {
                 throw new AturanBisnisException(
