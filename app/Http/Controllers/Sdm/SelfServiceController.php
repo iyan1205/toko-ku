@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers\Sdm;
 
-use App\Enums\StatusAbsensi;
 use App\Http\Controllers\Controller;
-use App\Models\Absensi;
+use App\Models\AttendanceCorrection;
 use App\Models\Cuti;
 use App\Models\Employee;
 use App\Models\JenisCuti;
@@ -12,6 +11,7 @@ use App\Models\OvertimeRequest;
 use App\Models\ReimbursementRequest;
 use App\Models\Scopes\BranchScope;
 use App\Services\Sdm\AbsensiService;
+use App\Services\Sdm\AttendanceRecapService;
 use App\Services\Sdm\CutiService;
 use App\Support\Format;
 use Carbon\CarbonImmutable;
@@ -53,22 +53,26 @@ class SelfServiceController extends Controller
         return view('sdm.ess.profile', ['employee' => $employee]);
     }
 
-    public function attendance(Request $request): View
+    public function attendance(Request $request, AttendanceRecapService $recap): View
     {
         if (! $employee = $this->employee($request)) {
             return view('sdm.ess.unlinked');
         }
         $month = $request->validate(['bulan' => ['nullable', 'date_format:Y-m']])['bulan'] ?? now()->format('Y-m');
         $start = CarbonImmutable::createFromFormat('Y-m-d', $month.'-01')->startOfDay();
-        $rows = Absensi::query()->where('user_id', $request->user()->id)
-            ->whereDate('tanggal', '>=', $start->toDateString())->whereDate('tanggal', '<=', $start->endOfMonth()->toDateString())
-            ->orderByDesc('tanggal')->get();
+        // Sampai hari ini saja: hari yang belum terjadi tidak perlu ditampilkan.
+        $end = $start->endOfMonth()->startOfDay()->min(today());
+        $days = $end->lt($start) ? collect() : $recap->daily($employee, $start, $end)->reverse();
 
         return view('sdm.ess.attendance', [
             'employee' => $employee,
             'month' => $start,
-            'rows' => $rows,
-            'summary' => collect(StatusAbsensi::cases())->mapWithKeys(fn (StatusAbsensi $s) => [$s->label() => $rows->where('status', $s)->count()]),
+            'days' => $days,
+            'summary' => collect(['present' => 'Hadir', 'late' => 'Terlambat', 'permit' => 'Izin', 'sick' => 'Sakit', 'leave' => 'Cuti', 'absent' => 'Alpha'])
+                ->mapWithKeys(fn (string $label, string $key) => [$label => $days->where('category', $key)->count()]),
+            'corrections' => AttendanceCorrection::withoutGlobalScope(BranchScope::class)->where('employee_id', $employee->id)
+                ->latest('id')->limit(10)->get(),
+            'canCorrect' => $request->user()->can('sdm.attendance-corrections.create'),
         ]);
     }
 

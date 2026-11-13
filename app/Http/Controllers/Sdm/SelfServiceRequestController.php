@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Sdm;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Sdm\AttendanceCorrectionRequest;
 use App\Http\Requests\Sdm\OvertimeRequestRequest;
 use App\Http\Requests\Sdm\ReimbursementRequestRequest;
+use App\Models\AttendanceCorrection;
 use App\Models\Employee;
 use App\Models\OvertimeRequest;
 use App\Models\ReimbursementRequest;
@@ -15,7 +17,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
-/** Pengajuan lembur dan reimbursement milik karyawan sendiri (Layanan Mandiri). Izin sdm.overtime.create / sdm.reimbursements.create. */
+/** Pengajuan lembur, reimbursement, dan koreksi absensi milik karyawan sendiri (Layanan Mandiri). */
 class SelfServiceRequestController extends Controller
 {
     public function __construct(private readonly EmployeeRequestService $requests) {}
@@ -74,6 +76,22 @@ class SelfServiceRequestController extends Controller
         $this->requests->cancel($reimbursement, $request->user());
 
         return redirect()->route('ess.reimbursements')->with('success', "Reimbursement {$reimbursement->number} dibatalkan.");
+    }
+
+    public function storeCorrection(AttendanceCorrectionRequest $request): RedirectResponse
+    {
+        $correction = $this->requests->submitCorrection($this->employeeOrFail($request), $request->validated(), $request->user());
+
+        return redirect()->route('ess.attendance', ['bulan' => $correction->attendance_date->format('Y-m')])
+            ->with('success', "Koreksi absensi {$correction->number} ({$correction->requestedLabel()}) diajukan.");
+    }
+
+    public function cancelCorrection(Request $request, int $id): RedirectResponse
+    {
+        $correction = AttendanceCorrection::withoutGlobalScope(BranchScope::class)->where('employee_id', $this->employeeOrFail($request)->id)->findOrFail($id);
+        $this->requests->cancel($correction, $request->user());
+
+        return redirect()->route('ess.attendance', ['bulan' => $correction->attendance_date->format('Y-m')])->with('success', "Koreksi {$correction->number} dibatalkan.");
     }
 
     private function employeeOrFail(Request $request): Employee

@@ -2,6 +2,7 @@
 
 namespace App\Enums;
 
+use App\Models\AttendanceCorrection;
 use App\Models\CashSession;
 use App\Models\CashTransaction;
 use App\Models\Cuti;
@@ -57,6 +58,7 @@ enum DocumentType: string
     case DebitNote = 'debit_note';
     case Overtime = 'overtime';
     case Reimbursement = 'reimbursement';
+    case AttendanceCorrection = 'attendance_correction';
 
     public function label(): string
     {
@@ -87,6 +89,7 @@ enum DocumentType: string
             self::DebitNote => 'Nota debit',
             self::Overtime => 'Pengajuan lembur',
             self::Reimbursement => 'Pengajuan reimbursement',
+            self::AttendanceCorrection => 'Koreksi absensi',
         };
     }
 
@@ -119,6 +122,7 @@ enum DocumentType: string
             self::DebitNote => 'ND-{YYYY}{MM}{DD}-{####}',
             self::Overtime => 'LBR-{YYYY}{MM}-{####}',
             self::Reimbursement => 'RMB-{YYYY}{MM}-{####}',
+            self::AttendanceCorrection => 'KAB-{YYYY}{MM}-{####}',
         };
     }
 
@@ -126,7 +130,7 @@ enum DocumentType: string
     {
         return match ($this) {
             self::Leave => NumberingReset::Never,
-            self::Overtime, self::Reimbursement => NumberingReset::Monthly,
+            self::Overtime, self::Reimbursement, self::AttendanceCorrection => NumberingReset::Monthly,
             default => NumberingReset::Daily,
         };
     }
@@ -153,6 +157,7 @@ enum DocumentType: string
             self::CustomerSettlement, self::SupplierSettlement, self::CreditNote, self::DebitNote => Settlement::class,
             self::Overtime => OvertimeRequest::class,
             self::Reimbursement => ReimbursementRequest::class,
+            self::AttendanceCorrection => AttendanceCorrection::class,
         };
     }
 

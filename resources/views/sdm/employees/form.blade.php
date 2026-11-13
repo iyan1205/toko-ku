@@ -116,6 +116,18 @@
             <x-ui.checkbox name="is_active" label="Karyawan aktif" :checked="$employee->is_active ?? true" unchecked-value="0" />
         </x-ui.form-section>
 
+        @can('sdm.payroll.view')
+            <x-ui.form-section title="Gaji & lembur" description="Hanya terlihat oleh pemegang izin penggajian. Dipakai untuk menghitung upah lembur (aturan di Pengaturan → SDM).">
+                <fieldset @disabled(! auth()->user()->can('sdm.payroll.create')) class="grid gap-5 sm:grid-cols-3">
+                    <x-ui.input name="base_salary" label="Gaji pokok per bulan" type="number" min="0" step="any" prefix="Rp" inputmode="decimal" :value="$employee->base_salary" />
+                    <div class="sm:col-span-2 sm:pt-7">
+                        <x-ui.checkbox name="overtime_eligible" label="Mendapat upah lembur" :checked="$employee->overtime_eligible ?? true" unchecked-value="0"
+                                       hint="Hilangkan centang untuk jabatan yang tidak mendapat upah lembur." />
+                    </div>
+                </fieldset>
+            </x-ui.form-section>
+        @endcan
+
         <x-ui.form-section title="Keluarga, pendidikan, pengalaman" description="Baris yang namanya kosong diabaikan. Tanggungan dipakai untuk menentukan status PTKP.">
             @if ($galatBaris->isNotEmpty())
                 <x-ui.alert type="danger">{{ $galatBaris->join(' ') }}</x-ui.alert>

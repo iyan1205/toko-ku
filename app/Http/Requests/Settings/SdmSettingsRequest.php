@@ -15,6 +15,8 @@ class SdmSettingsRequest extends FormRequest
         'late_tolerance' => 'sdm.attendance.late_tolerance',
         'early_tolerance' => 'sdm.attendance.early_tolerance',
         'require_selfie' => 'sdm.attendance.require_selfie',
+        'correction_days' => 'sdm.attendance.correction_days',
+        'period_start_day' => 'sdm.attendance.period_start_day',
     ];
 
     public function authorize(): bool
@@ -37,6 +39,8 @@ class SdmSettingsRequest extends FormRequest
             'late_tolerance' => ['required', 'integer', 'min:0', 'max:240'],
             'early_tolerance' => ['required', 'integer', 'min:0', 'max:240'],
             'require_selfie' => ['boolean'],
+            'correction_days' => ['required', 'integer', 'min:0', 'max:90'],
+            'period_start_day' => ['required', 'integer', 'min:1', 'max:28'],
         ];
     }
 
@@ -45,6 +49,7 @@ class SdmSettingsRequest extends FormRequest
         return [
             'workweek' => 'hari kerja', 'default_in' => 'jam masuk', 'default_out' => 'jam pulang',
             'late_tolerance' => 'toleransi telat', 'early_tolerance' => 'toleransi pulang cepat',
+            'correction_days' => 'batas koreksi absensi', 'period_start_day' => 'awal periode absensi',
         ];
     }
 }

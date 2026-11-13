@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AttendanceCorrection;
 use App\Models\CashTransaction;
 use App\Models\Journal;
 use App\Models\OvertimeRequest;
@@ -48,6 +49,11 @@ return [
             'label' => 'Pengajuan reimbursement',
             'model' => ReimbursementRequest::class,
             'fields' => ['total' => 'Total'],
+        ],
+        'attendance_correction' => [
+            'label' => 'Koreksi absensi',
+            'model' => AttendanceCorrection::class,
+            'fields' => ['days_late' => 'Selisih hari pengajuan'],
         ],
     ],
 

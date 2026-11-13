@@ -31,7 +31,7 @@ class Employee extends Model
     use HasFactory, RecordsActivity, SoftDeletes, TracksAuthors;
 
     protected $fillable = [
-        'code', 'attendance_pin', 'name', 'gender', 'user_id', 'branch_id', 'department_id', 'position_id', 'supervisor_id', 'grade',
+        'code', 'attendance_pin', 'name', 'gender', 'user_id', 'branch_id', 'department_id', 'position_id', 'supervisor_id', 'grade', 'base_salary', 'overtime_eligible',
         'employment_type', 'identity_number', 'birth_place', 'birth_date', 'religion', 'marital_status', 'blood_type',
         'tax_id', 'ptkp_status', 'bpjs_health_number', 'bpjs_employment_number',
         'bank_name', 'bank_account_number', 'bank_account_name',
@@ -52,6 +52,8 @@ class Employee extends Model
             'join_date' => 'date',
             'end_date' => 'date',
             'is_active' => 'boolean',
+            'base_salary' => 'decimal:2',
+            'overtime_eligible' => 'boolean',
         ];
     }
 

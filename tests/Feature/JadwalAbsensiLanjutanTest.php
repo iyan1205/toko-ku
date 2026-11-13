@@ -158,7 +158,8 @@ class JadwalAbsensiLanjutanTest extends TestCase
         $this->actingAs($this->hrd)->get(route('settings.sdm.edit'))->assertOk()->assertSee('Hari kerja per minggu');
         $this->put(route('settings.sdm.update'), [
             'workweek' => '5', 'default_in' => '08:00', 'default_out' => '17:00', 'late_tolerance' => '15', 'early_tolerance' => '0', 'require_selfie' => '0',
-        ])->assertRedirect(route('settings.sdm.edit'));
+            'correction_days' => '30', 'period_start_day' => '1',
+        ])->assertSessionHasNoErrors()->assertRedirect(route('settings.sdm.edit'));
 
         $this->assertSame('15', setting('sdm.attendance.late_tolerance'));
         $this->assertSame(15, Shift::factory()->create()->lateTolerance());

@@ -6,10 +6,12 @@ use App\Enums\PerangkatAbsensi;
 use App\Enums\StatusAbsensi;
 use App\Exceptions\AturanBisnisException;
 use App\Models\Absensi;
+use App\Models\AttendanceCorrection;
 use App\Models\Branch;
 use App\Models\Employee;
 use App\Models\Shift;
 use App\Models\User;
+use App\Support\Format;
 use App\Support\Geo;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -174,6 +176,39 @@ class AbsensiService
         $absensi->save();
 
         return $baru ? 'created' : 'updated';
+    }
+
+    /**
+     * Koreksi absensi yang disetujui: jam yang diminta menggantikan jam masuk/pulang hari itu
+     * (catatan Alpa menjadi Hadir/Terlambat). Dipanggil dari AttendanceCorrection saat disetujui.
+     */
+    public function terapkanKoreksi(AttendanceCorrection $koreksi): Absensi
+    {
+        $employee = $koreksi->employee;
+        $tanggal = $koreksi->attendance_date->toDateString();
+        $absensi = Absensi::query()
+            ->where(fn ($q) => $q->where('employee_id', $employee->id)->when($employee->user_id, fn ($w, $id) => $w->orWhere('user_id', $id)))
+            ->whereDate('tanggal', $tanggal)->lockForUpdate()->first();
+
+        if ($absensi !== null && ! $absensi->status->pakaiJam() && $absensi->status !== StatusAbsensi::Alpa) {
+            throw new AturanBisnisException("Absensi {$employee->name} tanggal ".Format::tanggal($tanggal)." tercatat {$absensi->status->label()}, jadi tidak bisa dikoreksi jamnya.");
+        }
+
+        $absensi ??= new Absensi(['employee_id' => $employee->id, 'user_id' => $employee->user_id, 'tanggal' => $tanggal]);
+        if (! $absensi->status?->pakaiJam()) {
+            $absensi->status = StatusAbsensi::Hadir;
+        }
+        $absensi->clock_in = $koreksi->requested_clock_in ?? $absensi->clock_in;
+        $absensi->clock_out = $koreksi->requested_clock_out ?? $absensi->clock_out;
+        $absensi->source = 'correction';
+        $absensi->recorded_by = $koreksi->approved_by ?? $absensi->recorded_by;
+        $absensi->keterangan = mb_substr(trim(($absensi->keterangan ? $absensi->keterangan.' · ' : '')."Koreksi {$koreksi->number}"), 0, 255);
+        $this->hitungUlang($absensi);
+        $absensi->save();
+
+        $koreksi->forceFill(['absensi_id' => $absensi->id])->saveQuietly();
+
+        return $absensi;
     }
 
     /** Hitung ulang status Hadir/Terlambat dan menit terlambat/pulang cepat dari jadwal hari itu. */

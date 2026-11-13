@@ -7,6 +7,7 @@
 */
 
 use App\Http\Controllers\Sdm\AbsensiController;
+use App\Http\Controllers\Sdm\AttendanceRecapController;
 use App\Http\Controllers\Sdm\CutiController;
 use App\Http\Controllers\Sdm\DepartmentController;
 use App\Http\Controllers\Sdm\EmployeeController;
@@ -131,6 +132,10 @@ Route::prefix('saya')->name('ess.')->group(function () {
         Route::post('lembur', [SelfServiceRequestController::class, 'storeOvertime'])->name('overtime.store');
         Route::post('lembur/{id}/batal', [SelfServiceRequestController::class, 'cancelOvertime'])->whereNumber('id')->name('overtime.cancel');
     });
+    Route::middleware('permission:sdm.attendance-corrections.create')->group(function () {
+        Route::post('absensi/koreksi', [SelfServiceRequestController::class, 'storeCorrection'])->name('corrections.store');
+        Route::post('absensi/koreksi/{id}/batal', [SelfServiceRequestController::class, 'cancelCorrection'])->whereNumber('id')->name('corrections.cancel');
+    });
     Route::middleware('permission:sdm.reimbursements.create')->group(function () {
         Route::get('reimbursement', [SelfServiceRequestController::class, 'reimbursements'])->name('reimbursements');
         Route::post('reimbursement', [SelfServiceRequestController::class, 'storeReimbursement'])->name('reimbursements.store');
@@ -138,8 +143,13 @@ Route::prefix('saya')->name('ess.')->group(function () {
     });
 });
 
-// ---- Pengajuan lembur & reimbursement (SDM): daftar, ekspor, keputusan langsung tanpa alur ----
-foreach (['lembur' => ['overtime', 'sdm.overtime'], 'reimbursement' => ['reimbursements', 'sdm.reimbursements']] as $jenis => [$name, $izin]) {
+// ---- Rekap absensi per periode (siap dipakai penggajian) ----
+Route::get('rekap-absensi', [AttendanceRecapController::class, 'index'])->middleware('permission:sdm.attendance-reports.view')->name('attendance-recap.index');
+Route::get('rekap-absensi/ekspor', [AttendanceRecapController::class, 'export'])->middleware('permission:sdm.attendance-reports.export')->name('attendance-recap.export');
+Route::get('rekap-absensi/{employee}', [AttendanceRecapController::class, 'show'])->whereNumber('employee')->middleware('permission:sdm.attendance-reports.view')->name('attendance-recap.show');
+
+// ---- Pengajuan lembur, reimbursement & koreksi absensi (SDM): daftar, ekspor, keputusan langsung tanpa alur ----
+foreach (['lembur' => ['overtime', 'sdm.overtime'], 'reimbursement' => ['reimbursements', 'sdm.reimbursements'], 'koreksi-absensi' => ['attendance-corrections', 'sdm.attendance-corrections']] as $jenis => [$name, $izin]) {
     Route::prefix("pengajuan-{$jenis}")->group(function () use ($name, $izin) {
         Route::get('/', [EmployeeRequestController::class, 'index'])->middleware("permission:{$izin}.view")->name("{$name}.index");
         Route::get('ekspor', [EmployeeRequestController::class, 'export'])->middleware("permission:{$izin}.export")->name("{$name}.export");

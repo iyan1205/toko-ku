@@ -38,6 +38,16 @@ class EmployeeRequest extends FormRequest
             'experiences' => $rows('experiences', 'company'),
             'tax_id' => $this->filled('tax_id') ? preg_replace('/[^0-9]/', '', (string) $this->input('tax_id')) : null,
         ]);
+
+        // Gaji hanya diubah pemegang izin penggajian; tanpa izin isiannya diabaikan (nilai lama tetap).
+        if ($this->user()->can('sdm.payroll.create')) {
+            if ($this->has('overtime_eligible')) {
+                $this->merge(['overtime_eligible' => $this->boolean('overtime_eligible')]);
+            }
+        } else {
+            $this->request->remove('base_salary');
+            $this->request->remove('overtime_eligible');
+        }
     }
 
     /** @return array<string, mixed> */
@@ -48,6 +58,8 @@ class EmployeeRequest extends FormRequest
         return [
             'code' => ['nullable', 'string', 'max:20', 'regex:/^[A-Z0-9\-]+$/', Rule::unique('employees', 'code')->ignore($id)],
             'name' => ['required', 'string', 'max:150'],
+            'base_salary' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:9999999999'],
+            'overtime_eligible' => ['sometimes', 'boolean'],
             'attendance_pin' => ['nullable', 'string', 'max:30', 'regex:/^[A-Za-z0-9\-_.]+$/', Rule::unique('employees', 'attendance_pin')->ignore($id)],
             // Satu akun login hanya untuk satu karyawan.
             'user_id' => ['nullable', 'integer', Rule::exists('users', 'id'), Rule::unique('employees', 'user_id')->ignore($id)],
@@ -144,6 +156,7 @@ class EmployeeRequest extends FormRequest
             'experiences.*.end_date' => 'tanggal selesai pengalaman',
             'code' => 'kode karyawan',
             'attendance_pin' => 'PIN mesin absen',
+            'base_salary' => 'gaji pokok',
             'name' => 'nama',
             'user_id' => 'akun login',
             'department_id' => 'departemen',

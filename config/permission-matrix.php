@@ -131,6 +131,10 @@ return [
                 // Absensi: import = data mesin fingerprint.
                 'attendances' => ['label' => 'Absensi', 'actions' => ['view', 'record', 'create', 'update', 'delete', 'import', 'export']],
                 'holidays' => ['label' => 'Hari libur', 'actions' => ['view', 'create', 'update', 'delete', 'import']],
+                // Koreksi absensi: create = mengajukan untuk diri sendiri (Layanan Mandiri), view = semua pengajuan.
+                'attendance-corrections' => ['label' => 'Koreksi absensi', 'actions' => ['view', 'create', 'approve', 'export']],
+                // Rekap absensi bulanan (siap payroll). Nilai upah lembur hanya tampil bagi pemegang sdm.payroll.view.
+                'attendance-reports' => ['label' => 'Rekap absensi', 'actions' => ['view', 'export']],
                 'schedules' => ['label' => 'Jadwal kerja', 'actions' => ['view', 'update']],
                 // Shift: juga pola rotasi. Menerapkan rotasi ke jadwal = sdm.schedules.update.
                 'shifts' => ['label' => 'Shift kerja & rotasi', 'actions' => ['view', 'create', 'update', 'delete']],

@@ -50,6 +50,8 @@ Route::prefix('pengaturan')->name('settings.')->group(function () {
 
     Route::get('sdm', [SdmSettingController::class, 'edit'])->middleware('permission:settings.sdm.view')->name('sdm.edit');
     Route::put('sdm', [SdmSettingController::class, 'update'])->middleware('permission:settings.sdm.update')->name('sdm.update');
+    Route::post('sdm/aturan-lembur', [SdmSettingController::class, 'storeOvertimeRule'])->middleware('permission:settings.sdm.update')->name('sdm.overtime-rules.store');
+    Route::delete('sdm/aturan-lembur/{rule}', [SdmSettingController::class, 'destroyOvertimeRule'])->whereNumber('rule')->middleware('permission:settings.sdm.update')->name('sdm.overtime-rules.destroy');
 
     Route::get('akuntansi', [AccountingSettingController::class, 'edit'])->middleware('permission:settings.accounting.view')->name('accounting.edit');
     Route::put('akuntansi', [AccountingSettingController::class, 'update'])->middleware('permission:settings.accounting.update')->name('accounting.update');

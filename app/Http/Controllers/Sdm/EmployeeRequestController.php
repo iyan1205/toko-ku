@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Sdm;
 
 use App\Exports\ListExport;
+use App\Exports\Sdm\AttendanceCorrectionsExport;
 use App\Exports\Sdm\OvertimeRequestsExport;
 use App\Exports\Sdm\ReimbursementRequestsExport;
 use App\Http\Controllers\Controller;
+use App\Models\AttendanceCorrection;
 use App\Models\OvertimeRequest;
 use App\Models\ReimbursementRequest;
 use App\Services\Sdm\EmployeeRequestService;
@@ -17,7 +19,7 @@ use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * SDM → Lembur dan SDM → Reimbursement: daftar semua pengajuan (cabang aktif), ekspor, dan keputusan
+ * SDM → Lembur, Reimbursement, dan Koreksi Absensi: daftar semua pengajuan (cabang aktif), ekspor, dan keputusan
  * langsung untuk pengajuan tanpa alur persetujuan. Jenis dari parameter route {jenis}: lembur | reimbursement.
  */
 class EmployeeRequestController extends Controller
@@ -26,6 +28,7 @@ class EmployeeRequestController extends Controller
     private const KINDS = [
         'overtime' => ['model' => OvertimeRequest::class, 'export' => OvertimeRequestsExport::class, 'view' => 'sdm.requests.overtime', 'route' => 'overtime', 'permission' => 'sdm.overtime'],
         'reimbursements' => ['model' => ReimbursementRequest::class, 'export' => ReimbursementRequestsExport::class, 'view' => 'sdm.requests.reimbursements', 'route' => 'reimbursements', 'permission' => 'sdm.reimbursements'],
+        'attendance-corrections' => ['model' => AttendanceCorrection::class, 'export' => AttendanceCorrectionsExport::class, 'view' => 'sdm.requests.corrections', 'route' => 'attendance-corrections', 'permission' => 'sdm.attendance-corrections'],
     ];
 
     public function __construct(private readonly EmployeeRequestService $requests) {}
@@ -71,7 +74,7 @@ class EmployeeRequestController extends Controller
         return self::KINDS[Str::before((string) $request->route()?->getName(), '.')] ?? abort(404);
     }
 
-    private function find(Request $request, int $id): OvertimeRequest|ReimbursementRequest
+    private function find(Request $request, int $id): OvertimeRequest|ReimbursementRequest|AttendanceCorrection
     {
         return $this->kind($request)['model']::query()->findOrFail($id);
     }

@@ -3,7 +3,10 @@
 namespace App\Services\Sdm;
 
 use App\Enums\DocumentStatus;
+use App\Enums\StatusAbsensi;
 use App\Exceptions\AturanBisnisException;
+use App\Models\Absensi;
+use App\Models\AttendanceCorrection;
 use App\Models\Employee;
 use App\Models\OvertimeRequest;
 use App\Models\ReimbursementRequest;
@@ -17,11 +20,11 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Pengajuan lembur dan reimbursement dari Layanan Mandiri.
+ * Pengajuan lembur, reimbursement, dan koreksi absensi dari Layanan Mandiri.
  *
  *   - Diajukan langsung (tanpa draf). Bila ada alur di Pengaturan → Alur Persetujuan yang cocok,
  *     pengajuan masuk ApprovalService (diputuskan di Persetujuan Saya); bila tidak, pemegang izin
- *     sdm.overtime.approve / sdm.reimbursements.approve memutuskannya langsung di daftar SDM.
+ *     sdm.overtime.approve / sdm.reimbursements.approve / sdm.attendance-corrections.approve memutuskannya langsung di daftar SDM.
  *   - Karyawan bisa membatalkan pengajuannya selama masih menunggu.
  *   - Cabang dokumen = cabang penempatan karyawan.
  */
@@ -87,8 +90,63 @@ class EmployeeRequestService
         });
     }
 
+    /**
+     * Koreksi absensi sendiri (lupa absen masuk/pulang, jam mesin salah). Paling lama
+     * setting sdm.attendance.correction_days hari ke belakang (bawaan 30).
+     *
+     * @param  array{attendance_date: string, clock_in?: ?string, clock_out?: ?string, reason: string}  $data
+     */
+    public function submitCorrection(Employee $employee, array $data, User $user): AttendanceCorrection
+    {
+        $date = CarbonImmutable::parse($data['attendance_date'])->startOfDay();
+        $maxDays = (int) setting('sdm.attendance.correction_days', 30);
+        if ($date->isAfter(today())) {
+            throw new AturanBisnisException('Koreksi hanya untuk tanggal yang sudah lewat atau hari ini.');
+        }
+        if ($date->lt(today()->subDays($maxDays))) {
+            throw new AturanBisnisException("Koreksi absensi paling lama {$maxDays} hari ke belakang. Hubungi bagian SDM.");
+        }
+        $in = filled($data['clock_in'] ?? null) ? $date->setTimeFromTimeString($data['clock_in']) : null;
+        $out = filled($data['clock_out'] ?? null) ? $date->setTimeFromTimeString($data['clock_out']) : null;
+        if ($in === null && $out === null) {
+            throw new AturanBisnisException('Isi jam masuk, jam pulang, atau keduanya.');
+        }
+        if ($in !== null && $out !== null && $out->lte($in)) {
+            $out = $out->addDay(); // shift malam: pulang keesokan harinya
+        }
+
+        return DB::transaction(function () use ($employee, $data, $user, $date, $in, $out) {
+            Employee::query()->whereKey($employee->id)->lockForUpdate()->first();
+            $pending = AttendanceCorrection::withoutGlobalScope(BranchScope::class)->where('employee_id', $employee->id)
+                ->whereDate('attendance_date', $date->toDateString())->where('status', DocumentStatus::Submitted->value)->exists();
+            if ($pending) {
+                throw new AturanBisnisException('Sudah ada koreksi yang menunggu persetujuan untuk tanggal ini.');
+            }
+
+            $absensi = Absensi::query()
+                ->where(fn ($q) => $q->where('employee_id', $employee->id)->when($employee->user_id, fn ($w, $id) => $w->orWhere('user_id', $id)))
+                ->whereDate('tanggal', $date->toDateString())->first();
+            if ($absensi !== null && ! $absensi->status->pakaiJam() && $absensi->status !== StatusAbsensi::Alpa) {
+                throw new AturanBisnisException("Tanggal ini tercatat {$absensi->status->label()}. Hubungi bagian SDM bila catatan itu salah.");
+            }
+            $finalIn = $in ?? $absensi?->clock_in;
+            $finalOut = $out ?? $absensi?->clock_out;
+            if ($finalIn !== null && $finalOut !== null && CarbonImmutable::parse($finalOut)->lte(CarbonImmutable::parse($finalIn))) {
+                throw new AturanBisnisException('Jam pulang harus setelah jam masuk.');
+            }
+
+            $request = new AttendanceCorrection([
+                'attendance_date' => $date->toDateString(), 'absensi_id' => $absensi?->id,
+                'original_status' => $absensi?->status->value, 'original_clock_in' => $absensi?->clock_in, 'original_clock_out' => $absensi?->clock_out,
+                'requested_clock_in' => $in, 'requested_clock_out' => $out, 'reason' => $data['reason'],
+            ]);
+
+            return $this->submit($request, $employee, $user);
+        });
+    }
+
     /** Setujui langsung (tanpa alur persetujuan). */
-    public function approve(OvertimeRequest|ReimbursementRequest $request, User $user): Model
+    public function approve(OvertimeRequest|ReimbursementRequest|AttendanceCorrection $request, User $user): Model
     {
         return DB::transaction(function () use ($request, $user) {
             $locked = $this->lockPending($request);
@@ -103,7 +161,7 @@ class EmployeeRequestService
     }
 
     /** Tolak langsung (tanpa alur persetujuan). */
-    public function reject(OvertimeRequest|ReimbursementRequest $request, User $user, string $note): Model
+    public function reject(OvertimeRequest|ReimbursementRequest|AttendanceCorrection $request, User $user, string $note): Model
     {
         return DB::transaction(function () use ($request, $user, $note) {
             $locked = $this->lockPending($request);
@@ -119,7 +177,7 @@ class EmployeeRequestService
     }
 
     /** Dibatalkan karyawan sendiri selama masih menunggu. */
-    public function cancel(OvertimeRequest|ReimbursementRequest $request, User $user): Model
+    public function cancel(OvertimeRequest|ReimbursementRequest|AttendanceCorrection $request, User $user): Model
     {
         return DB::transaction(function () use ($request, $user) {
             $locked = $this->lockPending($request);
@@ -136,7 +194,7 @@ class EmployeeRequestService
         });
     }
 
-    private function submit(OvertimeRequest|ReimbursementRequest $request, Employee $employee, User $user): Model
+    private function submit(OvertimeRequest|ReimbursementRequest|AttendanceCorrection $request, Employee $employee, User $user): Model
     {
         if (! $employee->is_active) {
             throw new AturanBisnisException('Karyawan tidak aktif tidak bisa mengajukan.');
@@ -157,7 +215,7 @@ class EmployeeRequestService
         return $request->refresh();
     }
 
-    private function lockPending(OvertimeRequest|ReimbursementRequest $request): Model
+    private function lockPending(OvertimeRequest|ReimbursementRequest|AttendanceCorrection $request): Model
     {
         $locked = $request::withoutGlobalScope(BranchScope::class)->whereKey($request->getKey())->lockForUpdate()->firstOrFail();
         if (! $locked->isPending()) {
@@ -170,7 +228,11 @@ class EmployeeRequestService
     /** @param array<string, mixed> $properties */
     private function log(Model $request, User $user, string $event, string $verb, array $properties = []): void
     {
-        $kind = $request instanceof OvertimeRequest ? 'Lembur' : 'Reimbursement';
+        $kind = match (true) {
+            $request instanceof OvertimeRequest => 'Lembur',
+            $request instanceof AttendanceCorrection => 'Koreksi absensi',
+            default => 'Reimbursement',
+        };
         activity('sdm')->performedOn($request)->causedBy($user)->event("request_{$event}")->withProperties($properties)
             ->log("{$kind} {$request->number} {$verb}");
     }
