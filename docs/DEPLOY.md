@@ -195,6 +195,17 @@ setelah 7 hari.
 - Setelah deploy, jalankan `php artisan db:seed --class=RolePermissionSeeder` untuk izin baru, lalu atur
   Pengaturan → SDM (hari kerja, toleransi, aturan lembur) dan Pengaturan → Cabang (titik & radius absen).
 
+## 5c. Catatan Fase 16 (inventori lanjutan)
+
+- Migration mengubah stok yang ada menjadi lot awal dengan biaya = harga beli produk saat itu. Periksa
+  harga beli produk sebelum deploy bila nilai persediaan awal harus tepat.
+- Atur Pengaturan → Inventori (metode HPP, kedaluwarsa) setelah deploy. Bawaan: rata-rata tertimbang.
+- Pengingat kedaluwarsa jalan lewat scheduler (`stok:kedaluwarsa`, 07:10).
+- Scan barcode dengan kamera di halaman opname butuh HTTPS dan browser yang mendukung BarcodeDetector
+  (Chrome Android). Scanner USB/Bluetooth tetap bisa dipakai di semua browser.
+- Transfer antar cabang yang sudah selesai sebelum deploy tidak berubah; transfer baru antar cabang perlu
+  diterima di gudang tujuan.
+
 ## 6. Kembali ke versi sebelumnya
 
 1. `sudo -u www-data php artisan down`

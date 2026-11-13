@@ -647,6 +647,12 @@ Dikerjakan sebelum 5b dan Fase 6 karena mengubah `StockService`, yang dipakai pe
 - Layanan Mandiri: route `saya/*` (`ess.*`), `overtime_requests` dan `reimbursement_requests` (status baku, `HasApproval` dokumen `overtime`/`reimbursement`, nomor LBR/RMB bulanan), `EmployeeRequestService` (ajukan, setujui/tolak langsung, batal), lampiran yang bisa dibuka pemilik dokumennya (`allowsAttachmentAccess`).
 - 13 izin baru: `sdm.self-service.view`, `sdm.organization.view`, `sdm.offboarding.*` (3), `sdm.overtime.*` (4), `sdm.reimbursements.*` (4). Semua peran pegawai (termasuk Admin) mendapat Layanan Mandiri serta mengajukan lembur dan reimbursement.
 
+### Fase 16 — Inventori Lanjutan · XL
+**Status 16 Nov 2026: poin 1–8 selesai, poin 9 (laporan) ditunda atas permintaan pemilik.** Fase 14–15 dilewati dulu.
+- 4 migration aditif: `stock_lots`, `stock_movement_lots`, `product_serials`, `product_units`; kolom baru di `products` (lacak batch/seri, paket, varian), `stock_movements` (biaya), `warehouse_stocks` (nilai, min/maks), `sale_items` (satuan jual), `stock_transfers`/`stock_transfer_items` (terima), `stock_opnames` (beku, diajukan). Indeks unik `sale_items (sale_id, product_id)` diganti `(sale_id, product_id, sale_unit_id)` supaya satu produk boleh dua satuan; tidak ada data yang dihapus. Stok yang ada menjadi lot awal dengan biaya = harga beli saat deploy.
+- Keputusan: HPP penjualan kini dari mesin biaya (bawaan rata-rata tertimbang), bukan harga beli terakhir. Nilai persediaan sebelum Fase 16 memakai harga beli saat deploy. Transfer antar cabang menjadi dua langkah (sebelumnya langsung selesai); dalam satu cabang tetap satu langkah sesuai keputusan 08 Nov. Barcode label dibuat sendiri (Code 128), tanpa paket baru.
+- Izin baru: `settings.inventory.*`, `inventory.transfers.receive`, `inventory.reorder.*` (3), `inventory.products.print`.
+
 ### Fase 13 — Absensi, Jadwal, Lembur, Cuti · XL
 **Status 13 Nov 2026: selesai, menunggu pengecekan pemilik.** Rincian di [ROADMAP.md](ROADMAP.md).
 - 3 migration aditif: kolom baru `shifts` (toleransi, istirahat, warna), `branches` (lat/lng/radius absen), `employees` (`attendance_pin`, `base_salary`, `overtime_eligible`), `absensis` (`employee_id`, menit telat/pulang cepat, sumber, foto, jarak), `jadwals.employee_id` (diisi dari `user_id`), `jenis_cutis` (aturan + `quota_tiers`), `cutis` (`employee_id`, `branch_id`); tabel baru `holidays`, `shift_rotations`, `attendance_corrections`, `overtime_rules` (berisi aturan PP 35/2021 sebagai titik awal).
