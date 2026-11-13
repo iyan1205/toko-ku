@@ -25,7 +25,7 @@ class ProductSearch
     public function formLines(iterable $rows): array
     {
         $rows = collect($rows)->map(fn ($row) => (array) $row);
-        $produk = Product::whereIn('id', $rows->pluck('product_id')->filter())->with('unit:id,name')->get()->keyBy('id');
+        $produk = Product::whereIn('id', $rows->pluck('product_id')->filter())->with(['unit:id,name', 'units.unit:id,name'])->get()->keyBy('id');
 
         return $rows->filter(fn (array $row) => isset($produk[$row['product_id'] ?? null]))
             ->map(fn (array $row) => [
@@ -33,6 +33,8 @@ class ProductSearch
                 'sku' => $produk[$row['product_id']]->sku,
                 'name' => $produk[$row['product_id']]->name,
                 'unit' => $produk[$row['product_id']]->unit?->name,
+                'unit_id' => ! empty($row['unit_id']) ? (int) $row['unit_id'] : '',
+                'units' => $this->units($produk[$row['product_id']]),
                 'quantity' => (string) ($row['quantity'] ?? '1'),
                 'unit_price' => (string) ($row['unit_price'] ?? $produk[$row['product_id']]->purchase_price),
                 'discount' => (string) ($row['discount'] ?? '0'),
@@ -51,7 +53,7 @@ class ProductSearch
             return [];
         }
 
-        $products = Product::aktif()->with('unit:id,name')
+        $products = Product::aktif()->stockable()->with(['unit:id,name', 'units.unit:id,name'])
             ->when($ids !== [], fn ($q) => $q->whereIn('id', $ids), fn ($q) => $q->cari($keyword)
                 ->orderByRaw('CASE WHEN barcode = ? THEN 0 WHEN sku = ? THEN 1 ELSE 2 END', [$keyword, $keyword])
                 ->orderBy('name')
@@ -70,6 +72,13 @@ class ProductSearch
             'unit' => $p->unit?->name,
             'stock' => round((float) ($warehouseId === null ? $p->stock : ($warehouseStock[$p->id] ?? 0)), 3),
             'purchase_price' => (float) $p->purchase_price,
+            'units' => $this->units($p),
         ])->values()->all();
+    }
+
+    /** Satuan lain produk untuk pilihan di baris dokumen. @return list<array{unit_id: int, name: ?string, factor: float}> */
+    private function units(Product $p): array
+    {
+        return $p->units->map(fn ($u) => ['unit_id' => $u->unit_id, 'name' => $u->unit?->name, 'factor' => (float) $u->factor])->values()->all();
     }
 }

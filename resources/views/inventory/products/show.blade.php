@@ -142,4 +142,53 @@
             @endif
         </x-ui.card>
     @endif
+    @if ($produk->parent_id)
+        <x-ui.alert type="info" class="mt-6">Varian dari <a href="{{ route('products.show', $produk->parent_id) }}" class="font-medium underline">{{ $produk->parent?->name }}</a>: {{ $produk->variantLabel() }}.</x-ui.alert>
+    @endif
+
+    @if ($produk->isVariantParent())
+        <x-ui.card title="Varian" class="mt-6" :padding="false">
+            <x-slot:actions><span class="text-xs text-slate-500">{{ collect($produk->variant_options)->map(fn ($o) => $o['name'].': '.implode(', ', $o['values']))->join(' · ') }}</span></x-slot:actions>
+            <ul class="divide-y divide-slate-100">
+                @foreach ($produk->variants as $v)
+                    <li class="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
+                        <div>
+                            <a href="{{ route('products.show', $v) }}" class="font-medium text-slate-900 hover:underline">{{ $v->variantLabel() }}</a>
+                            <span class="text-slate-500">· {{ $v->sku }}{{ $v->barcode ? ' · '.$v->barcode : '' }}</span>
+                            @unless ($v->is_active)<x-ui.badge class="ml-1">Nonaktif</x-ui.badge>@endunless
+                        </div>
+                        <span class="tabular-nums text-slate-700">@rupiah($v->selling_price) · stok {{ Format::jumlah($v->stock) }}</span>
+                    </li>
+                @endforeach
+            </ul>
+        </x-ui.card>
+    @endif
+
+    @if ($produk->units->isNotEmpty())
+        <x-ui.card title="Satuan lain" class="mt-6" :padding="false">
+            <ul class="divide-y divide-slate-100">
+                @foreach ($produk->units as $u)
+                    <li class="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
+                        <span><strong class="text-slate-900">{{ $u->unit?->name }}</strong> = {{ Format::jumlah($u->factor) }} {{ $produk->unit?->name }}{{ $u->barcode ? ' · barcode '.$u->barcode : '' }}</span>
+                        <span class="tabular-nums text-slate-700">@rupiah($u->priceSen() / 100)</span>
+                    </li>
+                @endforeach
+            </ul>
+        </x-ui.card>
+    @endif
+
+    @if ($produk->is_bundle)
+        <x-ui.card title="Isi paket" class="mt-6" :padding="false">
+            <ul class="divide-y divide-slate-100">
+                @forelse ($produk->recipe?->items ?? [] as $k)
+                    <li class="flex items-center justify-between px-5 py-3 text-sm">
+                        <span class="text-slate-900">{{ $k->product?->name }}</span>
+                        <span class="tabular-nums text-slate-700">{{ Format::jumlah($k->quantity) }} {{ $k->product?->unit?->name }}</span>
+                    </li>
+                @empty
+                    <li class="px-5 py-6 text-center text-sm text-warning-700">Komponen paket belum diatur. Paket tidak bisa dijual sebelum komponennya diisi di menu Resep/BOM.</li>
+                @endforelse
+            </ul>
+        </x-ui.card>
+    @endif
 </x-app-layout>

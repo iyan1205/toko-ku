@@ -26,6 +26,7 @@ class StockTransferRequest extends FormRequest
             'note' => ['nullable', 'string', 'max:255'],
             'items' => ['required', 'array', 'min:1', 'max:200'],
             'items.*.product_id' => ['required', 'integer', Rule::exists('products', 'id')->whereNull('deleted_at')],
+            'items.*.unit_id' => ['nullable', 'integer'],
             'items.*.quantity' => ['required', 'numeric', 'gt:0', 'max:999999999'],
         ];
     }

@@ -201,7 +201,7 @@
             {{-- Isi keranjang --}}
             <div class="min-h-[12rem] flex-1 overflow-y-auto lg:min-h-0">
                 <ul class="divide-y divide-slate-100">
-                    <template x-for="(it, i) in items" :key="it.product_id">
+                    <template x-for="(it, i) in items" :key="it.product_id + ':' + (it.unit_id ?? 0)">
                         <li class="px-3 py-2.5">
                             <div class="flex items-start gap-2">
                                 <button type="button" x-on:click="bukaBaris = bukaBaris === i ? null : i" class="min-w-0 flex-1 text-left" :aria-expanded="bukaBaris === i">
@@ -211,6 +211,13 @@
                                         <span x-show="diskonBaris(it) > 0" class="text-danger-600" x-text="' · diskon ' + rp(diskonBaris(it))"></span>
                                     </span>
                                 </button>
+                                <select x-show="it.units && it.units.length" x-cloak x-on:change="gantiSatuan(i, $event.target.value)" :aria-label="'Satuan ' + it.name"
+                                        class="h-9 shrink-0 rounded-lg border-slate-300 py-0 pl-2 pr-7 text-xs focus:border-primary-500 focus:ring-primary-500">
+                                    <option value="" :selected="! it.unit_id" x-text="it.base_unit"></option>
+                                    <template x-for="u in it.units" :key="u.unit_id">
+                                        <option :value="u.unit_id" :selected="it.unit_id === u.unit_id" x-text="u.name + ' (' + angka(u.factor) + ')'"></option>
+                                    </template>
+                                </select>
                                 <div class="flex shrink-0 items-center">
                                     <button type="button" x-on:click="ubahJumlah(i, -1)" class="grid h-9 w-9 place-items-center rounded-l-lg border border-slate-300 text-slate-600 hover:bg-slate-100" :aria-label="'Kurangi ' + it.name">
                                         <x-ui.icon name="minus" variant="m" class="h-4 w-4" />

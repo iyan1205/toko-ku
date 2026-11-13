@@ -2,11 +2,9 @@
 
 namespace App\Http\Controllers\Pos;
 
-use App\Http\Controllers\Controller;
-
 use App\Exceptions\AturanBisnisException;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\HoldSaleRequest;
-use App\Models\Customer;
 use App\Models\HeldSale;
 use App\Models\Product;
 use App\Models\WarehouseStock;
@@ -27,7 +25,7 @@ class HeldSaleController extends Controller
             ->get()
             ->map(fn (HeldSale $h) => [
                 'id' => $h->id,
-                'label' => $h->label ?: ('Tahan #' . $h->id),
+                'label' => $h->label ?: ('Tahan #'.$h->id),
                 'customer' => $h->customer?->name ?? 'Umum',
                 'items' => count($h->cart['items'] ?? []),
                 'created_at' => $h->created_at->format('H:i'),
@@ -43,7 +41,7 @@ class HeldSaleController extends Controller
 
         if ($sisa <= 0) {
             throw new AturanBisnisException(
-                'Transaksi ditahan sudah mencapai batas maksimal (' . HeldSale::MAKS_PER_KASIR . '). Selesaikan atau hapus salah satu dahulu.'
+                'Transaksi ditahan sudah mencapai batas maksimal ('.HeldSale::MAKS_PER_KASIR.'). Selesaikan atau hapus salah satu dahulu.'
             );
         }
 
@@ -60,7 +58,7 @@ class HeldSaleController extends Controller
             ],
         ]);
 
-        return response()->json(['id' => $tahan->id, 'label' => $tahan->label ?: ('Tahan #' . $tahan->id)], 201);
+        return response()->json(['id' => $tahan->id, 'label' => $tahan->label ?: ('Tahan #'.$tahan->id)], 201);
     }
 
     /**
@@ -73,18 +71,21 @@ class HeldSaleController extends Controller
         Gate::allowIf($heldSale->user_id === $request->user()->id);
 
         $ids = collect($heldSale->cart['items'] ?? [])->pluck('product_id');
-        $produk = Product::aktif()->whereIn('id', $ids)->with('unit:id,name')->get()->keyBy('id');
+        $produk = Product::aktif()->whereIn('id', $ids)->with(['unit:id,name', 'units.unit:id,name'])->get()->keyBy('id');
         $gudang = $sessions->saleContext($request->user())['warehouse'];
         $stok = WarehouseStock::query()->where('warehouse_id', $gudang->getKey())
             ->whereIn('product_id', $produk->modelKeys())->pluck('quantity', 'product_id');
 
         $items = collect($heldSale->cart['items'] ?? [])->map(function ($it) use ($produk, $stok) {
             $p = $produk->get($it['product_id']);
+            $u = $p && ! empty($it['unit_id']) ? $p->units->firstWhere('unit_id', (int) $it['unit_id']) : null;
 
             return $p ? [
-                'product_id' => $p->id, 'sku' => $p->sku, 'name' => $p->name, 'unit' => $p->unit?->name,
+                'product_id' => $p->id, 'sku' => $p->sku, 'name' => $p->name, 'unit' => $u?->unit?->name ?? $p->unit?->name, 'base_unit' => $p->unit?->name,
+                'unit_id' => $u?->unit_id, 'factor' => $u ? (float) $u->factor : 1,
+                'units' => $p->units->map(fn ($x) => ['unit_id' => $x->unit_id, 'name' => $x->unit?->name, 'factor' => (float) $x->factor, 'price' => (float) Uang::keDesimal($x->priceSen())])->values(),
                 'quantity' => $it['quantity'],
-                'unit_price' => (float) Uang::keDesimal(Uang::kurangiPersen(Uang::sen($p->selling_price), $p->discount_percent)),
+                'unit_price' => (float) Uang::keDesimal(Uang::kurangiPersen($u ? $u->priceSen() : Uang::sen($p->selling_price), $p->discount_percent)),
                 'selling_price' => (float) $p->selling_price,
                 'discount_percent' => (float) $p->discount_percent,
                 'discount' => $it['discount'] ?? 0,

@@ -19,7 +19,6 @@ use App\Models\User;
 use App\Models\Warehouse;
 use App\Services\Accounting\FiscalPeriodService;
 use App\Services\PaymentService;
-use App\Services\SaleService;
 use App\Services\Settings\DocumentNumberService;
 use App\Services\StockService;
 use App\Support\Format;
@@ -137,7 +136,7 @@ class SaleReturnService
             $gudang = Warehouse::withTrashed()->findOrFail($retur->warehouse_id);
 
             foreach ($retur->items->sortBy('product_id') as $baris) {
-                $this->stok->catat(
+                $this->stok->catatBarang(
                     Product::withTrashed()->findOrFail($baris->product_id),
                     StockMovementType::SaleReturn,
                     $baris->quantity,
@@ -145,7 +144,7 @@ class SaleReturnService
                     "Retur {$retur->number} dari pelanggan: {$retur->reason}",
                     $user,
                     $gudang,
-                    ['reverse_of' => SaleService::mutasiAsal($retur->sale, $baris->product_id)],
+                    balikDokumen: $retur->sale,
                 );
             }
 

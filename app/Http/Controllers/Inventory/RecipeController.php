@@ -50,7 +50,8 @@ class RecipeController extends Controller
         return view('inventory.recipes.form', [
             'recipe' => null,
             'produkList' => Product::jual()->orderBy('name')->get(['id', 'name', 'sku', 'unit_id', 'selling_price']),
-            'bahanList' => Product::bahanBaku()->orderBy('name')->get(['id', 'name', 'sku', 'unit_id', 'purchase_price']),
+            // Bahan resep atau komponen paket: semua produk yang punya stok sendiri (bahan baku dan barang jual).
+            'bahanList' => Product::query()->stockable()->orderByRaw("case when type = 'bahan_baku' then 0 else 1 end")->orderBy('name')->get(['id', 'name', 'sku', 'unit_id', 'purchase_price']),
             'units' => Unit::orderBy('name')->get(),
         ]);
     }
@@ -94,7 +95,8 @@ class RecipeController extends Controller
         return view('inventory.recipes.form', [
             'recipe' => $recipe->load('items.product.unit'),
             'produkList' => Product::jual()->orderBy('name')->get(['id', 'name', 'sku', 'unit_id', 'selling_price']),
-            'bahanList' => Product::bahanBaku()->orderBy('name')->get(['id', 'name', 'sku', 'unit_id', 'purchase_price']),
+            // Bahan resep atau komponen paket: semua produk yang punya stok sendiri (bahan baku dan barang jual).
+            'bahanList' => Product::query()->stockable()->orderByRaw("case when type = 'bahan_baku' then 0 else 1 end")->orderBy('name')->get(['id', 'name', 'sku', 'unit_id', 'purchase_price']),
             'units' => Unit::orderBy('name')->get(),
         ]);
     }

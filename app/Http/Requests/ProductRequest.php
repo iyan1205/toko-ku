@@ -3,8 +3,10 @@
 namespace App\Http\Requests;
 
 use App\Models\Product;
+use App\Models\ProductUnit;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class ProductRequest extends FormRequest
 {
@@ -30,7 +32,14 @@ class ProductRequest extends FormRequest
             'is_active' => $this->boolean('is_active'),
             'track_batches' => $this->boolean('track_batches'),
             'track_serials' => $this->boolean('track_serials'),
+            'is_bundle' => $this->boolean('is_bundle'),
             'remove_photo' => $this->boolean('remove_photo'),
+            'units' => array_values(array_filter((array) $this->input('units', []), fn ($u) => is_array($u) && filled($u['unit_id'] ?? null))),
+            // Atribut varian: nilai ditulis dipisah koma ("S, M, L").
+            'variant_options' => array_values(array_filter(array_map(fn ($o) => is_array($o) ? [
+                'name' => trim((string) ($o['name'] ?? '')),
+                'values' => array_values(array_unique(array_filter(array_map('trim', is_array($o['values'] ?? null) ? $o['values'] : explode(',', (string) ($o['values'] ?? '')))))),
+            ] : null, (array) $this->input('variant_options', [])), fn ($o) => $o && $o['name'] !== '' && $o['values'] !== [])),
         ]);
     }
 
@@ -55,7 +64,64 @@ class ProductRequest extends FormRequest
             'is_active' => ['boolean'],
             'track_batches' => ['boolean'],
             'track_serials' => ['boolean'],
+            'is_bundle' => ['boolean'],
+            'units' => ['array', 'max:5'],
+            'units.*.unit_id' => ['required', 'integer', 'exists:units,id', 'distinct', 'different:unit_id'],
+            'units.*.factor' => ['required', 'numeric', 'gt:0', 'max:100000'],
+            'units.*.barcode' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9._\-]+$/', 'distinct'],
+            'units.*.selling_price' => ['nullable', 'numeric', 'min:0', 'max:9999999999'],
+            'variant_options' => ['array', 'max:3'],
+            'variant_options.*.name' => ['required', 'string', 'max:30', 'distinct'],
+            'variant_options.*.values' => ['required', 'array', 'min:1', 'max:20'],
+            'variant_options.*.values.*' => ['string', 'max:30'],
         ];
+    }
+
+    /** Barcode unik di produk & satuan lain; induk varian tidak boleh punya stok; varian bukan paket. */
+    public function after(): array
+    {
+        return [function (Validator $validator) {
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+            $produk = $this->route('product');
+            $id = $produk?->id;
+            foreach ((array) $this->input('units', []) as $i => $u) {
+                $kode = $u['barcode'] ?? null;
+                if (blank($kode)) {
+                    continue;
+                }
+                $dipakai = $kode === $this->input('barcode')
+                    || Product::withTrashed()->where('barcode', $kode)->when($id, fn ($q) => $q->whereKeyNot($id))->exists()
+                    || ProductUnit::query()->where('barcode', $kode)->when($id, fn ($q) => $q->where('product_id', '!=', $id))->exists();
+                if ($dipakai) {
+                    $validator->errors()->add("units.{$i}.barcode", "Barcode {$kode} sudah dipakai.");
+                }
+            }
+            if (filled($this->input('barcode')) && ProductUnit::query()->where('barcode', $this->input('barcode'))->when($id, fn ($q) => $q->where('product_id', '!=', $id))->exists()) {
+                $validator->errors()->add('barcode', 'Barcode ini sudah dipakai satuan produk lain.');
+            }
+
+            $varian = (array) $this->input('variant_options', []);
+            if ($varian !== []) {
+                $kombinasi = array_product(array_map(fn ($o) => count($o['values']), $varian));
+                if ($kombinasi > 100) {
+                    $validator->errors()->add('variant_options', "Kombinasi varian paling banyak 100 (sekarang {$kombinasi}).");
+                }
+                if ($this->boolean('is_bundle')) {
+                    $validator->errors()->add('is_bundle', 'Produk bervarian tidak bisa sekaligus paket.');
+                }
+                if ($produk?->parent_id) {
+                    $validator->errors()->add('variant_options', 'Varian tidak bisa punya varian lagi.');
+                }
+                if ($produk && ! $produk->isVariantParent() && (float) $produk->stock != 0) {
+                    $validator->errors()->add('variant_options', 'Produk yang masih punya stok tidak bisa dijadikan induk varian. Kosongkan stoknya dulu.');
+                }
+            }
+            if ($this->boolean('is_bundle') && ($this->boolean('track_batches') || $this->boolean('track_serials'))) {
+                $validator->errors()->add('is_bundle', 'Paket tidak melacak batch/seri; komponennya yang melacak.');
+            }
+        }];
     }
 
     public function attributes(): array

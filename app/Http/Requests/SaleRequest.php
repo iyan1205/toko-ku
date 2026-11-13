@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Enums\PaymentMethod;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * Validasi di sini hanya bentuk data. Harga TIDAK divalidasi/dipercaya dari sini — SaleService
@@ -31,7 +32,10 @@ class SaleRequest extends FormRequest
             'customer_id' => ['nullable', 'integer', Rule::exists('customers', 'id')->whereNull('deleted_at')],
 
             'items' => ['required', 'array', 'min:1', 'max:200'],
-            'items.*.product_id' => ['required', 'integer', 'distinct'],
+            'items.*.product_id' => ['required', 'integer'],
+            'items.*.unit_id' => ['nullable', 'integer'],
+            'items.*.serials' => ['nullable', 'array', 'max:500'],
+            'items.*.serials.*' => ['string', 'max:100'],
             'items.*.quantity' => ['required', 'numeric', 'gt:0', 'max:99999.999', 'decimal:0,3'],
             'items.*.discount' => ['nullable', 'numeric', 'min:0', 'max:99999999999.99', 'decimal:0,2'],
 
@@ -71,6 +75,19 @@ class SaleRequest extends FormRequest
             'dp_method' => 'metode bayar di muka',
             'note' => 'catatan',
         ];
+    }
+
+    /** Produk + satuan yang sama tidak boleh dua baris (produk sama dengan satuan berbeda boleh). */
+    public function after(): array
+    {
+        return [function (Validator $validator) {
+            $kunci = collect((array) $this->input('items', []))->map(fn ($it) => ((int) ($it['product_id'] ?? 0)).':'.((int) ($it['unit_id'] ?? 0)));
+            foreach ($kunci->duplicates()->unique() as $ganda) {
+                foreach ($kunci->filter(fn ($k) => $k === $ganda)->keys() as $i) {
+                    $validator->errors()->add("items.{$i}.product_id", 'Produk yang sama tidak boleh muncul dua kali. Gabungkan jumlahnya.');
+                }
+            }
+        }];
     }
 
     public function messages(): array

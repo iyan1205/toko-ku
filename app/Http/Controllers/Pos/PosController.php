@@ -12,6 +12,7 @@ use App\Models\Warehouse;
 use App\Models\WarehouseStock;
 use App\Services\Pos\CashSessionService;
 use App\Services\Settings\TaxSettingsService;
+use App\Support\Uang;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -69,17 +70,23 @@ class PosController extends Controller
             return response()->json([]);
         }
 
-        $produk = Product::aktif()->jual()->with('unit:id,name')
+        $produk = Product::aktif()->jual()->sellable()->with(['unit:id,name', 'units.unit:id,name', 'recipe.items'])
             ->when($kategori, fn (Builder $q, $id) => $q->where('category_id', $id))
-            ->when($kata !== '', fn (Builder $q) => $q->cari($kata)
+            ->when($kata !== '', fn (Builder $q) => $q->where(fn (Builder $w) => $w->cari($kata)
+                ->orWhereHas('units', fn (Builder $u) => $u->where('barcode', $kata)))
                 ->orderByRaw('CASE WHEN barcode = ? THEN 0 WHEN sku = ? THEN 1 ELSE 2 END', [$kata, $kata]))
             ->orderBy('name')
             ->limit($kata === '' ? self::CATEGORY_LIMIT : self::PRODUCT_LIMIT)
             ->get();
 
         $gudang = $this->sessions->saleContext($request->user())['warehouse'];
+        $komponen = $produk->where('is_bundle', true)->flatMap(fn (Product $p) => $p->recipe?->items->pluck('product_id') ?? [])->all();
         $stok = WarehouseStock::query()->where('warehouse_id', $gudang->getKey())
-            ->whereIn('product_id', $produk->modelKeys())->pluck('quantity', 'product_id');
+            ->whereIn('product_id', [...$produk->modelKeys(), ...$komponen])->pluck('quantity', 'product_id');
+        // Stok paket = berapa paket yang bisa dibuat dari stok komponennya.
+        $stokPaket = fn (Product $p) => $p->recipe?->items->filter(fn ($i) => (float) $i->quantity > 0)
+            ->map(fn ($i) => floor((float) ($stok[$i->product_id] ?? 0) / (float) $i->quantity))->min() ?? 0;
+        $unitBarcode = fn (Product $p) => $kata !== '' ? $p->units->firstWhere('barcode', $kata) : null;
 
         return response()->json($produk->map(fn (Product $p) => [
             'id' => $p->id,
@@ -88,11 +95,13 @@ class PosController extends Controller
             'name' => $p->name,
             'unit' => $p->unit?->name,
             'category_id' => $p->category_id,
-            'stock' => round((float) ($stok[$p->id] ?? 0), 3),
+            'stock' => round((float) ($p->is_bundle ? $stokPaket($p) : ($stok[$p->id] ?? 0)), 3),
             'selling_price' => (float) $p->selling_price,
             'discount_percent' => (float) $p->discount_percent,
             'photo' => $p->photoUrl(),
-            'exact' => $kata !== '' && ($p->barcode === $kata || $p->sku === $kata),
+            'units' => $p->units->map(fn ($u) => ['unit_id' => $u->unit_id, 'name' => $u->unit?->name, 'factor' => (float) $u->factor, 'price' => (float) Uang::keDesimal($u->priceSen())])->values(),
+            'exact' => $kata !== '' && ($p->barcode === $kata || $p->sku === $kata || $unitBarcode($p) !== null),
+            'exact_unit_id' => $unitBarcode($p)?->unit_id,
         ])->values());
     }
 

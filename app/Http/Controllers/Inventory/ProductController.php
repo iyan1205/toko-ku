@@ -67,7 +67,7 @@ class ProductController extends Controller
         Gate::authorize('view', $product);
 
         return view('inventory.products.show', [
-            'produk' => $product->load(['category', 'unit']),
+            'produk' => $product->load(['category', 'unit', 'units.unit', 'parent:id,name', 'recipe.items.product:id,name,sku,unit_id', 'recipe.items.product.unit:id,name']),
             // Stok per gudang: semua gudang aktif, ditambah gudang nonaktif yang masih menyimpan produk ini.
             'stokGudang' => Warehouse::withTrashed()->ordered()->get()
                 ->map(fn (Warehouse $w) => ['gudang' => $w, 'jumlah' => $product->stockIn($w)])
@@ -90,7 +90,7 @@ class ProductController extends Controller
     {
         Gate::authorize('update', $product);
 
-        return view('inventory.products.form', $this->dataForm($product));
+        return view('inventory.products.form', $this->dataForm($product->load('units')));
     }
 
     public function update(ProductRequest $request, Product $product): RedirectResponse

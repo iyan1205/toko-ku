@@ -46,7 +46,7 @@ class StockExport extends ListExport
     {
         $ids = $this->warehouses()->modelKeys();
 
-        return Product::query()
+        return Product::query()->stockable()
             ->with(['category:id,name', 'unit:id,name', 'warehouseStocks' => fn ($q) => $q->whereIn('warehouse_id', $ids)])
             ->filter($this->filters);
     }

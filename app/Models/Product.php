@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
@@ -32,6 +33,10 @@ class Product extends Model
         'min_stock',
         'track_batches',
         'track_serials',
+        'is_bundle',
+        'parent_id',
+        'variant_options',
+        'variant_values',
         'discount_percent',
         'photo',
         'description',
@@ -39,7 +44,7 @@ class Product extends Model
     ];
 
     /** Nilai bawaan kolom baru, supaya model baru (sebelum dimuat ulang) tidak menganggapnya berubah. */
-    protected $attributes = ['track_batches' => false, 'track_serials' => false];
+    protected $attributes = ['track_batches' => false, 'track_serials' => false, 'is_bundle' => false];
 
     protected function casts(): array
     {
@@ -52,6 +57,9 @@ class Product extends Model
             'is_active' => 'boolean',
             'track_batches' => 'boolean',
             'track_serials' => 'boolean',
+            'is_bundle' => 'boolean',
+            'variant_options' => 'array',
+            'variant_values' => 'array',
         ];
     }
 
@@ -85,6 +93,64 @@ class Product extends Model
         return round((float) ($this->relationLoaded('warehouseStocks')
             ? $this->warehouseStocks->firstWhere('warehouse_id', $id)?->quantity
             : $this->warehouseStocks()->where('warehouse_id', $id)->value('quantity')), 3);
+    }
+
+    /** Satuan lain dengan konversi (DUS, PAK, ...). Satuan dasar = unit_id. */
+    public function units(): HasMany
+    {
+        return $this->hasMany(ProductUnit::class)->orderBy('factor');
+    }
+
+    /** Produk induk (untuk varian). */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Product::class, 'parent_id')->withTrashed();
+    }
+
+    /** Varian produk induk ini (masing-masing produk sendiri dengan SKU/stok/harga). */
+    public function variants(): HasMany
+    {
+        return $this->hasMany(Product::class, 'parent_id')->orderBy('name');
+    }
+
+    /** Produk induk varian: hanya kerangka, tidak dijual/distok sendiri. */
+    public function isVariantParent(): bool
+    {
+        return ! empty($this->variant_options);
+    }
+
+    /** "M / Merah" */
+    public function variantLabel(): ?string
+    {
+        return empty($this->variant_values) ? null : implode(' / ', array_values($this->variant_values));
+    }
+
+    /**
+     * Komponen paket (dari resep/BOM): [produk, jumlah per satu paket].
+     *
+     * @return Collection<int, array{product: Product, quantity: float}>
+     */
+    public function bundleComponents(): Collection
+    {
+        if (! $this->is_bundle) {
+            return collect();
+        }
+        $this->loadMissing('recipe.items.product');
+
+        return ($this->recipe?->items ?? collect())->filter(fn ($i) => $i->product !== null && (float) $i->quantity > 0)
+            ->map(fn ($i) => ['product' => $i->product, 'quantity' => (float) $i->quantity])->values();
+    }
+
+    /** Produk yang punya stok sendiri: bukan induk varian dan bukan paket. */
+    public function scopeStockable(Builder $query): Builder
+    {
+        return $query->whereNull('variant_options')->where('is_bundle', false);
+    }
+
+    /** Produk yang bisa dijual di kasir (paket boleh, induk varian tidak). */
+    public function scopeSellable(Builder $query): Builder
+    {
+        return $query->whereNull('variant_options');
     }
 
     public function lots(): HasMany
@@ -159,7 +225,7 @@ class Product extends Model
     /** Produk aktif yang perlu diisi ulang: stok menipis atau habis (stok <= stok minimum). */
     public function scopeNeedsRestock(Builder $query): Builder
     {
-        return $query->aktif()->whereColumn('stock', '<=', 'min_stock');
+        return $query->aktif()->stockable()->whereColumn('stock', '<=', 'min_stock');
     }
 
     public function scopeCari(Builder $query, ?string $kata): Builder

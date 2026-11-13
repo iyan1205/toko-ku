@@ -16,6 +16,7 @@ use App\Services\Accounting\FiscalPeriodService;
 use App\Services\Settings\DocumentNumberService;
 use App\Services\StockService;
 use App\Support\Uang;
+use App\Support\UnitConversion;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -39,6 +40,7 @@ class StockTransferService
      */
     public function create(array $data, User $user): StockTransfer
     {
+        $data['items'] = UnitConversion::toBase($data['items'] ?? []);
         app(FiscalPeriodService::class)->ensureOpen($data['transfer_date']);
         $baris = $this->lines($data['items'] ?? []);
 

@@ -121,13 +121,27 @@ export default (awal) => ({
         } else {
             this.items.push({
                 product_id: p.id, sku: p.sku, name: p.name, unit: p.unit, stock: p.stock,
-                quantity: 1, unit_price: p.purchase_price, discount: 0,
+                quantity: 1, unit_price: p.purchase_price, discount: 0, units: p.units || [], unit_id: '',
             });
         }
         this.q = '';
         this.hasil = [];
         this.buka = false;
         this.$nextTick(() => this.$refs.cari?.focus());
+    },
+    /** Faktor satuan baris (1 = satuan dasar). */
+    faktor(it) {
+        const u = (it.units || []).find((x) => String(x.unit_id) === String(it.unit_id));
+        return u ? Number(u.factor) : 1;
+    },
+    /** Ganti satuan baris: harga ikut dikali/dibagi isi satuan supaya nilai baris tetap. */
+    gantiSatuan(it, unitId) {
+        const lama = this.faktor(it);
+        it.unit_id = unitId;
+        const baru = this.faktor(it);
+        if (it.unit_price !== undefined) {
+            it.unit_price = this.bulat(this.angka(it.unit_price) / lama * baru);
+        }
     },
     hapus(i) {
         this.items.splice(i, 1);

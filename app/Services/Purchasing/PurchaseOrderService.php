@@ -14,6 +14,7 @@ use App\Services\Approval\ApprovalService;
 use App\Services\Settings\DocumentNumberService;
 use App\Support\DocumentTotals;
 use App\Support\Uang;
+use App\Support\UnitConversion;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -43,6 +44,7 @@ class PurchaseOrderService
      */
     public function create(array $data, User $user, bool $approve = false, bool $submit = false): PurchaseOrder
     {
+        $data['items'] = UnitConversion::toBase($data['items'] ?? []);
         $hitung = $this->hitung($data);
 
         return DB::transaction(function () use ($data, $hitung, $user, $approve, $submit) {
@@ -61,6 +63,7 @@ class PurchaseOrderService
     /** Ganti isi draft. */
     public function update(PurchaseOrder $order, array $data, User $user, bool $approve = false, bool $submit = false): PurchaseOrder
     {
+        $data['items'] = UnitConversion::toBase($data['items'] ?? []);
         $hitung = $this->hitung($data);
 
         return DB::transaction(function () use ($order, $data, $hitung, $user, $approve, $submit) {

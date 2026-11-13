@@ -21,6 +21,7 @@ use App\Services\Accounting\FiscalPeriodService;
 use App\Services\Settings\DocumentNumberService;
 use App\Support\DocumentTotals;
 use App\Support\Uang;
+use App\Support\UnitConversion;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -56,6 +57,7 @@ class PurchaseService
      */
     public function buat(array $data, User $user): Purchase
     {
+        $data['items'] = UnitConversion::toBase($data['items'] ?? []);
         app(FiscalPeriodService::class)->ensureOpen($data['purchase_date']);
         $hitung = $this->hitung($data);
 

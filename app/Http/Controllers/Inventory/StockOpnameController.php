@@ -140,7 +140,7 @@ class StockOpnameController extends Controller
             'kategori' => ['nullable', 'integer', 'exists:categories,id'],
         ]);
 
-        $query = Product::aktif()->filter($filter)->orderBy('name');
+        $query = Product::aktif()->stockable()->filter($filter)->orderBy('name');
         $draftIds = $opname->exists ? $opname->items->pluck('product_id') : collect();
 
         $ids = (clone $query)->limit(self::BATAS_BARIS)->pluck('id')->merge($draftIds)->unique();

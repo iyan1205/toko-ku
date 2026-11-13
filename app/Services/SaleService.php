@@ -14,7 +14,6 @@ use App\Models\Customer;
 use App\Models\HeldSale;
 use App\Models\Product;
 use App\Models\Sale;
-use App\Models\StockMovement;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Services\Accounting\FiscalPeriodService;
@@ -24,7 +23,6 @@ use App\Services\Settings\TaxSettingsService;
 use App\Support\Format;
 use App\Support\Uang;
 use Illuminate\Database\UniqueConstraintViolationException;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -138,14 +136,24 @@ class SaleService
                     'sku' => $p->sku,
                     'unit_name' => $p->unit?->name ?? '-',
                     'quantity' => Uang::milliKeDesimal($b['milli']),
-                    'unit_price' => Uang::keDesimal($b['harga']),
+                    // Harga per satuan dasar (informasi); baris yang dijual per DUS dsb. menyimpan satuan & harganya sendiri.
+                    'unit_price' => Uang::keDesimal($b['satuan'] ? Uang::perUnit(Uang::kali($b['milliSatuan'], $b['harga']), $b['milli']) : $b['harga']),
                     'cost_price' => Uang::keDesimal($b['modal']),
                     'discount' => Uang::keDesimal($b['diskon']),
                     'line_total' => Uang::keDesimal($b['total']),
                 ]);
 
+                if ($b['satuan']) {
+                    $baris->forceFill([
+                        'sale_unit_id' => $b['satuan']->unit_id, 'sale_unit_name' => $b['satuan']->unit?->name,
+                        'sale_unit_factor' => $b['satuan']->factor, 'sale_unit_quantity' => Uang::milliKeDesimal($b['milliSatuan']),
+                        'sale_unit_price' => Uang::keDesimal($b['harga']),
+                    ]);
+                }
+
                 // Menolak dengan "Stok tidak mencukupi." bila stok gudang kurang, dan seluruh transaksi dibatalkan.
-                $mutasi = $this->stok->catat(
+                // Paket mengurangi stok komponennya.
+                $mutasi = $this->stok->catatBarang(
                     $p,
                     StockMovementType::Sale,
                     '-'.Uang::milliKeDesimal($b['milli']),
@@ -153,10 +161,10 @@ class SaleService
                     "Penjualan {$penjualan->number}",
                     $kasir,
                     $gudang,
-                    ['serials' => $b['serials'] ?? []],
+                    ['serials' => $b['serials']],
                 );
                 // HPP per unit dari mesin biaya persediaan (FIFO / rata-rata), bukan harga beli terakhir.
-                $baris->forceFill(['cost_price' => $mutasi->unit_cost])->save();
+                $baris->forceFill(['cost_price' => Uang::keDesimal(Uang::perUnit(abs($mutasi->sum(fn ($m) => Uang::sen($m->total_cost))), $b['milli']))])->save();
             }
 
             if ($h['metode'] === PaymentMethod::Receivable) {
@@ -236,7 +244,7 @@ class SaleService
             $gudang = Warehouse::withTrashed()->find($terkunci->warehouse_id) ?? $this->stok->defaultWarehouse();
 
             foreach ($terkunci->items->sortBy('product_id') as $item) {
-                $this->stok->catat(
+                $this->stok->catatBarang(
                     Product::withTrashed()->findOrFail($item->product_id),
                     StockMovementType::Sale,
                     $item->quantity,
@@ -244,7 +252,7 @@ class SaleService
                     "Pembatalan penjualan {$terkunci->number}: {$alasan}",
                     $user,
                     $gudang,
-                    ['reverse_of' => $this->mutasiAsal($terkunci, $item->product_id)],
+                    balikDokumen: $terkunci,
                 );
             }
 
@@ -312,7 +320,7 @@ class SaleService
         $errors = [];
         $items = array_values($data['items'] ?? []);
 
-        $produk = Product::aktif()->with('unit:id,name')
+        $produk = Product::aktif()->sellable()->with(['unit:id,name', 'units.unit:id,name'])
             ->whereIn('id', array_map(fn ($i) => (int) $i['product_id'], $items))
             ->get()->keyBy('id');
 
@@ -329,15 +337,25 @@ class SaleService
                 continue;
             }
 
-            if (isset($baris[$id])) {
+            // Satu baris per produk dan satuan (misal 2 DUS + 3 PCS produk yang sama boleh).
+            $satuan = ! empty($it['unit_id']) ? $produk[$id]->units->firstWhere('unit_id', (int) $it['unit_id']) : null;
+            if (! empty($it['unit_id']) && $satuan === null) {
+                $errors["items.{$i}.unit_id"] = 'Satuan ini tidak tersedia untuk produk tersebut.';
+
+                continue;
+            }
+            $kunci = $id.':'.($satuan?->unit_id ?? 0);
+
+            if (isset($baris[$kunci])) {
                 $errors["items.{$i}.product_id"] = 'Produk yang sama tidak boleh muncul dua kali. Gabungkan jumlahnya.';
 
                 continue;
             }
 
-            $milli = Uang::milli($it['quantity'] ?? 0);
+            $milliSatuan = Uang::milli($it['quantity'] ?? 0);
+            $milli = $satuan ? $satuan->toBaseMilli($milliSatuan) : $milliSatuan;
 
-            if ($milli <= 0) {
+            if ($milliSatuan <= 0 || $milli <= 0) {
                 $errors["items.{$i}.quantity"] = 'Jumlah harus lebih dari nol.';
 
                 continue;
@@ -345,12 +363,12 @@ class SaleService
 
             // Harga dari database, bukan dari klien. Diskon tetap produk (Product::discount_percent)
             // diterapkan di sini supaya hasilnya sama persis dengan pratinjau "hargaBersih()" di layar kasir.
-            $hargaPenuh = Uang::sen($produk[$id]->selling_price);
+            $hargaPenuh = $satuan ? $satuan->priceSen() : Uang::sen($produk[$id]->selling_price);
             $harga = Uang::kurangiPersen($hargaPenuh, $produk[$id]->discount_percent);
             $modal = Uang::sen($produk[$id]->purchase_price);
 
             try {
-                $baruKotor = Uang::kali($milli, $harga);
+                $baruKotor = Uang::kali($milliSatuan, $harga);
             } catch (InvalidArgumentException) {
                 $errors["items.{$i}.quantity"] = 'Nilai transaksi terlalu besar.';
 
@@ -365,9 +383,11 @@ class SaleService
                 continue;
             }
 
-            $baris[$id] = [
+            $baris[$kunci] = [
                 'produk' => $produk[$id], 'milli' => $milli, 'harga' => $harga, 'modal' => $modal,
                 'diskon' => $diskon, 'total' => $baruKotor - $diskon,
+                'satuan' => $satuan, 'milliSatuan' => $milliSatuan,
+                'serials' => array_values(array_filter(array_map('trim', (array) ($it['serials'] ?? [])))),
             ];
             $kotor += $baruKotor;
             $diskonItem += $diskon;
@@ -498,15 +518,5 @@ class SaleService
             'diterima' => $tunai + $nonTunai,
             'kembalian' => $kembalian,
         ];
-    }
-
-    /**
-     * Mutasi keluar penjualan untuk satu produk (dibalik saat pembatalan/retur supaya lot dan HPP aslinya kembali).
-     *
-     * @return Collection<int, StockMovement>
-     */
-    public static function mutasiAsal(Sale $penjualan, int $productId): Collection
-    {
-        return StockService::mutasiDokumen($penjualan, $productId, -1);
     }
 }

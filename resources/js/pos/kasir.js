@@ -40,7 +40,7 @@ export default function kasir(awal) {
         rp, angka,
 
         // ---------- Harga & total (sen) ----------
-        hargaSen(p) { return kurangiPersen(sen(p.selling_price), p.discount_percent); },
+        hargaSen(p, u = null) { return kurangiPersen(u ? sen(u.price) : sen(p.selling_price), p.discount_percent); },
         kotorBaris(it) { return kali(milli(it.quantity), it.unit_price_sen); },
         diskonBaris(it) { return Math.min(sen(it.discount), this.kotorBaris(it)); },
         totalBaris(it) { return this.kotorBaris(it) - this.diskonBaris(it); },
@@ -96,32 +96,36 @@ export default function kasir(awal) {
             if (this.q.trim() === '') return;
             const hasil = await this.cariProduk();
             const persis = hasil.find((p) => p.exact);
-            if (persis) this.tambah(persis);
+            if (persis) this.tambah(persis, persis.exact_unit_id ?? null);
             else if (hasil.length === 1) this.tambah(hasil[0]);
         },
 
-        stokCukup(p, tambahan = 1) {
+        /** Stok dalam satuan dasar: jumlah semua baris produk ini (× isi satuan) + tambahan. */
+        stokCukup(p, tambahan = 1, faktor = 1, kecuali = -1) {
             if (this.stokMinus) return true;
-            const ada = this.items.find((it) => it.product_id === p.id);
-            return (ada ? Number(ada.quantity) : 0) + tambahan <= Number(p.stock) + 1e-9;
+            const pakai = this.items.reduce((s, it, j) => s + (it.product_id === p.id && j !== kecuali ? Number(it.quantity) * (it.factor || 1) : 0), 0);
+            return pakai + tambahan * faktor <= Number(p.stock) + 1e-9;
         },
 
-        tambah(p) {
+        tambah(p, unitId = null) {
             this.pesan = '';
-            if (!this.stokCukup(p)) {
-                this.pesan = `Stok ${p.name} di ${this.gudang} tinggal ${angka(p.stock)} ${p.unit ?? ''}.`;
+            const u = unitId ? (p.units || []).find((x) => x.unit_id === unitId) : null;
+            if (!this.stokCukup(p, 1, u ? Number(u.factor) : 1)) {
+                this.pesan = `Stok ${p.name} di ${this.gudang} tinggal ${angka(p.stock)} ${p.base_unit ?? p.unit ?? ''}.`;
                 this.fokusCari();
                 return;
             }
 
-            const ada = this.items.find((it) => it.product_id === p.id);
+            const ada = this.items.find((it) => it.product_id === p.id && (it.unit_id ?? null) === (u ? u.unit_id : null));
             if (ada) {
                 ada.quantity = Math.round((Number(ada.quantity) + 1) * 1000) / 1000;
                 ada.stock = p.stock;
             } else {
                 this.items.push({
-                    product_id: p.id, sku: p.sku, name: p.name, unit: p.unit,
-                    quantity: 1, unit_price_sen: this.hargaSen(p), discount: 0, stock: p.stock,
+                    product_id: p.id, sku: p.sku, name: p.name, unit: u ? u.name : p.unit, base_unit: p.unit,
+                    unit_id: u ? u.unit_id : null, factor: u ? Number(u.factor) : 1, units: p.units || [],
+                    selling_price: p.selling_price, discount_percent: p.discount_percent,
+                    quantity: 1, unit_price_sen: this.hargaSen(p, u), discount: 0, stock: p.stock,
                 });
             }
 
@@ -133,8 +137,8 @@ export default function kasir(awal) {
         ubahJumlah(i, delta) {
             const it = this.items[i];
             const baru = Math.round((Number(it.quantity) + delta) * 1000) / 1000;
-            if (delta > 0 && !this.stokMinus && baru > Number(it.stock) + 1e-9) {
-                this.pesan = `Stok ${it.name} di ${this.gudang} tinggal ${angka(it.stock)} ${it.unit ?? ''}.`;
+            if (delta > 0 && !this.stokCukup({ id: it.product_id, stock: it.stock }, baru, it.factor || 1, i)) {
+                this.pesan = `Stok ${it.name} di ${this.gudang} tinggal ${angka(it.stock)} ${it.base_unit ?? it.unit ?? ''}.`;
                 return;
             }
             if (baru <= 0) { this.hapus(i); return; }
@@ -145,6 +149,20 @@ export default function kasir(awal) {
             const it = this.items[i];
             if (!(Number(it.quantity) > 0)) it.quantity = 1;
             it.quantity = Math.round(Number(it.quantity) * 1000) / 1000;
+        },
+
+        /** Ganti satuan satu baris (PCS ↔ DUS ...): harga ikut satuan, jumlah tetap. */
+        gantiSatuan(i, unitId) {
+            const it = this.items[i];
+            const u = unitId ? it.units.find((x) => x.unit_id === Number(unitId)) : null;
+            if (this.items.some((x, j) => j !== i && x.product_id === it.product_id && (x.unit_id ?? null) === (u ? u.unit_id : null))) {
+                this.pesan = 'Satuan itu sudah ada di keranjang. Ubah jumlah pada baris tersebut.';
+                return;
+            }
+            it.unit_id = u ? u.unit_id : null;
+            it.factor = u ? Number(u.factor) : 1;
+            it.unit = u ? u.name : it.base_unit;
+            it.unit_price_sen = this.hargaSen({ selling_price: it.selling_price, discount_percent: it.discount_percent }, u);
         },
 
         hapus(i) {
@@ -250,7 +268,7 @@ export default function kasir(awal) {
         payload() {
             return {
                 customer_id: this.pelanggan ? this.pelanggan.id : null,
-                items: this.items.map((it) => ({ product_id: it.product_id, quantity: it.quantity, discount: rupiahDari(this.diskonBaris(it)) })),
+                items: this.items.map((it) => ({ product_id: it.product_id, unit_id: it.unit_id ?? null, quantity: it.quantity, discount: rupiahDari(this.diskonBaris(it)) })),
                 discount: rupiahDari(this.diskonSen),
                 payments: this.barisBayar.filter((b) => b.sen > 0).map((b) => ({ method: b.method, amount: rupiahDari(b.sen) })),
                 payment_method: this.piutang ? 'receivable' : null,
@@ -326,7 +344,7 @@ export default function kasir(awal) {
                         customer_id: this.pelanggan ? this.pelanggan.id : null,
                         discount: rupiahDari(this.diskonSen),
                         note: this.catatan.trim() || null,
-                        items: this.items.map((it) => ({ product_id: it.product_id, quantity: it.quantity, discount: rupiahDari(this.diskonBaris(it)) })),
+                        items: this.items.map((it) => ({ product_id: it.product_id, unit_id: it.unit_id ?? null, quantity: it.quantity, discount: rupiahDari(this.diskonBaris(it)) })),
                     }),
                 });
                 if (!res.ok) { const d = await res.json().catch(() => ({})); this.pesan = d.message || 'Gagal menahan transaksi.'; return; }
@@ -349,7 +367,9 @@ export default function kasir(awal) {
                 const d = await this.ambil(this.urlPanggilTahanTemplate.replace('__ID__', id));
                 this.resetKeranjang();
                 this.items = d.items.map((it) => ({
-                    product_id: it.product_id, sku: it.sku, name: it.name, unit: it.unit,
+                    product_id: it.product_id, sku: it.sku, name: it.name, unit: it.unit, base_unit: it.base_unit ?? it.unit,
+                    unit_id: it.unit_id ?? null, factor: Number(it.factor || 1), units: it.units || [],
+                    selling_price: it.selling_price, discount_percent: it.discount_percent,
                     quantity: Number(it.quantity), unit_price_sen: sen(it.unit_price), discount: it.discount || 0, stock: it.stock,
                 }));
                 this.diskonTrans = d.discount || 0;

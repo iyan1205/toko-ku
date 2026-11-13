@@ -25,6 +25,15 @@
                         <p class="font-medium text-slate-900" x-text="it.name"></p>
                         <p class="text-xs text-slate-500"><span x-text="it.sku"></span> · <span x-text="it.unit"></span></p>
                         <input type="hidden" :name="'items[' + i + '][product_id]'" :value="it.product_id">
+                        <template x-if="it.units && it.units.length">
+                            <select :name="'items[' + i + '][unit_id]'" x-on:change="gantiSatuan(it, $event.target.value)" :aria-label="'Satuan ' + it.name"
+                                    class="mt-1 block rounded-lg border-slate-300 py-1 text-xs focus:border-primary-500 focus:ring-primary-500">
+                                <option value="" :selected="! it.unit_id" x-text="it.unit"></option>
+                                <template x-for="u in it.units" :key="u.unit_id">
+                                    <option :value="u.unit_id" :selected="String(it.unit_id) === String(u.unit_id)" x-text="u.name + ' (isi ' + jumlah(u.factor) + ')'"></option>
+                                </template>
+                            </select>
+                        </template>
                     </td>
                     <td class="px-4 py-3"><input type="number" min="0.001" step="0.001" required x-model="it.quantity" :name="'items[' + i + '][quantity]'" :aria-label="'Jumlah ' + it.name" class="{{ $input }}"></td>
                     <td class="px-4 py-3"><input type="number" min="0" step="0.01" required x-model="it.unit_price" :name="'items[' + i + '][unit_price]'" :aria-label="'Harga ' + it.name" class="{{ $input }}"></td>

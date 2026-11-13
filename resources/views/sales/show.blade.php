@@ -103,12 +103,17 @@
                             <p class="text-xs text-slate-500">{{ $item->sku }}</p>
                         </x-ui.table.td>
                         <x-ui.table.td align="right" numeric>
-                            {{ Format::jumlah($item->quantity) }} {{ $item->unit_name }}
+                            @if ($item->sale_unit_id)
+                                {{ Format::jumlah($item->sale_unit_quantity) }} {{ $item->sale_unit_name }}
+                                <p class="text-xs text-slate-500">= {{ Format::jumlah($item->quantity) }} {{ $item->unit_name }}</p>
+                            @else
+                                {{ Format::jumlah($item->quantity) }} {{ $item->unit_name }}
+                            @endif
                             @if ((float) $item->returned_quantity > 0)
                                 <p class="text-xs text-warning-700">diretur {{ Format::jumlah($item->returned_quantity) }}</p>
                             @endif
                         </x-ui.table.td>
-                        <x-ui.table.td align="right" numeric muted>@rupiah($item->unit_price)</x-ui.table.td>
+                        <x-ui.table.td align="right" numeric muted>@rupiah($item->sale_unit_id ? $item->sale_unit_price : $item->unit_price)</x-ui.table.td>
                         <x-ui.table.td align="right" numeric muted>{{ (float) $item->discount > 0 ? Format::rupiah($item->discount) : '—' }}</x-ui.table.td>
                         <x-ui.table.td align="right" numeric>@rupiah($item->line_total)</x-ui.table.td>
                         @if ($lihatSemua)

@@ -146,8 +146,13 @@
             <table class="total-baris">
                 <tr>
                     <td>
-                        {{ \App\Support\Format::jumlah($i->quantity) }} {{ $i->unit_name }}
-                        &times; {{ \App\Support\Format::rupiah($i->unit_price, false) }}
+                        @if ($i->sale_unit_id)
+                            {{ \App\Support\Format::jumlah($i->sale_unit_quantity) }} {{ $i->sale_unit_name }}
+                            &times; {{ \App\Support\Format::rupiah($i->sale_unit_price, false) }}
+                        @else
+                            {{ \App\Support\Format::jumlah($i->quantity) }} {{ $i->unit_name }}
+                            &times; {{ \App\Support\Format::rupiah($i->unit_price, false) }}
+                        @endif
                         @if ((float) $i->discount > 0)
                             <span class="kecil">(diskon {{ \App\Support\Format::rupiah($i->discount, false) }})</span>
                         @endif

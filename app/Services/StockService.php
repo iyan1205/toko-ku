@@ -140,6 +140,43 @@ class StockService
     }
 
     /**
+     * Seperti catat(), tetapi produk paket dipecah ke komponennya (jumlah × isi per paket). Untuk pembalik
+     * (pembatalan/retur) beri $balikDokumen = dokumen asal: mutasi asal tiap produk dibalik dari lot aslinya.
+     *
+     * @return Collection<int, StockMovement>
+     */
+    public function catatBarang(
+        Product $produk,
+        StockMovementType $jenis,
+        float|int|string $jumlah,
+        ?Model $referensi = null,
+        ?string $catatan = null,
+        ?User $user = null,
+        ?Warehouse $gudang = null,
+        array $opsi = [],
+        ?Model $balikDokumen = null,
+    ): Collection {
+        $delta = round((float) $jumlah, 3);
+        $target = $produk->is_bundle
+            ? $produk->bundleComponents()->map(fn (array $k) => [$k['product'], round($delta * $k['quantity'], 3)])
+            : collect([[$produk, $delta]]);
+
+        if ($produk->is_bundle && $target->isEmpty()) {
+            throw new AturanBisnisException("Paket {$produk->name} belum punya komponen. Atur komponennya di resep produk itu.");
+        }
+
+        return DB::transaction(fn () => $target->sortBy(fn ($t) => $t[0]->id)->values()->map(function (array $t) use ($jenis, $referensi, $catatan, $user, $gudang, $opsi, $balikDokumen) {
+            [$barang, $qty] = $t;
+            $o = $opsi;
+            if ($balikDokumen !== null) {
+                $o['reverse_of'] = self::mutasiDokumen($balikDokumen, $barang->id, $qty > 0 ? -1 : 1);
+            }
+
+            return $this->catat($barang, $jenis, $qty, $referensi, $catatan, $user, $gudang, $o);
+        }));
+    }
+
+    /**
      * Penyesuaian manual. Penyesuaian bisa menambah ('in') atau mengurangi ('out');
      * barang rusak dan hilang selalu mengurangi.
      *

@@ -46,9 +46,9 @@ class StockController extends Controller
             'gudang' => Warehouse::query()->inCurrentBranch()->ordered()->get(['id', 'name', 'is_active']),
             'kategori' => Category::orderBy('name')->get(['id', 'name']),
             'ringkasan' => [
-                'total' => Product::aktif()->count(),
-                'menipis' => Product::aktif()->stokMenipis()->count(),
-                'habis' => Product::aktif()->stokHabis()->count(),
+                'total' => Product::aktif()->stockable()->count(),
+                'menipis' => Product::aktif()->stockable()->stokMenipis()->count(),
+                'habis' => Product::aktif()->stockable()->stokHabis()->count(),
                 'nilai' => $kelola ? $this->inventoryValue($gudang) : null,
             ],
         ]);
@@ -117,7 +117,7 @@ class StockController extends Controller
     public function createAdjustment(Request $request): View
     {
         $gudang = Warehouse::query()->active()->inCurrentBranch()->ordered()->get(['id', 'name', 'is_default']);
-        $produk = Product::aktif()->with('unit:id,name')->orderBy('name')->get(['id', 'sku', 'name', 'stock', 'unit_id', 'track_batches', 'track_serials']);
+        $produk = Product::aktif()->stockable()->with('unit:id,name')->orderBy('name')->get(['id', 'sku', 'name', 'stock', 'unit_id', 'track_batches', 'track_serials']);
 
         // Stok tiap produk per gudang aktif, untuk menampilkan "stok saat ini" di formulir.
         $stok = WarehouseStock::query()->whereIn('warehouse_id', $gudang->modelKeys())->where('quantity', '!=', 0)

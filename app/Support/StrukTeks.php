@@ -61,8 +61,10 @@ final class StrukTeks
         foreach ($s->items as $i) {
             $baris[] = $this->potong((string) $i->product_name, $lebar);
 
-            $kiri = Format::jumlah($i->quantity).' '.$i->unit_name
-                .' x '.Format::rupiah($i->unit_price, false);
+            // Dijual per satuan lain (misal DUS): tampilkan jumlah & harga satuan itu.
+            $kiri = $i->sale_unit_id
+                ? Format::jumlah($i->sale_unit_quantity).' '.$i->sale_unit_name.' x '.Format::rupiah($i->sale_unit_price, false)
+                : Format::jumlah($i->quantity).' '.$i->unit_name.' x '.Format::rupiah($i->unit_price, false);
             if ((float) $i->discount > 0) {
                 $kiri .= ' (-'.Format::rupiah($i->discount, false).')';
             }
