@@ -9,7 +9,7 @@
     <x-slot name="description">Katalog produk, harga, dan stok minimum. Stok diubah lewat pembelian, transfer, atau opname.</x-slot>
     <x-slot name="actions">
         @can('inventory.products.import')
-            <x-ui.button variant="secondary" :href="route('products.import')" icon="arrow-up-tray">Impor</x-ui.button>
+            <x-ui.button variant="secondary" :href="route('imports.products.create')" icon="arrow-up-tray">Impor</x-ui.button>
         @endcan
         @can('inventory.products.export')
             <x-ui.export-menu :href="route('products.export')" />

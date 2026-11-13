@@ -10,9 +10,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StockOpnameRequest;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductUnit;
 use App\Models\StockOpname;
 use App\Models\Warehouse;
+use App\Rules\OpenPeriod;
 use App\Services\StockOpnameService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -59,9 +62,7 @@ class StockOpnameController extends Controller
         $final = $request->input('aksi') === 'final';
         $opname = $this->service->create($request->validated(), $request->user(), $final);
 
-        return redirect()->route('stock-opnames.show', $opname)->with('success', $final
-            ? "Stok opname {$opname->number} selesai. Selisih sudah dibukukan ke stok {$opname->warehouse->name}."
-            : "Draft stok opname {$opname->number} tersimpan. Stok belum berubah sampai opname diselesaikan.");
+        return redirect()->route('stock-opnames.show', $opname)->with('success', $this->pesan($opname->fresh(), $final));
     }
 
     public function show(StockOpname $stockOpname): View
@@ -91,17 +92,81 @@ class StockOpnameController extends Controller
         $final = $request->input('aksi') === 'final';
         $this->service->updateDraft($stockOpname, $request->validated(), $request->user(), $final);
 
-        return redirect()->route('stock-opnames.show', $stockOpname)->with('success', $final
-            ? "Stok opname {$stockOpname->number} selesai. Selisih sudah dibukukan."
-            : "Draft stok opname {$stockOpname->number} diperbarui.");
+        return redirect()->route('stock-opnames.show', $stockOpname)->with('success', $this->pesan($stockOpname->fresh(), $final));
     }
 
     public function finalize(Request $request, StockOpname $stockOpname): RedirectResponse
     {
-        $this->service->finalize($stockOpname, $request->user());
+        [$opname] = $this->service->finalizeOrSubmit($stockOpname, $request->user());
 
-        return redirect()->route('stock-opnames.show', $stockOpname)
-            ->with('success', "Stok opname {$stockOpname->number} selesai. Selisih sudah dibukukan ke stok.");
+        return redirect()->route('stock-opnames.show', $stockOpname)->with('success', $this->pesan($opname, true));
+    }
+
+    /** Mulai opname kosong untuk dihitung dengan scan barcode (HP), opsional membekukan stok gudang. */
+    public function start(Request $request, StockOpnameService $service): RedirectResponse
+    {
+        $data = $request->validate([
+            'warehouse_id' => ['required', 'integer', Rule::exists('warehouses', 'id')->where('is_active', true)->whereNull('deleted_at')],
+            'opname_date' => ['required', 'date', 'before_or_equal:today', new OpenPeriod],
+            'note' => ['nullable', 'string', 'max:255'],
+            'freeze_stock' => ['boolean'],
+        ], [], ['warehouse_id' => 'gudang', 'opname_date' => 'tanggal opname']);
+
+        $opname = $service->start(Warehouse::query()->findOrFail($data['warehouse_id']), $data['opname_date'], $data['note'] ?? null, $request->boolean('freeze_stock'), $request->user());
+
+        return redirect()->route('stock-opnames.count', $opname)->with('success', "Opname {$opname->number} dimulai".($opname->freeze_stock ? '; stok gudang dibekukan sampai selesai.' : '.'));
+    }
+
+    /** Halaman hitung untuk HP: scan barcode (kamera atau scanner) lalu jumlah fisik bertambah. */
+    public function count(StockOpname $stockOpname): View|RedirectResponse
+    {
+        if (! $stockOpname->isDraft()) {
+            return redirect()->route('stock-opnames.show', $stockOpname)->with('error', "Stok opname {$stockOpname->number} sudah {$stockOpname->status->label()}.");
+        }
+
+        return view('inventory.opnames.count', [
+            'opname' => $stockOpname->load(['warehouse', 'items' => fn ($q) => $q->with('product:id,name,sku,barcode,unit_id', 'product.unit:id,name')->latest('updated_at')]),
+        ]);
+    }
+
+    /** Satu scan: kode (barcode/SKU/barcode satuan) atau product_id, jumlah, mode add|set. */
+    public function scan(Request $request, StockOpname $stockOpname): JsonResponse
+    {
+        $data = $request->validate([
+            'kode' => ['nullable', 'string', 'max:60', 'required_without:product_id'],
+            'product_id' => ['nullable', 'integer'],
+            'quantity' => ['nullable', 'numeric', 'min:0', 'max:999999'],
+            'mode' => ['nullable', 'in:add,set'],
+        ]);
+
+        $kode = trim((string) ($data['kode'] ?? ''));
+        $satuan = $kode !== '' ? ProductUnit::query()->where('barcode', $kode)->first() : null;
+        $produk = ! empty($data['product_id'])
+            ? Product::aktif()->find($data['product_id'])
+            : ($satuan?->product ?? Product::aktif()->where(fn ($q) => $q->where('barcode', $kode)->orWhere('sku', $kode))->first());
+
+        if ($produk === null) {
+            return response()->json(['message' => "Kode {$kode} tidak ditemukan."], 404);
+        }
+
+        // Scan barcode DUS dihitung sebagai isi dus dalam satuan dasar.
+        $jumlah = (float) ($data['quantity'] ?? 1) * ($satuan ? (float) $satuan->factor : 1);
+        $item = $this->service->scan($stockOpname, $produk, $jumlah, $data['mode'] ?? 'add', $request->user());
+
+        return response()->json([
+            'product_id' => $produk->id, 'name' => $produk->name, 'sku' => $produk->sku, 'unit' => $produk->unit?->name,
+            'physical' => (float) $item->physical_stock, 'system' => (float) $item->system_stock, 'difference' => (float) $item->difference,
+            'added' => $jumlah,
+        ]);
+    }
+
+    private function pesan(StockOpname $opname, bool $final): string
+    {
+        return match (true) {
+            $opname->status === StockOpnameStatus::Submitted => "Stok opname {$opname->number} diajukan untuk persetujuan. Selisih dibukukan setelah disetujui.",
+            $opname->status === StockOpnameStatus::Final => "Stok opname {$opname->number} selesai. Selisih sudah dibukukan ke stok {$opname->warehouse->name}.",
+            default => "Draft stok opname {$opname->number} tersimpan. Stok belum berubah sampai opname diselesaikan.",
+        };
     }
 
     public function destroy(StockOpname $stockOpname): RedirectResponse

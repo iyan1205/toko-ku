@@ -61,7 +61,7 @@ class RolePermissionSeeder extends Seeder
             ],
 
             RoleName::StafGudang->value => [
-                'inventory.products.view', 'inventory.categories.view', 'inventory.units.view', 'inventory.recipes.view',
+                'inventory.products.view', 'inventory.products.print', 'inventory.categories.view', 'inventory.units.view', 'inventory.recipes.view',
                 'inventory.stock.*', 'inventory.stock-card.*', 'inventory.adjustments.*',
                 'inventory.opnames.view', 'inventory.opnames.create', 'inventory.opnames.export',
                 'inventory.transfers.view', 'inventory.transfers.create', 'inventory.transfers.receive', 'inventory.transfers.print', 'inventory.transfers.export',

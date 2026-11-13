@@ -30,7 +30,9 @@ class ProductService
 
                 [$data, $units] = $this->pisahkan($data);
                 $produk = Product::create($data);
-                $this->syncUnits($produk, $units);
+                if ($units !== null) {
+                    $this->syncUnits($produk, $units);
+                }
                 $this->syncVariants($produk);
 
                 return $produk;

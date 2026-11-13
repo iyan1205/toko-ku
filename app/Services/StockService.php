@@ -11,6 +11,7 @@ use App\Models\Scopes\BranchScope;
 use App\Models\StockLot;
 use App\Models\StockMovement;
 use App\Models\StockMovementLot;
+use App\Models\StockOpname;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Models\WarehouseStock;
@@ -69,6 +70,11 @@ class StockService
         }
 
         $gudang ??= $this->defaultWarehouse();
+
+        // Stok opname yang membekukan gudang: mutasi lain ditolak sampai opname selesai.
+        if (! $referensi instanceof StockOpname && ($beku = app(StockOpnameService::class)->frozenOpname($gudang)) !== null) {
+            throw new AturanBisnisException("Stok {$gudang->name} sedang dibekukan untuk stok opname {$beku->number}. Transaksi stok di gudang ini ditunda sampai opname selesai.");
+        }
 
         return DB::transaction(function () use ($produk, $jenis, $delta, $referensi, $catatan, $user, $gudang, $opsi) {
             // Kunci baris produk: dua kasir yang menjual barang yang sama tidak boleh saling menimpa.

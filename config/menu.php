@@ -78,6 +78,8 @@ return [
                 'children' => [
                     ['key' => 'inventory-products', 'label' => 'Produk', 'route' => 'products.index', 'active' => 'products.*', 'permission' => 'inventory.products.view',
                         'description' => 'Katalog produk, harga, dan stok minimum.'],
+                    ['key' => 'inventory-labels', 'label' => 'Cetak Label', 'route' => 'product-labels.index', 'active' => 'product-labels.*', 'permission' => 'inventory.products.print',
+                        'description' => 'Label barcode dan harga untuk produk dan rak.'],
                     ['key' => 'inventory-categories', 'label' => 'Kategori', 'route' => 'categories.index', 'active' => 'categories.*', 'permission' => 'inventory.categories.view',
                         'description' => 'Kelompok produk untuk kasir dan laporan.'],
                     ['key' => 'inventory-units', 'label' => 'Satuan', 'route' => 'units.index', 'active' => 'units.*', 'permission' => 'inventory.units.view',

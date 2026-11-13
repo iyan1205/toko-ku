@@ -10,6 +10,7 @@
 
 use App\Http\Controllers\Inventory\CategoryController;
 use App\Http\Controllers\Inventory\ProductController;
+use App\Http\Controllers\Inventory\ProductLabelController;
 use App\Http\Controllers\Inventory\ProductLookupController;
 use App\Http\Controllers\Inventory\RecipeController;
 use App\Http\Controllers\Inventory\ReorderController;
@@ -27,6 +28,8 @@ Route::middleware('permission:inventory.products.import')->group(function () {
     Route::get('produk/impor', [ProductController::class, 'importForm'])->name('products.import');
     Route::post('produk/impor', [ProductController::class, 'import'])->name('products.import.store');
 });
+Route::get('produk/label', [ProductLabelController::class, 'index'])->middleware('permission:inventory.products.print')->name('product-labels.index');
+Route::get('produk/label/cetak', [ProductLabelController::class, 'print'])->middleware('permission:inventory.products.print')->name('product-labels.print');
 Route::resource('produk', ProductController::class)->parameters(['produk' => 'product'])->names('products')
     ->middlewareFor(['index', 'show'], 'permission:inventory.products.view')
     ->middlewareFor(['create', 'store'], 'permission:inventory.products.create')
@@ -82,6 +85,11 @@ Route::resource('transfer-stok', StockTransferController::class)
 
 // ---- Stok opname per gudang: draft (create) → selesai (approve) ----
 Route::get('stok-opname/ekspor', [StockOpnameController::class, 'export'])->middleware('permission:inventory.opnames.export')->name('stock-opnames.export');
+Route::middleware('permission:inventory.opnames.create')->group(function () {
+    Route::post('stok-opname/mulai', [StockOpnameController::class, 'start'])->name('stock-opnames.start');
+    Route::get('stok-opname/{stockOpname}/hitung', [StockOpnameController::class, 'count'])->name('stock-opnames.count');
+    Route::post('stok-opname/{stockOpname}/scan', [StockOpnameController::class, 'scan'])->name('stock-opnames.scan');
+});
 Route::post('stok-opname/{stockOpname}/selesaikan', [StockOpnameController::class, 'finalize'])->middleware('permission:inventory.opnames.approve')->name('stock-opnames.finalize');
 Route::resource('stok-opname', StockOpnameController::class)
     ->parameters(['stok-opname' => 'stockOpname'])

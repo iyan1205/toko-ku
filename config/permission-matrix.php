@@ -60,7 +60,8 @@ return [
         'inventory' => [
             'label' => 'Inventori',
             'features' => [
-                'products' => ['label' => 'Produk', 'actions' => ['view', 'create', 'update', 'delete', 'import', 'export']],
+                // Produk: print = cetak label barcode/harga.
+                'products' => ['label' => 'Produk', 'actions' => ['view', 'create', 'update', 'delete', 'import', 'print', 'export']],
                 'categories' => ['label' => 'Kategori', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
                 'units' => ['label' => 'Satuan', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
                 'stock' => ['label' => 'Posisi stok', 'actions' => ['view', 'export']],

@@ -17,16 +17,22 @@
                     x-data x-on:click="$dispatch('konfirmasi-hapus', { action: {{ \Illuminate\Support\Js::from(route('stock-opnames.destroy', $opname)) }}, nama: {{ \Illuminate\Support\Js::from('Draft '.$opname->number) }}, pesan: 'akan dihapus. Stok tidak berubah.' })">
                     Hapus draft
                 </x-ui.button>
+                <x-ui.button variant="secondary" icon="qr-code" :href="route('stock-opnames.count', $opname)">Hitung (scan)</x-ui.button>
                 <x-ui.button variant="secondary" icon="pencil-square" :href="route('stock-opnames.edit', $opname)">Ubah hitungan</x-ui.button>
             @endcan
             @can('inventory.opnames.approve')
                 <form method="POST" action="{{ route('stock-opnames.finalize', $opname) }}" x-data="{ kirim: false }" x-on:submit="kirim = true">
                     @csrf
-                    <x-ui.button type="submit" icon="check" x-bind:disabled="kirim">Selesaikan opname</x-ui.button>
+                    <x-ui.button type="submit" icon="check" x-bind:disabled="kirim">{{ app(\App\Services\Approval\ApprovalService::class)->requiresApproval($opname) ? 'Ajukan persetujuan' : 'Selesaikan opname' }}</x-ui.button>
                 </form>
             @endcan
         </x-slot>
     @endif
+
+    @if ($opname->freeze_stock && ! $opname->movements()->exists() && $opname->status !== \App\Enums\StockOpnameStatus::Final)
+        <x-ui.alert type="warning" class="mb-6">Stok {{ $opname->warehouse->name }} dibekukan selama opname ini berjalan: transaksi stok di gudang ini ditolak sampai opname selesai atau dihapus.</x-ui.alert>
+    @endif
+    <x-ui.approval-panel :document="$opname" class="mb-6" />
 
     @if ($draft)
         <x-ui.alert class="mb-6" title="Draft: stok belum berubah">

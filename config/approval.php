@@ -7,6 +7,7 @@ use App\Models\Journal;
 use App\Models\OvertimeRequest;
 use App\Models\PurchaseOrder;
 use App\Models\ReimbursementRequest;
+use App\Models\StockOpname;
 
 /*
 |--------------------------------------------------------------------------
@@ -63,6 +64,12 @@ return [
             'fields' => ['days_late' => 'Selisih hari pengajuan'],
             'formats' => ['days_late' => ['type' => 'number', 'unit' => 'hari']],
             'supervisor' => true,
+        ],
+        'stock_opname' => [
+            'label' => 'Stok opname (penyesuaian selisih)',
+            'model' => StockOpname::class,
+            'fields' => ['total' => 'Nilai selisih', 'items' => 'Jumlah produk berselisih'],
+            'formats' => ['items' => ['type' => 'number', 'unit' => 'produk']],
         ],
         'leave' => [
             'label' => 'Cuti & izin',

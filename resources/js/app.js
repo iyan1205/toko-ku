@@ -14,6 +14,7 @@ import cariGlobal from './cari-global';
 import dokumenBarang from './dokumen-barang';
 import grafikPenjualan from './grafik-penjualan';
 import lampiran from './lampiran';
+import opnameScan from './opname-scan';
 import pusatNotifikasi from './pusat-notifikasi';
 import kasir from './pos/kasir';
 
@@ -24,6 +25,7 @@ Alpine.data('cariGlobal', cariGlobal);
 Alpine.data('dokumenBarang', dokumenBarang);
 Alpine.data('grafikPenjualan', grafikPenjualan);
 Alpine.data('lampiran', lampiran);
+Alpine.data('opnameScan', opnameScan);
 Alpine.data('pusatNotifikasi', pusatNotifikasi);
 Alpine.data('kasir', kasir);
 
