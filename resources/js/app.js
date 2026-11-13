@@ -9,6 +9,7 @@ import '@fontsource/inter/latin-ext-600.css';
 import '@fontsource/inter/latin-ext-700.css';
 
 import Alpine from 'alpinejs';
+import absen from './absen';
 import cariGlobal from './cari-global';
 import dokumenBarang from './dokumen-barang';
 import grafikPenjualan from './grafik-penjualan';
@@ -18,6 +19,7 @@ import kasir from './pos/kasir';
 
 window.Alpine = Alpine;
 
+Alpine.data('absen', absen);
 Alpine.data('cariGlobal', cariGlobal);
 Alpine.data('dokumenBarang', dokumenBarang);
 Alpine.data('grafikPenjualan', grafikPenjualan);

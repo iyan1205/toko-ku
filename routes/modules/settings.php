@@ -15,6 +15,7 @@ use App\Http\Controllers\Settings\DocumentNumberingController;
 use App\Http\Controllers\Settings\PaymentMethodController;
 use App\Http\Controllers\Settings\PosSettingController;
 use App\Http\Controllers\Settings\ReceiptSettingController;
+use App\Http\Controllers\Settings\SdmSettingController;
 use App\Http\Controllers\Settings\StoreProfileController;
 use App\Http\Controllers\Settings\SystemStatusController;
 use App\Http\Controllers\Settings\TaxController;
@@ -46,6 +47,9 @@ Route::prefix('pengaturan')->name('settings.')->group(function () {
 
     Route::get('kasir', [PosSettingController::class, 'edit'])->middleware('permission:settings.pos.view')->name('pos.edit');
     Route::put('kasir', [PosSettingController::class, 'update'])->middleware('permission:settings.pos.update')->name('pos.update');
+
+    Route::get('sdm', [SdmSettingController::class, 'edit'])->middleware('permission:settings.sdm.view')->name('sdm.edit');
+    Route::put('sdm', [SdmSettingController::class, 'update'])->middleware('permission:settings.sdm.update')->name('sdm.update');
 
     Route::get('akuntansi', [AccountingSettingController::class, 'edit'])->middleware('permission:settings.accounting.view')->name('accounting.edit');
     Route::put('akuntansi', [AccountingSettingController::class, 'update'])->middleware('permission:settings.accounting.update')->name('accounting.update');

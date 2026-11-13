@@ -47,7 +47,7 @@ class RolePermissionSeeder extends Seeder
                 'purchasing.*',
                 'reports.*',
                 'sdm.employees.view', 'sdm.departments.view',
-                'sdm.attendances.*', 'sdm.schedules.*', 'sdm.shifts.*', 'sdm.leaves.*',
+                'sdm.attendances.*', 'sdm.schedules.*', 'sdm.shifts.*', 'sdm.leaves.*', 'sdm.holidays.*',
                 ...self::SELF_SERVICE,
             ],
 
@@ -97,6 +97,7 @@ class RolePermissionSeeder extends Seeder
 
             RoleName::Hrd->value => [
                 'sdm.*',
+                'settings.sdm.*',
             ],
         ];
     }

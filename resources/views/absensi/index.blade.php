@@ -47,30 +47,18 @@
                 </div>
 
                 <div class="shrink-0">
+                    {{-- Lokasi GPS dikirim bila browser mengizinkan (butuh HTTPS); wajib bila cabang memakai radius absen. --}}
                     @if ($hariIni === null)
-                        {{-- Lokasi GPS opsional: dikirim bila browser mengizinkan (butuh HTTPS). --}}
-                        <form method="POST" action="{{ route('attendances.clock-in') }}"
-                              x-data="{ lokasi: '', mengirim: false }"
-                              x-init="navigator.geolocation?.getCurrentPosition(
-                                  p => lokasi = p.coords.latitude.toFixed(6) + ',' + p.coords.longitude.toFixed(6),
-                                  () => {}, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 })"
-                              @submit="mengirim = true">
-                            @csrf
-                            <input type="hidden" name="lokasi" :value="lokasi">
-                            <button type="submit" class="tombol-utama w-full px-6 py-3 text-base sm:w-auto" :disabled="mengirim">Absen Masuk</button>
-                            <p class="mt-1 text-xs text-slate-500" x-show="lokasi" x-cloak>📍 Lokasi terdeteksi</p>
-                        </form>
+                        @include('absensi.partials.tombol-absen', ['aksi' => 'masuk', 'aturan' => $aturanAbsen])
                     @elseif ($hariIni->clock_in !== null && $hariIni->clock_out === null)
-                        <form method="POST" action="{{ route('attendances.clock-out') }}" x-data="{ mengirim: false }" @submit="mengirim = true">
-                            @csrf
-                            <button type="submit" class="tombol-bahaya w-full px-6 py-3 text-base sm:w-auto" :disabled="mengirim">Absen Pulang</button>
-                        </form>
+                        @include('absensi.partials.tombol-absen', ['aksi' => 'pulang', 'aturan' => $aturanAbsen])
                     @elseif ($hariIni->clock_out !== null)
                         <span class="badge-berhasil px-3 py-1 text-sm">✓ Absensi hari ini lengkap</span>
                     @endif
                 </div>
             </div>
             @error('lokasi') <p class="mt-2 text-sm text-amber-600">{{ $message }}</p> @enderror
+            @error('foto') <p class="mt-2 text-sm text-amber-600">{{ $message }}</p> @enderror
         </div>
     @endif
 
@@ -109,9 +97,14 @@
             </form>
             @error('sampai') <p class="text-sm text-amber-600">{{ $message }}</p> @enderror
 
-            @if ($semuaPegawai)
-                <a href="{{ route('attendances.create') }}" class="tombol-utama">Catat absensi manual</a>
-            @endif
+            <div class="flex flex-wrap gap-2">
+                @can('sdm.attendances.import')
+                    <a href="{{ route('imports.attendance_scans.create') }}" class="tombol-kedua">Impor fingerprint</a>
+                @endcan
+                @if ($semuaPegawai)
+                    <a href="{{ route('attendances.create') }}" class="tombol-utama">Catat absensi manual</a>
+                @endif
+            </div>
         </div>
 
         <div class="overflow-x-auto">
@@ -144,14 +137,22 @@
                                 <span class="block text-xs text-slate-500">{{ $a->tanggal->locale('id')->translatedFormat('l') }}</span>
                             </td>
                             @if ($semuaPegawai)
-                                <td class="font-medium text-slate-900">{{ $a->user?->name }}</td>
+                                <td class="font-medium text-slate-900">{{ $a->personName() }}</td>
                             @endif
-                            <td>{{ $a->clock_in?->format('H:i') ?? '-' }}</td>
+                            <td class="whitespace-nowrap">
+                                {{ $a->clock_in?->format('H:i') ?? '-' }}
+                                @if ($a->late_minutes > 0)
+                                    <span class="block text-xs text-amber-700">telat {{ $a->late_minutes }} mnt</span>
+                                @endif
+                            </td>
                             <td>
                                 @if ($lupaPulang)
                                     <span class="text-amber-700">Tidak absen pulang</span>
                                 @else
                                     {{ $a->clock_out?->format('H:i') ?? '-' }}
+                                    @if ($a->early_leave_minutes > 0)
+                                        <span class="block text-xs text-amber-700">cepat {{ $a->early_leave_minutes }} mnt</span>
+                                    @endif
                                 @endif
                             </td>
                             <td class="whitespace-nowrap text-slate-600">{{ \App\Support\Format::durasi($a->durasiMenit()) }}</td>
@@ -165,9 +166,22 @@
                                             @if ($a->tautanPeta())
                                                 · <a href="{{ $a->tautanPeta() }}" target="_blank" rel="noopener noreferrer" class="text-slate-700 underline">Lokasi</a>
                                             @endif
+                                            @if ($a->distance_m !== null)
+                                                · {{ $a->distance_m }} m
+                                            @endif
                                         </span>
                                     @else
-                                        <span class="text-slate-400">-</span>
+                                        <span>{{ \App\Models\Absensi::SOURCES[$a->source] ?? '-' }}</span>
+                                    @endif
+                                    @if ($a->clock_in_photo || $a->clock_out_photo)
+                                        <span class="block text-xs">
+                                            @if ($a->clock_in_photo)
+                                                <a href="{{ route('attendances.photo', [$a, 'masuk']) }}" target="_blank" class="text-slate-700 underline">Foto masuk</a>
+                                            @endif
+                                            @if ($a->clock_out_photo)
+                                                <a href="{{ route('attendances.photo', [$a, 'pulang']) }}" target="_blank" class="text-slate-700 underline">Foto pulang</a>
+                                            @endif
+                                        </span>
                                     @endif
                                 </td>
                             @endif
@@ -182,7 +196,7 @@
                                     <div class="flex items-center justify-end gap-3">
                                         <a href="{{ route('attendances.edit', $a) }}" class="tombol-tautan">Ubah</a>
                                         <button type="button" class="text-sm font-medium text-amber-700 hover:underline"
-                                                @click="$dispatch('konfirmasi-hapus', { action: @js(route('attendances.destroy', $a)), nama: @js('Absensi ' . $a->user?->name . ' ' . $a->tanggal->format('d-m-Y')) })">
+                                                @click="$dispatch('konfirmasi-hapus', { action: @js(route('attendances.destroy', $a)), nama: @js('Absensi ' . $a->personName() . ' ' . $a->tanggal->format('d-m-Y')) })">
                                             Hapus
                                         </button>
                                     </div>

@@ -35,6 +35,7 @@ class SelfServiceController extends Controller
         return view('sdm.ess.index', [
             'employee' => $employee,
             'today' => $attendance->hariIni($user),
+            'attendanceRules' => $attendance->aturanAbsen($user),
             'balances' => $this->balances($user, $leaves),
             'pendingOvertime' => $this->overtime($employee)->where('status', 'submitted')->count(),
             'pendingReimbursement' => $this->reimbursements($employee)->where('status', 'submitted')->count(),

@@ -13,6 +13,7 @@ use App\Http\Controllers\Sdm\EmployeeController;
 use App\Http\Controllers\Sdm\EmployeeDocumentController;
 use App\Http\Controllers\Sdm\EmployeeHistoryController;
 use App\Http\Controllers\Sdm\EmployeeRequestController;
+use App\Http\Controllers\Sdm\HolidayController;
 use App\Http\Controllers\Sdm\JadwalController;
 use App\Http\Controllers\Sdm\JenisCutiController;
 use App\Http\Controllers\Sdm\OffboardingController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\Sdm\PositionController;
 use App\Http\Controllers\Sdm\SelfServiceController;
 use App\Http\Controllers\Sdm\SelfServiceRequestController;
 use App\Http\Controllers\Sdm\ShiftController;
+use App\Http\Controllers\Sdm\ShiftRotationController;
 use Illuminate\Support\Facades\Route;
 
 // ---- Absensi: view = semua pegawai, record = absen sendiri (AbsensiPolicy membatasi isi daftarnya). ----
@@ -31,6 +33,11 @@ Route::middleware('permission:sdm.attendances.record')->group(function () {
     Route::post('absensi/masuk', [AbsensiController::class, 'clockIn'])->name('attendances.clock-in');
     Route::post('absensi/pulang', [AbsensiController::class, 'clockOut'])->name('attendances.clock-out');
 });
+
+// Foto selfie absen: pemilik atau yang boleh melihat absensi semua pegawai (diperiksa di controller).
+Route::get('absensi/{absensi}/foto/{jenis}', [AbsensiController::class, 'photo'])
+    ->whereIn('jenis', ['masuk', 'pulang'])
+    ->middleware('permission:sdm.attendances.view|sdm.attendances.record')->name('attendances.photo');
 
 // Catatan manual: izin/sakit/alpa dan koreksi jam (mis. lupa absen pulang).
 Route::resource('absensi', AbsensiController::class)
@@ -43,10 +50,27 @@ Route::resource('absensi', AbsensiController::class)
 
 // ---- Jadwal & shift kerja ----
 Route::get('jadwal', [JadwalController::class, 'index'])->middleware('permission:sdm.schedules.view')->name('schedules.index');
+Route::get('jadwal/bulanan', [JadwalController::class, 'month'])->middleware('permission:sdm.schedules.view')->name('schedules.month');
 Route::middleware('permission:sdm.schedules.update')->group(function () {
     Route::put('jadwal', [JadwalController::class, 'update'])->name('schedules.update');
     Route::post('jadwal/salin', [JadwalController::class, 'copy'])->name('schedules.copy');
 });
+
+Route::resource('hari-libur', HolidayController::class)
+    ->parameters(['hari-libur' => 'holiday'])
+    ->names('holidays')
+    ->only(['index', 'store', 'update', 'destroy'])
+    ->middlewareFor('index', 'permission:sdm.holidays.view')
+    ->middlewareFor('store', 'permission:sdm.holidays.create')
+    ->middlewareFor('update', 'permission:sdm.holidays.update')
+    ->middlewareFor('destroy', 'permission:sdm.holidays.delete');
+
+// Pola rotasi shift; menerapkannya ke jadwal = sdm.schedules.update. Didaftarkan sebelum resource shift.
+Route::get('shift/rotasi', [ShiftRotationController::class, 'index'])->middleware('permission:sdm.shifts.view')->name('shift-rotations.index');
+Route::post('shift/rotasi', [ShiftRotationController::class, 'store'])->middleware('permission:sdm.shifts.create')->name('shift-rotations.store');
+Route::put('shift/rotasi/{rotation}', [ShiftRotationController::class, 'update'])->middleware('permission:sdm.shifts.update')->name('shift-rotations.update');
+Route::delete('shift/rotasi/{rotation}', [ShiftRotationController::class, 'destroy'])->middleware('permission:sdm.shifts.delete')->name('shift-rotations.destroy');
+Route::post('shift/rotasi/{rotation}/terapkan', [ShiftRotationController::class, 'apply'])->middleware('permission:sdm.schedules.update')->name('shift-rotations.apply');
 
 Route::resource('shift', ShiftController::class)
     ->names('shifts')

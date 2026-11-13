@@ -128,9 +128,12 @@ return [
                 'overtime' => ['label' => 'Lembur', 'actions' => ['view', 'create', 'approve', 'export']],
                 'reimbursements' => ['label' => 'Reimbursement', 'actions' => ['view', 'create', 'approve', 'export']],
                 'departments' => ['label' => 'Departemen & jabatan', 'actions' => ['view', 'create', 'update', 'delete', 'export']],
-                'attendances' => ['label' => 'Absensi', 'actions' => ['view', 'record', 'create', 'update', 'delete', 'export']],
+                // Absensi: import = data mesin fingerprint.
+                'attendances' => ['label' => 'Absensi', 'actions' => ['view', 'record', 'create', 'update', 'delete', 'import', 'export']],
+                'holidays' => ['label' => 'Hari libur', 'actions' => ['view', 'create', 'update', 'delete', 'import']],
                 'schedules' => ['label' => 'Jadwal kerja', 'actions' => ['view', 'update']],
-                'shifts' => ['label' => 'Shift kerja', 'actions' => ['view', 'create', 'update', 'delete']],
+                // Shift: juga pola rotasi. Menerapkan rotasi ke jadwal = sdm.schedules.update.
+                'shifts' => ['label' => 'Shift kerja & rotasi', 'actions' => ['view', 'create', 'update', 'delete']],
                 'leaves' => ['label' => 'Cuti & izin', 'actions' => ['view', 'create', 'approve']],
                 'leave-types' => ['label' => 'Jenis cuti & alur persetujuan', 'actions' => ['view', 'create', 'update', 'delete']],
                 'payroll' => ['label' => 'Penggajian', 'actions' => ['view', 'create', 'approve', 'export'], 'planned' => true],
@@ -166,6 +169,7 @@ return [
                 'taxes' => ['label' => 'Pajak', 'actions' => ['view', 'update']],
                 'payment-methods' => ['label' => 'Metode pembayaran', 'actions' => ['view', 'update']],
                 'pos' => ['label' => 'Kasir', 'actions' => ['view', 'update']],
+                'sdm' => ['label' => 'SDM (hari kerja, absensi, lembur)', 'actions' => ['view', 'update']],
                 'accounting' => ['label' => 'Akuntansi (jurnal otomatis & pemetaan akun)', 'actions' => ['view', 'update']],
                 'receipts' => ['label' => 'Struk & printer', 'actions' => ['view', 'update']],
                 'numbering' => ['label' => 'Penomoran dokumen', 'actions' => ['view', 'update']],

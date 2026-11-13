@@ -1,7 +1,9 @@
 <?php
 
 use App\Imports\Definitions\AccountsImport;
+use App\Imports\Definitions\AttendanceScansImport;
 use App\Imports\Definitions\CustomersImport;
+use App\Imports\Definitions\HolidaysImport;
 use App\Imports\Definitions\SuppliersImport;
 
 /*
@@ -19,6 +21,8 @@ return [
         'customers' => ['class' => CustomersImport::class, 'slug' => 'pelanggan', 'permission' => 'pos.customers.import'],
         'suppliers' => ['class' => SuppliersImport::class, 'slug' => 'supplier', 'permission' => 'purchasing.suppliers.import'],
         'accounts' => ['class' => AccountsImport::class, 'slug' => 'akun', 'permission' => 'accounting.coa.import'],
+        'holidays' => ['class' => HolidaysImport::class, 'slug' => 'hari-libur', 'permission' => 'sdm.holidays.import'],
+        'attendance_scans' => ['class' => AttendanceScansImport::class, 'slug' => 'absensi-fingerprint', 'permission' => 'sdm.attendances.import'],
     ],
 
     // Berkas yang boleh diunggah dan ukurannya (KB).

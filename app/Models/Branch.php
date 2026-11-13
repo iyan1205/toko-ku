@@ -20,13 +20,16 @@ class Branch extends Model
 {
     use RecordsActivity, SoftDeletes;
 
-    protected $fillable = ['code', 'name', 'address', 'phone', 'is_active'];
+    protected $fillable = ['code', 'name', 'address', 'phone', 'latitude', 'longitude', 'attendance_radius_m', 'is_active'];
 
     protected function casts(): array
     {
         return [
             'is_default' => 'boolean',
             'is_active' => 'boolean',
+            'latitude' => 'float',
+            'longitude' => 'float',
+            'attendance_radius_m' => 'integer',
         ];
     }
 

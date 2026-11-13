@@ -20,22 +20,9 @@
                 @can('sdm.attendances.record')
                     <div class="shrink-0">
                         @if ($today === null)
-                            <form method="POST" action="{{ route('attendances.clock-in') }}"
-                                  x-data="{ lokasi: '', mengirim: false }"
-                                  x-init="navigator.geolocation?.getCurrentPosition(p => lokasi = p.coords.latitude.toFixed(6) + ',' + p.coords.longitude.toFixed(6), () => {}, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 })"
-                                  x-on:submit="mengirim = true">
-                                @csrf
-                                <input type="hidden" name="kembali" value="ess">
-                                <input type="hidden" name="lokasi" x-bind:value="lokasi">
-                                <x-ui.button type="submit" icon="arrow-right-end-on-rectangle" class="w-full justify-center py-3 sm:w-auto" x-bind:disabled="mengirim">Absen masuk</x-ui.button>
-                                <p class="mt-1 text-center text-xs text-slate-500 sm:text-left" x-show="lokasi" x-cloak>Lokasi terdeteksi</p>
-                            </form>
+                            @include('absensi.partials.tombol-absen', ['aksi' => 'masuk', 'aturan' => $attendanceRules, 'kembali' => 'ess'])
                         @elseif ($today->clock_in !== null && $today->clock_out === null)
-                            <form method="POST" action="{{ route('attendances.clock-out') }}" x-data="{ mengirim: false }" x-on:submit="mengirim = true">
-                                @csrf
-                                <input type="hidden" name="kembali" value="ess">
-                                <x-ui.button type="submit" variant="danger" icon="arrow-left-start-on-rectangle" class="w-full justify-center py-3 sm:w-auto" x-bind:disabled="mengirim">Absen pulang</x-ui.button>
-                            </form>
+                            @include('absensi.partials.tombol-absen', ['aksi' => 'pulang', 'aturan' => $attendanceRules, 'kembali' => 'ess'])
                         @else
                             <x-ui.badge color="success" dot>{{ $today->clock_out ? 'Absensi hari ini lengkap' : $today->status->label() }}</x-ui.badge>
                         @endif
@@ -43,6 +30,9 @@
                 @endcan
             </div>
             @error('lokasi')
+                <p class="mt-2 text-sm text-warning-700">{{ $message }}</p>
+            @enderror
+            @error('foto')
                 <p class="mt-2 text-sm text-warning-700">{{ $message }}</p>
             @enderror
         </x-ui.card>

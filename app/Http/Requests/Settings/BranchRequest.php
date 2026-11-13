@@ -33,6 +33,10 @@ class BranchRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:25', 'regex:/^[0-9+\-\s()]+$/'],
             'is_active' => ['boolean'],
             'is_default' => ['boolean'],
+            // Titik dan radius absen (opsional): absen masuk dari ponsel hanya bisa di dalam radius.
+            'latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude,attendance_radius_m'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude,attendance_radius_m'],
+            'attendance_radius_m' => ['nullable', 'integer', 'min:10', 'max:10000', 'required_with:latitude'],
         ];
     }
 

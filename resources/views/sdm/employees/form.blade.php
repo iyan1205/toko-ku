@@ -111,6 +111,7 @@
             <div class="grid gap-5 sm:grid-cols-3">
                 <x-ui.input name="join_date" label="Mulai kerja" type="date" :value="$employee->join_date?->format('Y-m-d')" />
                 <x-ui.input name="end_date" label="Berhenti kerja" type="date" :value="$employee->end_date?->format('Y-m-d')" hint="Kosongkan bila masih bekerja. Untuk resign/PHK pakai Offboarding." />
+                <x-ui.input name="attendance_pin" label="PIN mesin absen" :value="$employee->attendance_pin" maxlength="30" hint="ID karyawan di mesin fingerprint, untuk impor data absen." />
             </div>
             <x-ui.checkbox name="is_active" label="Karyawan aktif" :checked="$employee->is_active ?? true" unchecked-value="0" />
         </x-ui.form-section>

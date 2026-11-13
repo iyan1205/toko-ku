@@ -31,6 +31,7 @@ class EmployeeRequest extends FormRequest
 
         $this->merge([
             'code' => $this->filled('code') ? mb_strtoupper(trim((string) $this->input('code'))) : null,
+            'attendance_pin' => $this->filled('attendance_pin') ? trim((string) $this->input('attendance_pin')) : null,
             'is_active' => $this->boolean('is_active'),
             'family' => array_map(fn ($r) => $r + ['is_dependent' => false], $rows('family', 'name')),
             'educations' => $rows('educations', 'institution'),
@@ -47,6 +48,7 @@ class EmployeeRequest extends FormRequest
         return [
             'code' => ['nullable', 'string', 'max:20', 'regex:/^[A-Z0-9\-]+$/', Rule::unique('employees', 'code')->ignore($id)],
             'name' => ['required', 'string', 'max:150'],
+            'attendance_pin' => ['nullable', 'string', 'max:30', 'regex:/^[A-Za-z0-9\-_.]+$/', Rule::unique('employees', 'attendance_pin')->ignore($id)],
             // Satu akun login hanya untuk satu karyawan.
             'user_id' => ['nullable', 'integer', Rule::exists('users', 'id'), Rule::unique('employees', 'user_id')->ignore($id)],
             'gender' => ['nullable', Rule::enum(Gender::class)],
@@ -141,6 +143,7 @@ class EmployeeRequest extends FormRequest
             'experiences.*.company' => 'nama perusahaan',
             'experiences.*.end_date' => 'tanggal selesai pengalaman',
             'code' => 'kode karyawan',
+            'attendance_pin' => 'PIN mesin absen',
             'name' => 'nama',
             'user_id' => 'akun login',
             'department_id' => 'departemen',

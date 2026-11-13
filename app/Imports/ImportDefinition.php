@@ -3,6 +3,9 @@
 namespace App\Imports;
 
 use App\Models\User;
+use Carbon\CarbonImmutable;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use Throwable;
 
 /**
  * Definisi satu jenis impor Excel/CSV (kerangka impor Fase 8). Didaftarkan di config/imports.php.
@@ -70,6 +73,63 @@ abstract class ImportDefinition
         $value = trim((string) $value);
 
         return $value === '' ? null : $value;
+    }
+
+    /** Tanggal dari sel Excel (nomor seri) atau teks 31/12/2026, 31-12-2026, 2026-12-31. */
+    protected function date(mixed $value): ?CarbonImmutable
+    {
+        return $this->dateTime($value)?->startOfDay();
+    }
+
+    /**
+     * Tanggal + jam dari sel Excel (nomor seri) atau teks seperti "2026-12-31 07:58:12",
+     * "31/12/2026 07:58". Jam ditafsirkan sebagai jam lokal (zona waktu aplikasi).
+     */
+    protected function dateTime(mixed $value): ?CarbonImmutable
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (is_numeric($value)) {
+            try {
+                return CarbonImmutable::parse(ExcelDate::excelToDateTimeObject((float) $value)->format('Y-m-d H:i:s'));
+            } catch (Throwable) {
+                return null;
+            }
+        }
+
+        $value = preg_replace('/\s+/', ' ', trim((string) $value));
+        foreach (['Y-m-d', 'd/m/Y', 'd-m-Y', 'd.m.Y', 'Y/m/d', 'j/n/Y', 'j-n-Y'] as $date) {
+            foreach (['', ' H:i', ' H:i:s', ' G:i', ' G:i:s'] as $time) {
+                try {
+                    $parsed = CarbonImmutable::createFromFormat('!'.$date.$time, $value);
+                } catch (Throwable) {
+                    continue;
+                }
+                if ($parsed !== false && $parsed !== null && $parsed->format($date.$time) === $value) {
+                    return $parsed;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /** Jam "07:58" / "7:58:12" / pecahan hari Excel (0.33) → "07:58:12". */
+    protected function time(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (is_numeric($value) && (float) $value < 1) {
+            $seconds = (int) round((float) $value * 86400);
+
+            return sprintf('%02d:%02d:%02d', intdiv($seconds, 3600) % 24, intdiv($seconds % 3600, 60), $seconds % 60);
+        }
+
+        return preg_match('/^(\d{1,2})[:.](\d{2})(?:[:.](\d{2}))?$/', trim((string) $value), $m) && (int) $m[1] < 24 && (int) $m[2] < 60
+            ? sprintf('%02d:%02d:%02d', $m[1], $m[2], $m[3] ?? 0)
+            : null;
     }
 
     /** Nomor HP: angka 0 di depan yang hilang karena kolom Excel berformat angka dikembalikan. */

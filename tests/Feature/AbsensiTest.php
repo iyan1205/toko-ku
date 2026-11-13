@@ -205,7 +205,7 @@ class AbsensiTest extends TestCase
         $this->actingAs($this->kasir)
             ->get(route('attendances.index', ['pegawai' => $this->admin->id]))
             ->assertOk()
-            ->assertSee('Absen Pulang')
+            ->assertSee('Absen pulang')
             ->assertDontSee('Catat absensi manual')
             ->assertViewHas('absensi', fn (LengthAwarePaginator $p) => $p->pluck('user_id')->all() === [$this->kasir->id]);
     }
