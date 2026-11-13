@@ -6,10 +6,16 @@ use App\Enums\StatusCuti;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CutiRequest;
 use App\Models\Absensi;
+use App\Models\ApprovalFlow;
 use App\Models\Cuti;
+use App\Models\Department;
+use App\Models\Employee;
 use App\Models\JenisCuti;
 use App\Models\User;
 use App\Services\Sdm\CutiService;
+use App\Services\Sdm\WorkCalendar;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonPeriod;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -68,36 +74,95 @@ class CutiController extends Controller
         ]);
     }
 
+    /**
+     * Kalender cuti tim: karyawan × tanggal dalam sebulan (disetujui dan menunggu). Tanpa izin
+     * sdm.leaves.view hanya departemen sendiri, supaya karyawan bisa melihat siapa yang sedang cuti.
+     */
+    public function calendar(Request $request, WorkCalendar $calendar): View
+    {
+        Gate::authorize('viewAny', Cuti::class);
+
+        $user = $request->user();
+        $semua = $user->can('sdm.leaves.view');
+        $filter = $request->validate(['bulan' => ['nullable', 'date_format:Y-m'], 'departemen' => ['nullable', 'integer']]);
+        $start = CarbonImmutable::createFromFormat('!Y-m', $filter['bulan'] ?? today()->format('Y-m'))->startOfMonth();
+        $end = $start->endOfMonth()->startOfDay();
+        $departemen = $semua ? ($filter['departemen'] ?? null) : $user->employee?->department_id;
+
+        $employees = Employee::query()->where('is_active', true)
+            ->when($departemen, fn ($q, $id) => $q->where('department_id', $id))
+            ->when(! $semua && $departemen === null, fn ($q) => $q->whereKey($user->employee?->id ?? 0))
+            ->orderBy('name')->get(['id', 'code', 'name', 'user_id', 'department_id', 'branch_id']);
+        $byUser = $employees->whereNotNull('user_id')->pluck('id', 'user_id');
+
+        $cells = [];
+        Cuti::query()->with('jenisCuti:id,nama')
+            ->whereIn('status', [StatusCuti::Disetujui, StatusCuti::Menunggu])
+            ->where(fn ($q) => $q->whereIn('employee_id', $employees->pluck('id'))->orWhereIn('user_id', $byUser->keys()))
+            ->whereDate('tanggal_mulai', '<=', $end->toDateString())->whereDate('tanggal_selesai', '>=', $start->toDateString())
+            ->get()
+            ->each(function (Cuti $c) use (&$cells, $byUser, $start, $end) {
+                $employeeId = $c->employee_id ?? $byUser[$c->user_id] ?? null;
+                for ($d = CarbonImmutable::parse($c->tanggal_mulai)->max($start); $d->lte(CarbonImmutable::parse($c->tanggal_selesai)->min($end)); $d = $d->addDay()) {
+                    $cells[$employeeId.'|'.$d->toDateString()] = $c;
+                }
+            });
+
+        return view('cuti.calendar', [
+            'start' => $start,
+            'dates' => collect(CarbonPeriod::create($start, $end))->map(fn ($d) => CarbonImmutable::parse($d)),
+            'employees' => $employees,
+            'cells' => $cells,
+            'holidays' => $calendar->holidays($start, $end, null),
+            'weeklyOff' => $calendar->weeklyOffDays(),
+            'filter' => $filter,
+            'semua' => $semua,
+            'departments' => $semua ? Department::query()->orderBy('name')->pluck('name', 'id') : collect(),
+        ]);
+    }
+
     public function create(Request $request): View
     {
         Gate::authorize('create', Cuti::class);
 
         $user = $request->user();
         $tahun = (int) today()->year;
-        $terpakai = [$tahun => $this->service->terpakaiPerJenis($user, $tahun), $tahun + 1 => $this->service->terpakaiPerJenis($user, $tahun + 1)];
+        $employee = $user->employee;
 
         return view('cuti.create', [
             'jenisCuti' => JenisCuti::query()->aktif()->with('tahap.approver:id,name')->orderBy('nama')->get()
+                ->filter(fn (JenisCuti $j) => $j->gender === null || $employee?->gender === null || $employee->gender === $j->gender)
+                ->values()
                 ->map(fn (JenisCuti $j) => [
                     'id' => $j->id,
                     'nama' => $j->nama,
-                    'kuota' => $j->kuota_tahunan,
+                    'kuota' => $j->quotaFor($employee, $tahun),
                     // Sisa kuota mengikuti tahun tanggal mulai; form memilih sesuai tanggal yang diisi.
-                    'sisa' => $j->punyaKuota()
-                        ? collect($terpakai)->map(fn ($perJenis) => max(0, $j->kuota_tahunan - (int) $perJenis->get($j->id, 0)))->all()
+                    'sisa' => $j->quotaFor($employee, $tahun) !== null
+                        ? [$tahun => $this->service->sisaKuota($user, $j, $tahun), $tahun + 1 => $this->service->sisaKuota($user, $j, $tahun + 1, today()->addYear()->startOfYear())]
                         : null,
                     'alur' => $j->tahap->map->label()->all(),
+                    'hariKerja' => $j->working_days_only && $employee !== null,
+                    'surat' => $j->requires_document ? $j->document_after_days : null,
+                    'aturan' => array_values(array_filter([
+                        $j->is_paid ? null : 'Tanpa upah (dipotong saat penggajian).',
+                        $j->max_days_per_request ? "Paling lama {$j->max_days_per_request} hari per pengajuan." : null,
+                        $j->min_service_months ? "Setelah masa kerja {$j->min_service_months} bulan." : null,
+                        $j->requires_document ? ($j->document_after_days > 0 ? "Lebih dari {$j->document_after_days} hari wajib surat keterangan." : 'Wajib surat keterangan.') : null,
+                    ])),
                 ]),
+            'lewatMesin' => ApprovalFlow::query()->active()->where('document_type', 'leave')->exists(),
         ]);
     }
 
     public function store(CutiRequest $request): RedirectResponse
     {
-        $cuti = $this->service->ajukan($request->user(), $request->validated());
+        $cuti = $this->service->ajukan($request->user(), collect($request->validated())->except('dokumen')->all(), $request->file('dokumen', []));
 
+        $menunggu = $cuti->pendingApproval()?->currentStep()['name'] ?? $cuti->tahapSekarang()?->label();
         $pesan = $cuti->status === StatusCuti::Disetujui
             ? "Pengajuan {$cuti->nomor} langsung disetujui dan tercatat di absensi."
-            : "Pengajuan {$cuti->nomor} terkirim. Menunggu persetujuan {$cuti->tahapSekarang()->label()}.";
+            : "Pengajuan {$cuti->nomor} terkirim. Menunggu persetujuan {$menunggu}.";
 
         return redirect()->route('leaves.show', $cuti)->with('success', $pesan);
     }
@@ -155,7 +220,7 @@ class CutiController extends Controller
     {
         Gate::authorize('cancel', $cuti);
 
-        $cuti = $this->service->batalkan($cuti);
+        $cuti = $this->service->batalkan($cuti, request()->user());
 
         return redirect()->route('leaves.show', $cuti)->with('success', "Pengajuan {$cuti->nomor} dibatalkan. Kuotanya dikembalikan.");
     }

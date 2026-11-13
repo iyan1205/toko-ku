@@ -14,6 +14,9 @@
     $galatTahap = collect($errors->getMessages())->filter(fn ($pesan, $kunci) => str_starts_with($kunci, 'tahap.'))->map(fn ($pesan) => $pesan[0]);
     $statusAwal = old('status_absensi', $jenis->status_absensi?->value);
     $aktif = $errors->any() ? (bool) old('is_active') : $jenis->is_active;
+    $centang = fn (string $kolom, bool $bawaan) => $errors->any() ? (bool) old($kolom) : ($jenis->exists ? (bool) $jenis->{$kolom} : $bawaan);
+    $tingkatAwal = collect(old('quota_tiers', $jenis->quota_tiers ?? []))->map(fn ($t) => ['months' => (string) ($t['months'] ?? ''), 'days' => (string) ($t['days'] ?? '')])->values();
+    $input = 'block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-slate-500 focus:ring-slate-500';
 @endphp
 
 <x-app-layout>
@@ -22,6 +25,8 @@
     <form method="POST" action="{{ $edit ? route('leave-types.update', $jenis) : route('leave-types.store') }}"
           x-data="{
               tahap: @js($tahapAwal),
+              tingkat: @js($tingkatAwal),
+              surat: @js($centang('requires_document', false)),
               galat: @js($galatTahap),
               uid: @js($tahapAwal->count()),
               tambah() { if (this.tahap.length < 5) this.tahap.push({ uid: this.uid++, tipe: 'peran', peran: @js(\App\Enums\RoleName::Admin->value), approver_id: '' }) },
@@ -63,6 +68,76 @@
                        class="rounded border-slate-300 text-slate-700 focus:ring-slate-500">
                 Aktif (bisa dipilih saat mengajukan cuti)
             </label>
+        </div>
+
+        <div class="kartu space-y-5 p-6">
+            <div>
+                <h2 class="judul-bagian">Aturan</h2>
+                <p class="mt-1 teks-bantu">Diperiksa saat karyawan mengajukan. Kosongkan yang tidak berlaku.</p>
+            </div>
+
+            <div class="grid gap-5 sm:grid-cols-2">
+                <div>
+                    <label for="category" class="label-isian">Kategori</label>
+                    <select id="category" name="category" class="isian mt-1">
+                        @foreach (\App\Models\JenisCuti::CATEGORIES as $kunci => $label)
+                            <option value="{{ $kunci }}" @selected(old('category', $jenis->category ?? 'other') === $kunci)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-slate-500">Dipakai untuk rekap dan penggajian.</p>
+                </div>
+                <div>
+                    <label for="gender" class="label-isian">Khusus karyawan</label>
+                    <select id="gender" name="gender" class="isian mt-1">
+                        <option value="">Semua</option>
+                        @foreach (\App\Enums\Gender::cases() as $g)
+                            <option value="{{ $g->value }}" @selected(old('gender', $jenis->gender?->value) === $g->value)>{{ $g->label() }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <x-isian label="Paling lama per pengajuan (hari)" name="max_days_per_request" type="number" min="1" max="366" :value="$jenis->max_days_per_request" hint="Misal 90 untuk melahirkan, 3 untuk menikah." />
+                <x-isian label="Masa kerja minimal (bulan)" name="min_service_months" type="number" min="0" max="600" :value="$jenis->min_service_months ?: ''" hint="Misal 12 untuk cuti tahunan." />
+            </div>
+
+            <div class="grid gap-3">
+                <label class="flex items-center gap-2 text-sm text-slate-700">
+                    <input type="hidden" name="is_paid" value="0">
+                    <input type="checkbox" name="is_paid" value="1" @checked($centang('is_paid', true)) class="rounded border-slate-300 text-slate-700 focus:ring-slate-500">
+                    Dibayar (hilangkan centang untuk cuti tanpa upah)
+                </label>
+                <label class="flex items-center gap-2 text-sm text-slate-700">
+                    <input type="hidden" name="working_days_only" value="0">
+                    <input type="checkbox" name="working_days_only" value="1" @checked($centang('working_days_only', true)) class="rounded border-slate-300 text-slate-700 focus:ring-slate-500">
+                    Hitung hari kerja saja (libur mingguan dan hari libur tidak memotong saldo)
+                </label>
+                <label class="flex items-center gap-2 text-sm text-slate-700">
+                    <input type="hidden" name="requires_document" value="0">
+                    <input type="checkbox" name="requires_document" value="1" x-model="surat" class="rounded border-slate-300 text-slate-700 focus:ring-slate-500">
+                    Wajib surat keterangan (misal surat dokter)
+                </label>
+                <div x-show="surat" x-cloak class="pl-6 sm:max-w-xs">
+                    <x-isian label="Wajib bila lebih dari (hari)" name="document_after_days" type="number" min="0" max="366" :value="$jenis->document_after_days ?? 0" hint="0 = selalu wajib." />
+                </div>
+            </div>
+
+            <div>
+                <p class="label-isian">Saldo per masa kerja</p>
+                <p class="teks-bantu">Opsional, untuk cuti tahunan yang bertambah sesuai masa kerja. Tanpa baris = kuota per tahun di atas.</p>
+                <template x-for="(t, i) in tingkat" x-bind:key="i">
+                    <div class="mt-2 flex items-center gap-2 text-sm">
+                        <span class="text-slate-500">Masa kerja ≥</span>
+                        <input type="number" min="0" max="600" x-bind:name="'quota_tiers[' + i + '][months]'" x-model="t.months" class="{{ $input }} w-20" x-bind:aria-label="'Masa kerja tingkat ' + (i + 1)">
+                        <span class="text-slate-500">bulan →</span>
+                        <input type="number" min="0" max="366" x-bind:name="'quota_tiers[' + i + '][days]'" x-model="t.days" class="{{ $input }} w-20" x-bind:aria-label="'Hari tingkat ' + (i + 1)">
+                        <span class="text-slate-500">hari setahun</span>
+                        <button type="button" class="text-xs font-medium text-amber-700 hover:underline" x-on:click="tingkat.splice(i, 1)">Hapus</button>
+                    </div>
+                </template>
+                <button type="button" class="tombol-tautan mt-2" x-on:click="tingkat.push({ months: '', days: '' })" x-bind:disabled="tingkat.length >= 6">+ Tambah tingkat</button>
+                @error('quota_tiers') <p class="mt-1 text-sm text-amber-600">{{ $message }}</p> @enderror
+                @error('quota_tiers.*.months') <p class="mt-1 text-sm text-amber-600">{{ $message }}</p> @enderror
+                @error('quota_tiers.*.days') <p class="mt-1 text-sm text-amber-600">{{ $message }}</p> @enderror
+            </div>
         </div>
 
         <div class="kartu space-y-4 p-6">

@@ -185,6 +185,16 @@ setelah 7 hari.
 
 ---
 
+## 5b. Catatan Fase 13 (absensi & cuti)
+
+- Absen dari ponsel memakai lokasi (GPS) dan kamera: browser hanya mengizinkannya lewat **HTTPS**.
+- Foto selfie dikecilkan di browser (sekitar 100–200 KB), jadi tetap muat batas unggah 2 MB.
+  Foto disimpan di `storage/app/private/absensi/` (bukan folder publik); ikutkan folder ini dalam backup berkas.
+- Impor data mesin fingerprint (SDM → Absensi → Impor fingerprint) diproses langsung, paling banyak
+  10.000 baris per berkas. Untuk data berbulan-bulan, impor per bulan.
+- Setelah deploy, jalankan `php artisan db:seed --class=RolePermissionSeeder` untuk izin baru, lalu atur
+  Pengaturan → SDM (hari kerja, toleransi, aturan lembur) dan Pengaturan → Cabang (titik & radius absen).
+
 ## 6. Kembali ke versi sebelumnya
 
 1. `sudo -u www-data php artisan down`

@@ -50,9 +50,12 @@
                         </a>
                     @endforeach
                 </nav>
-                @if ($bisaMengajukan)
-                    <a href="{{ route('leaves.create') }}" class="tombol-utama mb-3">Ajukan cuti</a>
-                @endif
+                <div class="mb-3 flex flex-wrap gap-2">
+                    <a href="{{ route('leaves.calendar') }}" class="tombol-kedua">Kalender cuti</a>
+                    @if ($bisaMengajukan)
+                        <a href="{{ route('leaves.create') }}" class="tombol-utama">Ajukan cuti</a>
+                    @endif
+                </div>
             </div>
 
             {{-- Filter --}}

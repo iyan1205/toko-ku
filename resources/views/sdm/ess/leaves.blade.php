@@ -5,6 +5,7 @@
     <x-slot name="header">Cuti & Izin Saya</x-slot>
     <x-slot name="description">Saldo cuti tahun {{ now()->year }} dan riwayat pengajuan Anda.</x-slot>
     <x-slot name="actions">
+        <x-ui.button variant="secondary" icon="calendar-days" :href="route('leaves.calendar')">Kalender tim</x-ui.button>
         @can('sdm.leaves.create')
             <x-ui.button icon="plus" :href="route('leaves.create')">Ajukan cuti / izin</x-ui.button>
         @endcan

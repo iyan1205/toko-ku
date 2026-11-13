@@ -129,6 +129,14 @@ class Employee extends Model
         return $this->hasMany(EmployeeOffboarding::class)->latest('id');
     }
 
+    /** Akun login atasan langsung (untuk tahap persetujuan "Atasan langsung"), atau null. */
+    public function supervisorUser(): ?User
+    {
+        $userId = $this->supervisor()->value('user_id');
+
+        return $userId ? User::query()->find($userId) : null;
+    }
+
     /** Aset tetap yang dipegang (penanggung jawab). */
     public function fixedAssets(): HasMany
     {

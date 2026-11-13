@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\AttendanceCorrection;
 use App\Models\CashBankAccount;
 use App\Models\CashTransaction;
+use App\Models\Cuti;
 use App\Models\DepreciationRun;
 use App\Models\EmployeeDocument;
 use App\Models\FiscalYearClosing;
@@ -86,6 +88,8 @@ class AppServiceProvider extends ServiceProvider
             'employee_document' => EmployeeDocument::class,
             'overtime_request' => OvertimeRequest::class,
             'reimbursement_request' => ReimbursementRequest::class,
+            'attendance_correction' => AttendanceCorrection::class,
+            'leave' => Cuti::class,
         ]);
 
         // Tanda hidup queue worker untuk Pengaturan → Sistem dan ekspor besar (lihat QueueHealth).

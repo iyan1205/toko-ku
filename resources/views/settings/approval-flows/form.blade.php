@@ -21,6 +21,9 @@
     $awal = [
         'dokumen' => (string) old('document_type', $flow->document_type),
         'kolom' => collect($documents)->map(fn ($d) => $d['fields'])->all(),
+        // Format nilai kondisi per dokumen & kolom: money (Rp), number (+ satuan), option (pilihan).
+        'format' => collect($documents)->map(fn ($d, $doc) => collect($d['fields'])->map(fn ($label, $field) => \App\Models\ApprovalFlow::fieldFormat($doc, $field))->all())->all(),
+        'atasan' => collect($documents)->map(fn ($d) => (bool) ($d['supervisor'] ?? false))->all(),
         'kondisi' => $kondisi,
         'tahap' => $tahap,
         'galat' => collect($errors->getMessages())->filter(fn ($m, $k) => str_starts_with($k, 'steps.') || str_starts_with($k, 'conditions.'))->map(fn ($m) => $m[0]),
@@ -39,6 +42,7 @@
               tambahTahap() { this.tahap.push({ name: '', approver_type: 'role', role_id: '', user_id: '' }) },
               pindah(i, arah) { const j = i + arah; if (j < 0 || j >= this.tahap.length) return; const t = this.tahap[i]; this.tahap[i] = this.tahap[j]; this.tahap[j] = t; },
               err(k) { return this.galat[k] ?? '' },
+              fmt(field) { return this.format[this.dokumen]?.[field] ?? { type: 'money', unit: null, options: {} } },
           }">
         @csrf
         @if ($edit)
@@ -74,10 +78,21 @@
                             @endforeach
                         </select>
                         <div>
-                            <div class="relative">
-                                <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">Rp</span>
-                                <input type="number" min="0" step="0.01" x-bind:name="'conditions[' + i + '][value]'" x-model="k.value" class="{{ $input }} pl-9" x-bind:aria-label="'Nilai kondisi ' + (i + 1)">
-                            </div>
+                            <template x-if="fmt(k.field).type === 'option'">
+                                <select x-bind:name="'conditions[' + i + '][value]'" x-model="k.value" class="{{ $input }}" x-bind:aria-label="'Nilai kondisi ' + (i + 1)">
+                                    <option value="">Pilih</option>
+                                    <template x-for="(label, id) in fmt(k.field).options" x-bind:key="id">
+                                        <option x-bind:value="id" x-text="label" x-bind:selected="String(id) === String(k.value)"></option>
+                                    </template>
+                                </select>
+                            </template>
+                            <template x-if="fmt(k.field).type !== 'option'">
+                                <div class="relative">
+                                    <span x-show="fmt(k.field).type === 'money'" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">Rp</span>
+                                    <input type="number" min="0" step="0.01" x-bind:name="'conditions[' + i + '][value]'" x-model="k.value" class="{{ $input }}" x-bind:class="fmt(k.field).type === 'money' ? 'pl-9' : 'pr-12'" x-bind:aria-label="'Nilai kondisi ' + (i + 1)">
+                                    <span x-show="fmt(k.field).unit" x-text="fmt(k.field).unit" class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400"></span>
+                                </div>
+                            </template>
                             <p class="mt-1 text-xs text-danger-600" x-show="err('conditions.' + i + '.value')" x-text="err('conditions.' + i + '.value')"></p>
                         </div>
                         <x-ui.button type="button" variant="ghost" size="sm" icon="trash" class="text-danger-600 hover:text-danger-700" x-on:click="kondisi.splice(i, 1)" x-bind:aria-label="'Hapus kondisi ' + (i + 1)" />
@@ -111,6 +126,7 @@
                             <select x-bind:name="'steps[' + i + '][approver_type]'" x-model="t.approver_type" class="{{ $input }}" x-bind:aria-label="'Jenis penyetuju tahap ' + (i + 1)">
                                 <option value="role">Peran</option>
                                 <option value="user">Pengguna tertentu</option>
+                                <option value="supervisor" x-show="atasan[dokumen]" x-bind:disabled="! atasan[dokumen]">Atasan langsung pengaju</option>
                             </select>
                             <div>
                                 <select x-show="t.approver_type === 'role'" x-bind:name="t.approver_type === 'role' ? 'steps[' + i + '][role_id]' : ''" x-model="t.role_id" class="{{ $input }}" x-bind:aria-label="'Peran penyetuju tahap ' + (i + 1)">

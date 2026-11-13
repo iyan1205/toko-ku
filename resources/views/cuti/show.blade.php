@@ -1,6 +1,8 @@
 @php
     $tahapSekarang = $cuti->tahapSekarang();
     $jumlahTahap = $cuti->persetujuan->count();
+    // Pengajuan lewat mesin persetujuan (Pengaturan → Alur Persetujuan) memakai panel persetujuan baku.
+    $lewatMesin = $cuti->latestApproval !== null;
 @endphp
 
 <x-app-layout>
@@ -93,7 +95,11 @@
 
         {{-- Alur persetujuan --}}
         <div class="space-y-4">
-            <div class="kartu p-5">
+            @if ($lewatMesin)
+                <x-ui.approval-panel :document="$cuti" />
+            @endif
+            <x-ui.attachments :document="$cuti" />
+            <div @class(['kartu p-5', 'hidden' => $lewatMesin])>
                 <h2 class="judul-bagian">Alur persetujuan</h2>
 
                 <ol class="mt-4 space-y-4">

@@ -9,8 +9,10 @@
 @php
     $service = app(\App\Services\Documents\AttachmentService::class);
     $user = auth()->user();
-    $bolehLihat = ($izinLihat = $document->attachmentPermission('view')) && $user->can($izinLihat);
-    $bolehUbah = ($izinUbah = $document->attachmentPermission('update')) && $user->can($izinUbah);
+    // Sama dengan AttachmentController: izin di config/model, atau akses khusus pemilik dokumen (allowsAttachmentAccess).
+    $aksesKhusus = fn (string $aksi) => method_exists($document, 'allowsAttachmentAccess') && $document->allowsAttachmentAccess($user, $aksi);
+    $bolehLihat = (($izinLihat = $document->attachmentPermission('view')) && $user->can($izinLihat)) || $aksesKhusus('view');
+    $bolehUbah = (($izinUbah = $document->attachmentPermission('update')) && $user->can($izinUbah)) || $aksesKhusus('update');
     $maxKb = $service->maxKilobytes();
     $opsi = [
         'items' => $bolehLihat ? $document->attachments()->with('uploader:id,name')->get()->map(fn ($a) => $a->toPanelArray($bolehUbah))->values() : [],

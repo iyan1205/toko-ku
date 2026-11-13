@@ -30,5 +30,7 @@ return [
         'employee_document' => ['label' => 'Dokumen karyawan', 'view' => 'sdm.employees.view', 'update' => 'sdm.employees.update'],
         // Reimbursement: izin HR di attachmentPermission(), pemilik lewat allowsAttachmentAccess() di modelnya.
         'reimbursement_request' => ['label' => 'Reimbursement'],
+        // Cuti (surat dokter, dsb.): izin HR di attachmentPermission(), pemohon lewat allowsAttachmentAccess().
+        'leave' => ['label' => 'Cuti & izin'],
     ],
 ];

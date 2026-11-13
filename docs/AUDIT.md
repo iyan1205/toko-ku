@@ -647,6 +647,13 @@ Dikerjakan sebelum 5b dan Fase 6 karena mengubah `StockService`, yang dipakai pe
 - Layanan Mandiri: route `saya/*` (`ess.*`), `overtime_requests` dan `reimbursement_requests` (status baku, `HasApproval` dokumen `overtime`/`reimbursement`, nomor LBR/RMB bulanan), `EmployeeRequestService` (ajukan, setujui/tolak langsung, batal), lampiran yang bisa dibuka pemilik dokumennya (`allowsAttachmentAccess`).
 - 13 izin baru: `sdm.self-service.view`, `sdm.organization.view`, `sdm.offboarding.*` (3), `sdm.overtime.*` (4), `sdm.reimbursements.*` (4). Semua peran pegawai (termasuk Admin) mendapat Layanan Mandiri serta mengajukan lembur dan reimbursement.
 
+### Fase 13 — Absensi, Jadwal, Lembur, Cuti · XL
+**Status 13 Nov 2026: selesai, menunggu pengecekan pemilik.** Rincian di [ROADMAP.md](ROADMAP.md).
+- 3 migration aditif: kolom baru `shifts` (toleransi, istirahat, warna), `branches` (lat/lng/radius absen), `employees` (`attendance_pin`, `base_salary`, `overtime_eligible`), `absensis` (`employee_id`, menit telat/pulang cepat, sumber, foto, jarak), `jadwals.employee_id` (diisi dari `user_id`), `jenis_cutis` (aturan + `quota_tiers`), `cutis` (`employee_id`, `branch_id`); tabel baru `holidays`, `shift_rotations`, `attendance_corrections`, `overtime_rules` (berisi aturan PP 35/2021 sebagai titik awal).
+- Service: `WorkCalendar` (hari kerja per karyawan), `AbsensiService` (radius, selfie, scan fingerprint, koreksi), `ScheduleRotationService`, `OvertimeCalculator`, `AttendanceRecapService`, `CutiService` (aturan, hari kerja, mesin persetujuan).
+- Keputusan: tarif lembur disimpan sebagai data bertanggal berlaku (bukan setting tunggal), sesuai aturan tarif enterprise. Cuti memakai `ApprovalService` bila ada alur "Cuti & izin" yang cocok; tahap lama jenis cuti tetap berlaku sebagai cadangan supaya pengajuan dan pengaturan yang sudah ada tidak berubah. Pemilik bisa memindahkan tahap lama ke Alur Persetujuan dengan tombol "Ke alur persetujuan". Impor fingerprint diproses langsung (paling banyak 10.000 baris), mengikuti kerangka impor Fase 8.
+- Izin baru: `settings.sdm.*`, `sdm.holidays.*` (5), `sdm.attendances.import`, `sdm.attendance-corrections.*` (4), `sdm.attendance-reports.*` (2). Semua pegawai bisa mengajukan koreksi absensi; HRD juga mendapat Pengaturan → SDM.
+
 ### Urutan dan ketergantungan
 ```
 0.5 Persiapan → 1 Fondasi UI → 2 Layout & Menu → 3 Hak Akses → 4 Pengaturan & Dashboard

@@ -4,6 +4,9 @@ namespace App\Models;
 
 use App\Enums\StatusCuti;
 use App\Enums\StatusPersetujuan;
+use App\Models\Concerns\HasApproval;
+use App\Models\Concerns\HasAttachments;
+use App\Services\Sdm\CutiService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,16 +15,84 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Pengajuan cuti satu pegawai. Ditulis lewat CutiService.
- * Tahap persetujuannya disalin dari jenis cuti saat diajukan (relasi persetujuan).
+ *
+ * Persetujuan: bila ada alur "Cuti & izin" yang cocok di Pengaturan → Alur Persetujuan, pengajuan
+ * diputuskan lewat ApprovalService (HasApproval). Bila tidak, tahap dari jenis cuti disalin saat
+ * diajukan (relasi persetujuan, alur lama) supaya pengaturan yang sudah ada tetap berjalan.
  */
 class Cuti extends Model
 {
-    use HasFactory;
+    use HasApproval, HasAttachments, HasFactory;
 
     protected $fillable = [
-        'nomor', 'user_id', 'jenis_cuti_id', 'tanggal_mulai', 'tanggal_selesai',
+        'nomor', 'user_id', 'employee_id', 'branch_id', 'jenis_cuti_id', 'tanggal_mulai', 'tanggal_selesai',
         'jumlah_hari', 'alasan', 'status', 'tahap_aktif',
     ];
+
+    public function employee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class)->withTrashed();
+    }
+
+    public function approvalDocumentType(): string
+    {
+        return 'leave';
+    }
+
+    public function approvalTitle(): string
+    {
+        return "{$this->nomor} · {$this->jenisCuti?->nama} {$this->user?->name} {$this->rentangTanggal()} ({$this->jumlah_hari} hari)";
+    }
+
+    public function approvalUrl(): string
+    {
+        return route('leaves.show', $this);
+    }
+
+    public function approvalValue(string $field): mixed
+    {
+        return match ($field) {
+            'leave_type' => $this->jenis_cuti_id,
+            'days' => $this->jumlah_hari,
+            default => $this->getAttribute($field),
+        };
+    }
+
+    public function approvalSupervisor(): ?User
+    {
+        return $this->employee?->supervisorUser();
+    }
+
+    public function attachmentPermission(string $action): ?string
+    {
+        return $action === 'view' ? 'sdm.leaves.view' : 'sdm.leaves.approve';
+    }
+
+    /** Pemohon boleh melihat lampirannya, dan menambah/menghapus selama pengajuan masih menunggu. */
+    public function allowsAttachmentAccess(User $user, string $action): bool
+    {
+        return $this->user_id === $user->id && ($action === 'view' || $this->status === StatusCuti::Menunggu);
+    }
+
+    /** Status cuti tetap Menunggu selama di alur persetujuan. */
+    public function onApprovalSubmitted(ApprovalRequest $request): void {}
+
+    public function onApprovalApproved(ApprovalRequest $request, User $by): void
+    {
+        app(CutiService::class)->selesaiDisetujui($this, $by);
+    }
+
+    public function onApprovalRejected(ApprovalRequest $request, User $by, string $note): void
+    {
+        $this->update(['status' => StatusCuti::Ditolak, 'tahap_aktif' => null]);
+    }
+
+    public function onApprovalCancelled(ApprovalRequest $request, ?User $by): void
+    {
+        if ($this->status === StatusCuti::Menunggu) {
+            $this->update(['status' => StatusCuti::Dibatalkan, 'tahap_aktif' => null]);
+        }
+    }
 
     protected function casts(): array
     {

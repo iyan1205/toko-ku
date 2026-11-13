@@ -2,6 +2,7 @@
 
 use App\Models\AttendanceCorrection;
 use App\Models\CashTransaction;
+use App\Models\Cuti;
 use App\Models\Journal;
 use App\Models\OvertimeRequest;
 use App\Models\PurchaseOrder;
@@ -12,7 +13,10 @@ use App\Models\ReimbursementRequest;
 | Dokumen yang bisa diberi alur persetujuan (Pengaturan → Alur Persetujuan)
 |--------------------------------------------------------------------------
 | Model dokumen memakai trait App\Models\Concerns\HasApproval. fields = nilai dokumen yang
-| bisa dipakai di kondisi alur (dibaca lewat approvalValue()): nominal Rupiah, kecuali jam lembur.
+| bisa dipakai di kondisi alur (dibaca lewat approvalValue()). Bawaannya nominal Rupiah; formats
+| mengubahnya menjadi angka biasa (type number + unit) atau pilihan (type option + options = sumber
+| daftar di ApprovalFlow::fieldOptions()). supervisor = true: tahap boleh "Atasan langsung" pengaju
+| (dokumen menyediakan approvalSupervisor()).
 |
 | Menambah dokumen: pakai HasApproval di modelnya, daftarkan di sini, dan sediakan tombol
 | "Ajukan persetujuan" di halaman dokumennya (komponen x-approval.panel).
@@ -44,16 +48,28 @@ return [
             'label' => 'Pengajuan lembur',
             'model' => OvertimeRequest::class,
             'fields' => ['hours' => 'Jam lembur'],
+            'formats' => ['hours' => ['type' => 'number', 'unit' => 'jam']],
+            'supervisor' => true,
         ],
         'reimbursement' => [
             'label' => 'Pengajuan reimbursement',
             'model' => ReimbursementRequest::class,
             'fields' => ['total' => 'Total'],
+            'supervisor' => true,
         ],
         'attendance_correction' => [
             'label' => 'Koreksi absensi',
             'model' => AttendanceCorrection::class,
             'fields' => ['days_late' => 'Selisih hari pengajuan'],
+            'formats' => ['days_late' => ['type' => 'number', 'unit' => 'hari']],
+            'supervisor' => true,
+        ],
+        'leave' => [
+            'label' => 'Cuti & izin',
+            'model' => Cuti::class,
+            'fields' => ['leave_type' => 'Jenis cuti', 'days' => 'Jumlah hari'],
+            'formats' => ['leave_type' => ['type' => 'option', 'options' => 'leave_types'], 'days' => ['type' => 'number', 'unit' => 'hari']],
+            'supervisor' => true,
         ],
     ],
 

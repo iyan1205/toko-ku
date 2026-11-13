@@ -20,6 +20,9 @@ class CutiRequest extends FormRequest
             'tanggal_mulai' => ['required', 'date_format:Y-m-d'],
             'tanggal_selesai' => ['required', 'date_format:Y-m-d', 'after_or_equal:tanggal_mulai'],
             'alasan' => ['required', 'string', 'max:500'],
+            // Surat keterangan (misal surat dokter); wajib atau tidaknya diperiksa CutiService dari aturan jenis cuti.
+            'dokumen' => ['nullable', 'array', 'max:3'],
+            'dokumen.*' => ['file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:'.config('attachments.max_kb', 10240)],
         ];
     }
 
@@ -29,6 +32,7 @@ class CutiRequest extends FormRequest
             'jenis_cuti_id' => 'jenis cuti',
             'tanggal_mulai' => 'tanggal mulai',
             'tanggal_selesai' => 'tanggal selesai',
+            'dokumen.*' => 'surat keterangan',
         ];
     }
 

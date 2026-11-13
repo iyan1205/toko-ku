@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\Gender;
 use App\Enums\StatusAbsensi;
+use App\Models\JenisCuti;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -16,7 +18,13 @@ class JenisCutiRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge(['is_active' => $this->boolean('is_active')]);
+        $this->merge([
+            'is_active' => $this->boolean('is_active'),
+            'is_paid' => $this->has('is_paid') ? $this->boolean('is_paid') : true,
+            'requires_document' => $this->boolean('requires_document'),
+            'working_days_only' => $this->has('working_days_only') ? $this->boolean('working_days_only') : false,
+            'quota_tiers' => array_values(array_filter((array) $this->input('quota_tiers', []), fn ($t) => is_array($t) && filled($t['months'] ?? null) && filled($t['days'] ?? null))),
+        ]);
     }
 
     public function rules(): array
@@ -26,6 +34,17 @@ class JenisCutiRequest extends FormRequest
             'kuota_tahunan' => ['nullable', 'integer', 'min:1', 'max:366'],
             'status_absensi' => ['required', Rule::in(array_column(StatusAbsensi::untukCuti(), 'value'))],
             'is_active' => ['boolean'],
+            'category' => ['nullable', Rule::in(array_keys(JenisCuti::CATEGORIES))],
+            'is_paid' => ['boolean'],
+            'requires_document' => ['boolean'],
+            'document_after_days' => ['nullable', 'integer', 'min:0', 'max:366'],
+            'max_days_per_request' => ['nullable', 'integer', 'min:1', 'max:366'],
+            'min_service_months' => ['nullable', 'integer', 'min:0', 'max:600'],
+            'gender' => ['nullable', Rule::enum(Gender::class)],
+            'working_days_only' => ['boolean'],
+            'quota_tiers' => ['array', 'max:6'],
+            'quota_tiers.*.months' => ['required', 'integer', 'min:0', 'max:600', 'distinct'],
+            'quota_tiers.*.days' => ['required', 'integer', 'min:0', 'max:366'],
             'tahap' => ['nullable', 'array', 'max:5'],
             'tahap.*.tipe' => ['required', Rule::in(['peran', 'orang'])],
             'tahap.*.peran' => ['exclude_unless:tahap.*.tipe,peran', 'required', Rule::exists(config('permission.table_names.roles'), 'name')->where('guard_name', 'web'), 'distinct'],
@@ -43,6 +62,10 @@ class JenisCutiRequest extends FormRequest
             'kuota_tahunan' => 'kuota per tahun',
             'status_absensi' => 'status di absensi',
             'tahap' => 'tahap persetujuan',
+            'quota_tiers.*.months' => 'masa kerja',
+            'quota_tiers.*.days' => 'jumlah hari',
+            'max_days_per_request' => 'batas hari per pengajuan',
+            'min_service_months' => 'masa kerja minimal',
             'tahap.*.peran' => 'peran approver',
             'tahap.*.approver_id' => 'approver',
         ];

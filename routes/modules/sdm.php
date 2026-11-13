@@ -89,6 +89,7 @@ Route::middleware('permission:sdm.leaves.create')->group(function () {
 });
 Route::middleware('permission:sdm.leaves.view|sdm.leaves.create|sdm.leaves.approve')->group(function () {
     Route::get('cuti', [CutiController::class, 'index'])->name('leaves.index');
+    Route::get('cuti/kalender', [CutiController::class, 'calendar'])->name('leaves.calendar');
     Route::get('cuti/{cuti}', [CutiController::class, 'show'])->name('leaves.show');
     Route::post('cuti/{cuti}/setujui', [CutiController::class, 'approve'])->name('leaves.approve');
     Route::post('cuti/{cuti}/tolak', [CutiController::class, 'reject'])->name('leaves.reject');
@@ -96,6 +97,8 @@ Route::middleware('permission:sdm.leaves.view|sdm.leaves.create|sdm.leaves.appro
 });
 
 // Jenis cuti, kuota, dan alur persetujuannya.
+Route::post('jenis-cuti/standar', [JenisCutiController::class, 'standard'])->middleware('permission:sdm.leave-types.create')->name('leave-types.standard');
+Route::post('jenis-cuti/{jenis_cuti}/ke-alur', [JenisCutiController::class, 'toFlow'])->middleware('permission:settings.approvals.create')->name('leave-types.to-flow');
 Route::resource('jenis-cuti', JenisCutiController::class)
     ->parameters(['jenis-cuti' => 'jenis_cuti'])
     ->names('leave-types')

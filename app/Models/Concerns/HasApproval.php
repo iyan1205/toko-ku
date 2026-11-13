@@ -51,6 +51,12 @@ trait HasApproval
         return null;
     }
 
+    /** Atasan langsung pengaju untuk tahap "Atasan langsung" (dokumen karyawan menimpa ini). */
+    public function approvalSupervisor(): ?User
+    {
+        return null;
+    }
+
     public function approvalValue(string $field): mixed
     {
         return $field === 'total' ? $this->approvalAmount() : $this->getAttribute($field);

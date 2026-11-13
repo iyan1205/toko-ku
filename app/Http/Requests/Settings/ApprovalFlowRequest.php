@@ -5,6 +5,7 @@ namespace App\Http\Requests\Settings;
 use App\Enums\ApproverType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /** Alur persetujuan: jenis dokumen, kondisi (semua harus terpenuhi), cabang, dan tahap penyetuju berurutan. */
 class ApprovalFlowRequest extends FormRequest
@@ -49,6 +50,21 @@ class ApprovalFlowRequest extends FormRequest
             'steps.*.role_id' => ['nullable', 'required_if:steps.*.approver_type,role', 'integer', Rule::exists(config('permission.table_names.roles', 'roles'), 'id')],
             'steps.*.user_id' => ['nullable', 'required_if:steps.*.approver_type,user', 'integer', Rule::exists('users', 'id')->whereNull('deleted_at')->where('is_active', true)],
         ];
+    }
+
+    /** Tahap "Atasan langsung" hanya untuk dokumen karyawan (config approval.documents.*.supervisor). */
+    public function after(): array
+    {
+        return [function (Validator $validator) {
+            if (config('approval.documents.'.$this->input('document_type').'.supervisor', false)) {
+                return;
+            }
+            foreach ((array) $this->input('steps', []) as $i => $step) {
+                if (($step['approver_type'] ?? null) === ApproverType::Supervisor->value) {
+                    $validator->errors()->add("steps.{$i}.approver_type", 'Atasan langsung hanya untuk pengajuan karyawan (cuti, lembur, reimbursement, koreksi absensi).');
+                }
+            }
+        }];
     }
 
     public function attributes(): array

@@ -6,6 +6,7 @@ use App\Enums\StatusCuti;
 use App\Models\Cuti;
 use App\Models\PersetujuanCuti;
 use App\Models\User;
+use App\Services\Approval\ApprovalService;
 use App\Services\Sdm\CutiService;
 
 /**
@@ -25,7 +26,18 @@ class CutiPolicy
     {
         return $cuti->user_id === $user->id
             || $user->can('sdm.leaves.view')
-            || $cuti->persetujuan->contains(fn (PersetujuanCuti $tahap) => $tahap->ditujukanKe($user));
+            || $cuti->persetujuan->contains(fn (PersetujuanCuti $tahap) => $tahap->ditujukanKe($user))
+            || $this->penyetujuMesin($user, $cuti);
+    }
+
+    /** Penyetuju lewat mesin persetujuan: tahap yang sedang menunggu ditujukan kepadanya, atau ia pernah memutuskannya. */
+    private function penyetujuMesin(User $user, Cuti $cuti): bool
+    {
+        if (($pending = $cuti->pendingApproval()) !== null && app(ApprovalService::class)->canAct($pending, $user)) {
+            return true;
+        }
+
+        return $cuti->approvalRequests()->whereHas('history', fn ($q) => $q->where('user_id', $user->id))->exists();
     }
 
     public function create(User $user): bool

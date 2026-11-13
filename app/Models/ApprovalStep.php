@@ -35,11 +35,13 @@ class ApprovalStep extends Model
         return $this->belongsTo(User::class)->withTrashed();
     }
 
-    /** "Peran Admin" / "Budi Santoso", atau null bila peran/pengguna sudah dihapus. */
+    /** "Peran Admin" / "Budi Santoso" / "Atasan langsung pengaju", atau null bila peran/pengguna sudah dihapus. */
     public function approverLabel(): ?string
     {
-        return $this->approver_type === ApproverType::Role
-            ? ($this->role ? "Peran {$this->role->name}" : null)
-            : ($this->user && ! $this->user->trashed() ? $this->user->name : null);
+        return match ($this->approver_type) {
+            ApproverType::Role => $this->role ? "Peran {$this->role->name}" : null,
+            ApproverType::User => $this->user && ! $this->user->trashed() ? $this->user->name : null,
+            ApproverType::Supervisor => 'Atasan langsung pengaju',
+        };
     }
 }

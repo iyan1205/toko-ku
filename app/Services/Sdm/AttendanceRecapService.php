@@ -85,7 +85,7 @@ class AttendanceRecapService
             ->where(fn ($q) => $q->whereIn('employee_id', $ids)->orWhereIn('user_id', $userToEmployee->keys()))
             ->whereDate('tanggal', '>=', $from->toDateString())->whereDate('tanggal', '<=', $to->toDateString())
             ->get()->keyBy(fn (Absensi $a) => ($a->employee_id ?? $userToEmployee[$a->user_id]).'|'.$a->tanggal->toDateString());
-        $leaves = $this->leaveDays($userToEmployee, $from, $to);
+        $leaves = $this->leaveDays($ids, $userToEmployee, $from, $to);
         $overtime = OvertimeRequest::withoutGlobalScope(BranchScope::class)->whereIn('employee_id', $ids)
             ->where('status', DocumentStatus::Approved->value)
             ->whereDate('overtime_date', '>=', $from->toDateString())->whereDate('overtime_date', '<=', $to->toDateString())
@@ -178,14 +178,15 @@ class AttendanceRecapService
     /**
      * Cuti disetujui per hari: "employee_id|Y-m-d" => [name, status, paid].
      *
+     * @param  Collection<int, int>  $ids
      * @param  Collection<int, int>  $userToEmployee
      * @return array<string, array{name: string, status: ?StatusAbsensi, paid: bool}>
      */
-    private function leaveDays(Collection $userToEmployee, CarbonImmutable $from, CarbonImmutable $to): array
+    private function leaveDays(Collection $ids, Collection $userToEmployee, CarbonImmutable $from, CarbonImmutable $to): array
     {
         $days = [];
         $leaves = Cuti::query()->with('jenisCuti')->where('status', StatusCuti::Disetujui)
-            ->whereIn('user_id', $userToEmployee->keys())
+            ->where(fn ($q) => $q->whereIn('employee_id', $ids)->orWhereIn('user_id', $userToEmployee->keys()))
             ->whereDate('tanggal_mulai', '<=', $to->toDateString())->whereDate('tanggal_selesai', '>=', $from->toDateString())
             ->get();
 
@@ -193,7 +194,7 @@ class AttendanceRecapService
             $start = CarbonImmutable::parse($leave->tanggal_mulai)->max($from);
             $finish = CarbonImmutable::parse($leave->tanggal_selesai)->min($to);
             for ($d = $start; $d->lte($finish); $d = $d->addDay()) {
-                $days[$userToEmployee[$leave->user_id].'|'.$d->toDateString()] = [
+                $days[($leave->employee_id ?? $userToEmployee[$leave->user_id]).'|'.$d->toDateString()] = [
                     'name' => $leave->jenisCuti?->nama ?? 'Cuti',
                     'status' => $leave->jenisCuti?->status_absensi,
                     'paid' => (bool) ($leave->jenisCuti?->is_paid ?? true),

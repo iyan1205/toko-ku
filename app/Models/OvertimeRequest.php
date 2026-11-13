@@ -74,6 +74,11 @@ class OvertimeRequest extends Model
         return false;
     }
 
+    public function approvalSupervisor(): ?User
+    {
+        return $this->employee?->supervisorUser();
+    }
+
     public function approvalUrl(): string
     {
         return route($this->hrRouteName(), ['cari' => $this->number]);

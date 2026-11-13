@@ -65,7 +65,7 @@ class ApprovalService
     public function submit(Model $document, User $by, ?string $note = null): ApprovalRequest
     {
         $flow = $this->flowFor($document) ?? throw new AturanBisnisException('Dokumen ini tidak memerlukan persetujuan.');
-        $steps = $this->snapshot($flow);
+        $steps = $this->snapshot($flow, $document, $by);
 
         return DB::transaction(function () use ($document, $by, $note, $flow, $steps) {
             if ($document->pendingApproval() !== null) {
@@ -244,16 +244,31 @@ class ApprovalService
     }
 
     /** @return list<array{sequence: int, name: string, approver_type: string, role_id: ?int, role_name: ?string, user_id: ?int, user_name: ?string}> */
-    private function snapshot(ApprovalFlow $flow): array
+    private function snapshot(ApprovalFlow $flow, Model $document, User $by): array
     {
         if ($flow->steps->isEmpty()) {
             throw new AturanBisnisException("Alur persetujuan \"{$flow->name}\" belum punya tahap. Lengkapi di Pengaturan → Alur Persetujuan.");
         }
 
-        return $flow->steps->map(function (ApprovalStep $step) use ($flow) {
+        // Tahap "Atasan langsung" diganti pengguna atasan pengaju saat diajukan; dilewati bila tidak ada
+        // (atasan belum diatur, tanpa akun login, atau pengaju sendiri).
+        $supervisor = $document->approvalSupervisor();
+        if ($supervisor !== null && ($supervisor->is($by) || ! $supervisor->is_active)) {
+            $supervisor = null;
+        }
+
+        $steps = $flow->steps->map(function (ApprovalStep $step) use ($flow, $supervisor) {
             if ($step->approverLabel() === null) {
                 throw new AturanBisnisException("Alur persetujuan \"{$flow->name}\" tahap {$step->sequence} ({$step->name}) belum punya penyetuju. Perbaiki di Pengaturan → Alur Persetujuan.");
             }
+            if ($step->approver_type === ApproverType::Supervisor && $supervisor === null) {
+                return null;
+            }
+            $user = match ($step->approver_type) {
+                ApproverType::User => $step->user,
+                ApproverType::Supervisor => $supervisor,
+                default => null,
+            };
 
             return [
                 'sequence' => $step->sequence,
@@ -261,10 +276,16 @@ class ApprovalService
                 'approver_type' => $step->approver_type->value,
                 'role_id' => $step->approver_type === ApproverType::Role ? $step->role_id : null,
                 'role_name' => $step->approver_type === ApproverType::Role ? $step->role?->name : null,
-                'user_id' => $step->approver_type === ApproverType::User ? $step->user_id : null,
-                'user_name' => $step->approver_type === ApproverType::User ? $step->user?->name : null,
+                'user_id' => $user?->getKey(),
+                'user_name' => $user?->name,
             ];
-        })->values()->all();
+        })->filter()->values()->all();
+
+        if ($steps === []) {
+            throw new AturanBisnisException("Alur persetujuan \"{$flow->name}\" hanya berisi tahap atasan langsung, tetapi atasan pengaju belum diatur (SDM → Karyawan → Atasan langsung, dengan akun login).");
+        }
+
+        return $steps;
     }
 
     /** @param array{sequence: int, role_id: ?int, user_id: ?int} $step */

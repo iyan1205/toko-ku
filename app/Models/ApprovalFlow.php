@@ -83,6 +83,43 @@ class ApprovalFlow extends Model
         return true;
     }
 
+    /**
+     * Format nilai kondisi satu kolom: money (bawaan, Rupiah), number (+ unit), option (+ daftar pilihan).
+     *
+     * @return array{type: string, unit: ?string, options: array<string, string>}
+     */
+    public static function fieldFormat(string $documentType, string $field): array
+    {
+        $format = config("approval.documents.{$documentType}.formats.{$field}", []);
+
+        return [
+            'type' => $format['type'] ?? 'money',
+            'unit' => $format['unit'] ?? null,
+            'options' => isset($format['options']) ? self::fieldOptions($format['options']) : [],
+        ];
+    }
+
+    /** Daftar pilihan untuk kolom bertipe option (id => nama). @return array<string, string> */
+    public static function fieldOptions(string $source): array
+    {
+        return match ($source) {
+            'leave_types' => JenisCuti::query()->orderBy('nama')->pluck('nama', 'id')->mapWithKeys(fn ($nama, $id) => [(string) $id => $nama])->all(),
+            default => [],
+        };
+    }
+
+    /** Nilai kondisi untuk dibaca orang: "Rp 5.000.000", "3 jam", "Cuti Tahunan". */
+    public function conditionValueLabel(string $field, mixed $value): string
+    {
+        $format = self::fieldFormat($this->document_type, $field);
+
+        return match ($format['type']) {
+            'number' => trim(rtrim(rtrim(number_format((float) $value, 2, ',', '.'), '0'), ',').' '.$format['unit']),
+            'option' => $format['options'][(string) (int) $value] ?? (string) $value,
+            default => Format::rupiah($value),
+        };
+    }
+
     /** "Total lebih dari Rp 5.000.000", atau "Semua dokumen" tanpa kondisi. */
     public function conditionSummary(): string
     {
@@ -92,7 +129,7 @@ class ApprovalFlow extends Model
         $parts = array_map(fn (array $c) => trim(sprintf('%s %s %s',
             $fields[$c['field']] ?? $c['field'],
             $operators[$c['operator']] ?? $c['operator'],
-            Format::rupiah($c['value']),
+            $this->conditionValueLabel($c['field'], $c['value']),
         )), $this->conditions ?? []);
 
         return $parts === [] ? 'Semua dokumen' : implode(' dan ', $parts);
