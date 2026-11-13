@@ -58,6 +58,8 @@ class ProductsExport extends ListExport
             ['label' => 'Stok Minimum', 'value' => fn (Product $p) => $p->min_stock, 'type' => 'qty'],
             ['label' => 'Diskon (%)', 'value' => fn (Product $p) => $p->discount_percent, 'type' => 'qty'],
             ['label' => 'Status', 'value' => fn (Product $p) => $p->is_active ? 'Aktif' : 'Nonaktif'],
+            ['label' => 'Dijual', 'value' => fn (Product $p) => $p->isSellable() ? 'Ya' : 'Tidak'],
+            ['label' => 'Dibeli', 'value' => fn (Product $p) => $p->is_purchasable ? 'Ya' : 'Tidak'],
             ['label' => 'Deskripsi', 'value' => fn (Product $p) => $p->description],
         ];
     }

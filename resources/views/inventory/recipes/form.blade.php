@@ -23,12 +23,13 @@
 
     <form method="POST" action="{{ $edit ? route('recipes.update', $recipe) : route('recipes.store') }}" class="grid gap-6"
           x-data="{
+              hasil: @js($edit ? (float) $recipe->yield_quantity : 1),
               ...@js($awal),
               tambah() { this.items.push({ product_id: '', quantity: '', notes: '' }) },
               hapus(i) { if (this.items.length > 1) this.items.splice(i, 1) },
               bahan(id) { return this.produk.find((p) => String(p.id) === String(id)) ?? null },
               baris(item) { return (parseFloat(item.quantity) || 0) * (this.bahan(item.product_id)?.price ?? 0) },
-              total() { return this.items.reduce((s, item) => s + this.baris(item), 0) },
+              total() { return this.items.reduce((s, item) => s + this.baris(item), 0) / Math.max(parseFloat(this.hasil) || 1, 0.0001) },
               galat(i, kolom) { return this.errors['items.' + i + '.' + kolom]?.[0] ?? '' },
               rp(v) { return 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.round(v) || 0) },
           }">
@@ -43,6 +44,9 @@
                              :options="$produkList->mapWithKeys(fn ($p) => [$p->id => $p->name.' — '.\App\Support\Format::rupiah($p->selling_price)])"
                              :selected="$edit ? $recipe->product_id : null" />
                 <x-ui.textarea name="notes" label="Catatan" rows="2" maxlength="500" :value="$edit ? $recipe->notes : null" />
+                <x-ui.input name="yield_quantity" label="Bahan di bawah menghasilkan" type="number" min="0.0001" step="any" required
+                            :value="$edit ? (float) $recipe->yield_quantity : 1" x-model="hasil" suffix="satuan produk"
+                            hint="Misal 1 pack karkas dipotong menjadi 9 potong: isi bahan Karkas 1 dan hasil 9. Saat produksi, 1 potong memakai 1/9 pack." />
             </div>
         </x-ui.card>
 
@@ -94,7 +98,7 @@
                     </tbody>
                     <tfoot class="bg-slate-50">
                         <tr>
-                            <td colspan="4" class="px-4 py-3 text-sm font-semibold text-slate-900">Total biaya bahan per porsi</td>
+                            <td colspan="4" class="px-4 py-3 text-sm font-semibold text-slate-900">Biaya bahan per satuan produk (total ÷ hasil)</td>
                             <td class="px-4 py-3 text-right font-semibold tabular-nums text-slate-900" x-text="rp(total())"></td>
                             <td></td>
                         </tr>

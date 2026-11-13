@@ -26,6 +26,7 @@ class StockAdjustmentRequest extends FormRequest
             'expiry_date' => ['nullable', 'date'],
             'lot_id' => ['nullable', 'integer', Rule::exists('stock_lots', 'id')->where('product_id', $this->integer('product_id'))],
             'serials' => ['nullable', 'string', 'max:5000'],
+            'produksi' => ['nullable', 'boolean'],
         ];
     }
 

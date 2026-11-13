@@ -5,6 +5,7 @@
         'sale', 'purchase_return' => 'info',
         'transfer_out', 'transfer_in' => 'primary',
         'adjustment' => 'neutral',
+        'production' => 'warning',
         default => 'danger',
     };
 @endphp

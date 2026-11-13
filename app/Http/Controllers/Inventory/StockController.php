@@ -14,6 +14,7 @@ use App\Models\Product;
 use App\Models\StockLot;
 use App\Models\Warehouse;
 use App\Models\WarehouseStock;
+use App\Services\Inventory\ProductionService;
 use App\Services\StockService;
 use App\Support\Format;
 use Illuminate\Http\RedirectResponse;
@@ -117,7 +118,8 @@ class StockController extends Controller
     public function createAdjustment(Request $request): View
     {
         $gudang = Warehouse::query()->active()->inCurrentBranch()->ordered()->get(['id', 'name', 'is_default']);
-        $produk = Product::aktif()->stockable()->with('unit:id,name')->orderBy('name')->get(['id', 'sku', 'name', 'stock', 'unit_id', 'track_batches', 'track_serials']);
+        $produk = Product::aktif()->stockable()->with(['unit:id,name', 'recipe.items.product:id,name,unit_id', 'recipe.items.product.unit:id,name'])
+            ->orderBy('name')->get(['id', 'sku', 'name', 'stock', 'unit_id', 'track_batches', 'track_serials', 'is_bundle']);
 
         // Stok tiap produk per gudang aktif, untuk menampilkan "stok saat ini" di formulir.
         $stok = WarehouseStock::query()->whereIn('warehouse_id', $gudang->modelKeys())->where('quantity', '!=', 0)
@@ -133,7 +135,14 @@ class StockController extends Controller
                 'id' => $l->id, 'label' => $l->label().' · sisa '.Format::jumlah($l->quantity),
             ])->values()));
 
+        // Produk olahan: bahan per satu satuan produk (resep ÷ hasil), untuk pratinjau produksi.
+        $resep = $produk->filter(fn (Product $p) => $p->isProduced())->mapWithKeys(fn (Product $p) => [$p->id => $p->recipe->items
+            ->filter(fn ($i) => $i->product)->map(fn ($i) => [
+                'name' => $i->product->name, 'unit' => $i->product->unit?->name, 'per' => (float) $i->quantity / $p->recipe->yieldQuantity(),
+            ])->values()]);
+
         return view('inventory.stock.adjust', [
+            'resep' => $resep,
             'lots' => $lots,
             'produk' => $produk,
             'gudang' => $gudang,
@@ -148,6 +157,18 @@ class StockController extends Controller
     {
         $produk = Product::findOrFail($request->integer('product_id'));
         $gudang = $request->filled('warehouse_id') ? Warehouse::findOrFail($request->integer('warehouse_id')) : null;
+
+        // Tambah stok produk olahan dengan "ambil dari bahan resep": produksi, bahan berkurang sesuai resep.
+        if ($request->input('type') === StockMovementType::Adjustment->value && $request->input('direction') === 'in' && $request->boolean('produksi') && $produk->loadMissing('recipe.items')->isProduced()) {
+            $hasil = app(ProductionService::class)->produce($produk, $request->input('quantity'), (string) $request->input('note'), $request->user(), $gudang);
+            $masuk = $hasil->last();
+
+            return redirect()->route('stock.movements', ['produk' => $produk->id])->with('success', sprintf(
+                'Produksi %s %s dicatat. Stok di %s kini %s; bahan yang dipakai: %s.',
+                Format::jumlah($masuk->quantity), $produk->name, $masuk->warehouse->name, Format::jumlah($masuk->stock_after),
+                $hasil->slice(0, -1)->map(fn ($m) => Format::jumlah(abs((float) $m->quantity)).' '.$m->product->name)->join(', ') ?: '-',
+            ));
+        }
 
         $mutasi = $this->service->sesuaikan(
             $produk,

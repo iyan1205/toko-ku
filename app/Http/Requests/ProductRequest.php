@@ -30,6 +30,9 @@ class ProductRequest extends FormRequest
             'discount_percent' => $this->filled('discount_percent') ? $this->input('discount_percent') : 0,
             'min_stock' => $this->filled('min_stock') ? $this->input('min_stock') : 0,
             'is_active' => $this->boolean('is_active'),
+            // Dijual di kasir = type jual; tidak dijual = bahan baku.
+            'type' => $this->has('is_sellable') ? ($this->boolean('is_sellable') ? 'jual' : 'bahan_baku') : ($this->route('product')?->type ?? 'jual'),
+            'is_purchasable' => $this->has('is_purchasable') ? $this->boolean('is_purchasable') : ($this->route('product')?->is_purchasable ?? true),
             'track_batches' => $this->boolean('track_batches'),
             'track_serials' => $this->boolean('track_serials'),
             'is_bundle' => $this->boolean('is_bundle'),
@@ -62,6 +65,8 @@ class ProductRequest extends FormRequest
             'remove_photo' => ['boolean'],
             'description' => ['nullable', 'string', 'max:2000'],
             'is_active' => ['boolean'],
+            'type' => ['required', Rule::in(['jual', 'bahan_baku'])],
+            'is_purchasable' => ['boolean'],
             'track_batches' => ['boolean'],
             'track_serials' => ['boolean'],
             'is_bundle' => ['boolean'],

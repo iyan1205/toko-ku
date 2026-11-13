@@ -13,6 +13,7 @@ enum StockMovementType: string
     case Lost = 'lost';
     case TransferOut = 'transfer_out';
     case TransferIn = 'transfer_in';
+    case Production = 'production';
 
     public function label(): string
     {
@@ -26,6 +27,7 @@ enum StockMovementType: string
             self::Lost => 'Barang Hilang',
             self::TransferOut => 'Transfer Keluar',
             self::TransferIn => 'Transfer Masuk',
+            self::Production => 'Produksi',
         };
     }
 

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Product;
 use App\Models\Recipe;
 use App\Models\RecipeItem;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -36,13 +37,13 @@ final class RecipeService
      * Simpan BOM produk dari data form.
      * Validasi: bahan baku harus ada, tidak boleh sama dengan produk jual itu sendiri.
      *
-     * @param array<int, array{product_id: int, quantity: float, notes?: string}> $items
+     * @param  array<int, array{product_id: int, quantity: float, notes?: string}>  $items
      */
-    public function simpan(Product $product, array $items, string $notes = ''): Recipe
+    public function simpan(Product $product, array $items, string $notes = '', float $hasil = 1): Recipe
     {
         $recipe = $this->ambil($product);
 
-        return DB::transaction(function () use ($recipe, $items, $notes) {
+        return DB::transaction(function () use ($recipe, $items, $notes, $hasil) {
             // Hapus item lama, lalu buat ulang dari data form.
             RecipeItem::where('recipe_id', $recipe->id)->delete();
 
@@ -63,7 +64,7 @@ final class RecipeService
                 ]);
             }
 
-            $recipe->update(['notes' => $notes]);
+            $recipe->update(['notes' => $notes, 'yield_quantity' => max($hasil, 0.0001)]);
             $recipe->load('items.product.unit');
 
             return $recipe;
@@ -71,7 +72,8 @@ final class RecipeService
     }
 
     /**
-     * Hitung total biaya produksi satu produk jual (jumlah seluruh bahan × harga).
+     * Biaya bahan per SATU satuan produk: (jumlah seluruh bahan × harga) ÷ hasil resep.
+     * Misal 1 pack karkas Rp 45.000 menghasilkan 9 potong → Rp 5.000 per potong.
      */
     public function hitungBiaya(Recipe $recipe): float
     {
@@ -87,7 +89,7 @@ final class RecipeService
             $total += $hargaPerUnit * (float) $item->quantity;
         }
 
-        return $total;
+        return $total / $recipe->yieldQuantity();
     }
 
     /**
@@ -106,7 +108,7 @@ final class RecipeService
     /**
      * Semua produk yang punya BOM.
      *
-     * @return \Illuminate\Support\Collection<int, Recipe>
+     * @return Collection<int, Recipe>
      */
     public function semua()
     {

@@ -69,6 +69,8 @@ class ProductsImport extends ImportDefinition
             'stok_minimum' => ['label' => 'Stok Minimum', 'example' => '24'],
             'diskon' => ['label' => 'Diskon', 'hint' => 'Persen, 0–100.', 'example' => '0'],
             'status' => ['label' => 'Status', 'hint' => 'aktif atau nonaktif.', 'example' => 'aktif'],
+            'dijual' => ['label' => 'Dijual', 'hint' => 'ya/tidak: tampil di kasir. Tidak = bahan baku.', 'example' => 'ya'],
+            'dibeli' => ['label' => 'Dibeli', 'hint' => 'ya/tidak: bisa dibeli dari supplier. Tidak = olahan sendiri.', 'example' => 'ya'],
             'deskripsi' => ['label' => 'Deskripsi', 'example' => ''],
             'lacak_batch' => ['label' => 'Lacak Batch', 'hint' => 'ya/tidak: batch & kedaluwarsa.', 'example' => 'tidak'],
             'lacak_seri' => ['label' => 'Lacak Seri', 'hint' => 'ya/tidak: nomor seri per unit.', 'example' => 'tidak'],
@@ -111,6 +113,8 @@ class ProductsImport extends ImportDefinition
             'discount_percent' => $this->text($row['diskon'] ?? null) ?? '0',
             'is_active' => mb_strtolower((string) ($this->text($row['status'] ?? null) ?? 'aktif')) !== 'nonaktif',
             'description' => $this->text($row['deskripsi'] ?? null),
+            'type' => ($this->text($row['dijual'] ?? null) === null || $ya($row['dijual'])) ? 'jual' : 'bahan_baku',
+            'is_purchasable' => $this->text($row['dibeli'] ?? null) === null || $ya($row['dibeli']),
             'track_batches' => $ya($row['lacak_batch'] ?? null),
             'track_serials' => $ya($row['lacak_seri'] ?? null),
         ];

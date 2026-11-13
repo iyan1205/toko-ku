@@ -153,8 +153,8 @@ class ProductService
                     'min_stock' => $induk->min_stock, 'discount_percent' => $induk->discount_percent,
                     'track_batches' => $induk->track_batches, 'track_serials' => $induk->track_serials,
                     'is_active' => $induk->is_active, 'description' => $induk->description,
+                    'type' => $induk->type ?? 'jual', 'is_purchasable' => $induk->is_purchasable,
                 ]);
-                $varian->forceFill(['type' => $induk->type ?? 'jual'])->save();
             } else {
                 if ($varian->trashed()) {
                     $varian->restore();

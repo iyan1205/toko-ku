@@ -45,7 +45,7 @@ class ProductSearch
      * @param  list<int>  $ids  ambil produk tertentu (untuk memuat ulang stok baris yang sudah dipilih)
      * @return list<array{id: int, sku: string, barcode: ?string, name: string, unit: ?string, stock: float, purchase_price: float}>
      */
-    public function search(?string $keyword, ?int $warehouseId = null, array $ids = []): array
+    public function search(?string $keyword, ?int $warehouseId = null, array $ids = [], bool $purchasableOnly = false): array
     {
         $keyword = trim((string) $keyword);
 
@@ -54,6 +54,8 @@ class ProductSearch
         }
 
         $products = Product::aktif()->stockable()->with(['unit:id,name', 'units.unit:id,name'])
+            // PO/pembelian: hanya produk yang dibeli dari supplier (baris yang sudah dipilih tetap dimuat ulang).
+            ->when($purchasableOnly && $ids === [], fn ($q) => $q->purchasable())
             ->when($ids !== [], fn ($q) => $q->whereIn('id', $ids), fn ($q) => $q->cari($keyword)
                 ->orderByRaw('CASE WHEN barcode = ? THEN 0 WHEN sku = ? THEN 1 ELSE 2 END', [$keyword, $keyword])
                 ->orderBy('name')

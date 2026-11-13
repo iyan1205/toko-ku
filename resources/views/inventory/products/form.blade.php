@@ -155,7 +155,15 @@
                 @error('photo') <p class="mt-1 text-sm text-danger-600">{{ $message }}</p> @enderror
             </div>
             <x-ui.textarea name="description" label="Deskripsi" :value="$produk->description" rows="3" maxlength="2000" />
-            <x-ui.checkbox name="is_active" label="Produk aktif dan dijual" :checked="$edit ? $produk->is_active : true" unchecked-value="0" />
+            <fieldset class="grid gap-3 rounded-lg border border-slate-200 p-4">
+                <legend class="px-1 text-sm font-medium text-slate-700">Penggunaan</legend>
+                <x-ui.checkbox name="is_active" label="Produk aktif" :checked="$edit ? $produk->is_active : true" unchecked-value="0"
+                               hint="Nonaktif = disembunyikan dari semua transaksi baru; riwayatnya tetap ada." />
+                <x-ui.checkbox name="is_sellable" label="Dijual di kasir" :checked="$edit ? $produk->isSellable() : true" unchecked-value="0"
+                               hint="Hilangkan centang untuk bahan baku, misal Karkas: hanya dibeli dan diolah, tidak tampil di kasir." />
+                <x-ui.checkbox name="is_purchasable" label="Dibeli dari supplier" :checked="$edit ? $produk->is_purchasable : true" unchecked-value="0"
+                               hint="Hilangkan centang untuk produk olahan sendiri, misal Ayam Original Dada: stoknya bertambah lewat produksi dari resep." />
+            </fieldset>
 
             <x-slot:footer>
                 <x-ui.button :href="$edit ? route('products.show', $produk) : route('products.index')" variant="secondary">Batal</x-ui.button>

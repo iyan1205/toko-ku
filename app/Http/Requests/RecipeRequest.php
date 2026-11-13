@@ -25,6 +25,8 @@ class RecipeRequest extends FormRequest
         return [
             'product_id' => ['required', 'integer', Rule::exists('products', 'id')],
             'notes' => ['nullable', 'string', 'max:500'],
+            // Hasil per resep: bahan di bawah menghasilkan sekian satuan produk (misal 1 karkas → 9 potong).
+            'yield_quantity' => ['nullable', 'numeric', 'min:0.0001', 'max:999999'],
             'items' => ['nullable', 'array'],
             'items.*.product_id' => [
                 'required', 'integer', Rule::exists('products', 'id'),

@@ -163,6 +163,7 @@ class ProductController extends Controller
             'kategori' => ['nullable', 'integer', 'exists:categories,id'],
             'stok' => ['nullable', Rule::in(['aman', 'menipis', 'habis'])],
             'status' => ['nullable', Rule::in(['aktif', 'nonaktif'])],
+            'jenis' => ['nullable', Rule::in(['jual', 'bahan_baku', 'olahan'])],
         ]);
     }
 

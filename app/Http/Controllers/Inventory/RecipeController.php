@@ -72,7 +72,7 @@ class RecipeController extends Controller
             ];
         }
 
-        $recipe = $this->service->simpan($product, $items, $data['notes'] ?? '');
+        $recipe = $this->service->simpan($product, $items, $data['notes'] ?? '', (float) ($data['yield_quantity'] ?? 1));
 
         return redirect()->route('recipes.show', $recipe)
             ->with('success', "BOM untuk {$product->name} tersimpan.");
@@ -117,7 +117,7 @@ class RecipeController extends Controller
             ];
         }
 
-        $recipe = $this->service->simpan($product, $items, $data['notes'] ?? '');
+        $recipe = $this->service->simpan($product, $items, $data['notes'] ?? '', (float) ($data['yield_quantity'] ?? 1));
 
         return redirect()->route('recipes.show', ['recipe' => $recipe])
             ->with('success', "BOM untuk {$product->name} diperbarui.");

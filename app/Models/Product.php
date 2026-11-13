@@ -34,6 +34,8 @@ class Product extends Model
         'track_batches',
         'track_serials',
         'is_bundle',
+        'type',
+        'is_purchasable',
         'parent_id',
         'variant_options',
         'variant_values',
@@ -44,7 +46,7 @@ class Product extends Model
     ];
 
     /** Nilai bawaan kolom baru, supaya model baru (sebelum dimuat ulang) tidak menganggapnya berubah. */
-    protected $attributes = ['track_batches' => false, 'track_serials' => false, 'is_bundle' => false];
+    protected $attributes = ['track_batches' => false, 'track_serials' => false, 'is_bundle' => false, 'type' => 'jual', 'is_purchasable' => true];
 
     protected function casts(): array
     {
@@ -58,6 +60,7 @@ class Product extends Model
             'track_batches' => 'boolean',
             'track_serials' => 'boolean',
             'is_bundle' => 'boolean',
+            'is_purchasable' => 'boolean',
             'variant_options' => 'array',
             'variant_values' => 'array',
         ];
@@ -138,7 +141,25 @@ class Product extends Model
         $this->loadMissing('recipe.items.product');
 
         return ($this->recipe?->items ?? collect())->filter(fn ($i) => $i->product !== null && (float) $i->quantity > 0)
-            ->map(fn ($i) => ['product' => $i->product, 'quantity' => (float) $i->quantity])->values();
+            ->map(fn ($i) => ['product' => $i->product, 'quantity' => (float) $i->quantity / max((float) $this->recipe->yield_quantity, 0.0001)])->values();
+    }
+
+    /** Dijual di kasir (type jual). Bahan baku seperti karkas hanya dibeli/diolah. */
+    public function isSellable(): bool
+    {
+        return ($this->type ?? 'jual') === 'jual';
+    }
+
+    /** Produk olahan: punya resep berbahan dan bukan paket. Menambah stoknya (produksi) memakai bahan resep. */
+    public function isProduced(): bool
+    {
+        return ! $this->is_bundle && $this->recipe !== null && $this->recipe->items->isNotEmpty();
+    }
+
+    /** Bisa dibeli dari supplier (tampil di PO dan pembelian). */
+    public function scopePurchasable(Builder $query): Builder
+    {
+        return $query->where('is_purchasable', true);
     }
 
     /** Produk yang punya stok sendiri: bukan induk varian dan bukan paket. */
@@ -255,7 +276,11 @@ class Product extends Model
                 'aman' => $q->stokAman(),
                 default => $q,
             })
-            ->when($f['status'] ?? null, fn (Builder $q, $v) => $q->where('is_active', $v === 'aktif'));
+            ->when($f['status'] ?? null, fn (Builder $q, $v) => $q->where('is_active', $v === 'aktif'))
+            ->when($f['jenis'] ?? null, fn (Builder $q, $v) => match ($v) {
+                'olahan' => $q->where('is_purchasable', false),
+                default => $q->where('type', $v),
+            });
     }
 
     protected function activityLogName(): string

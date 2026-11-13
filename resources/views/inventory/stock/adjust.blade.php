@@ -14,6 +14,8 @@
         'batch' => $produk->where('track_batches', true)->pluck('id')->map(fn ($id) => (string) $id)->values()->all(),
         'seri' => $produk->where('track_serials', true)->pluck('id')->map(fn ($id) => (string) $id)->values()->all(),
         'lots' => $lots,
+        'resep' => $resep,
+        'produksi' => (bool) old('produksi', true),
     ];
 @endphp
 
@@ -28,6 +30,9 @@
                     get berbatch() { return this.batch.includes(this.produk) },
                     get berseri() { return this.seri.includes(this.produk) },
                     get pilihanLot() { return (this.lots[this.produk] || {})[this.gudang] || [] },
+                    jumlah: '',
+                    get olahan() { return (this.resep[this.produk] || []).length > 0 },
+                    get bahanDipakai() { return (this.resep[this.produk] || []).map((b) => b.name + ' ' + this.angka(b.per * (Number(this.jumlah) || 0)) + ' ' + (b.unit || '')).join(', ') },
                     angka(v) { return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 3 }).format(v); } }">
         @csrf
 
@@ -71,8 +76,18 @@
                 @error('direction') <p class="mt-1 text-sm text-danger-600">{{ $message }}</p> @enderror
             </fieldset>
 
-            <x-ui.input name="quantity" label="Jumlah" type="number" min="0.001" step="0.001" required
+            <x-ui.input name="quantity" label="Jumlah" type="number" min="0.001" step="0.001" required x-model="jumlah"
                         hint="Gunakan desimal untuk satuan seperti KG atau LITER." />
+            <div x-show="olahan && masuk" x-cloak class="rounded-lg border border-warning-200 bg-warning-50 p-3">
+                <input type="hidden" name="produksi" value="0">
+                <label class="flex items-start gap-2 text-sm text-slate-800">
+                    <input type="checkbox" name="produksi" value="1" x-model="produksi" class="mt-0.5 rounded border-slate-300 text-primary-600">
+                    <span>
+                        <strong>Ambil dari bahan resep (produksi)</strong>
+                        <span class="block text-xs text-slate-600">Stok bahan berkurang: <span x-text="bahanDipakai"></span>. Hilangkan centang bila hanya koreksi hitungan.</span>
+                    </span>
+                </label>
+            </div>
             <div class="grid gap-5 sm:grid-cols-2" x-show="berbatch && masuk" x-cloak>
                 <x-ui.input name="batch_number" label="Nomor batch" maxlength="50" style="text-transform: uppercase" />
                 <x-ui.input name="expiry_date" label="Kedaluwarsa" type="date" />

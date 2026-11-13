@@ -25,6 +25,7 @@
                 <x-ui.select name="kategori" label="Kategori" hide-label :options="$kategori->pluck('name', 'id')" :selected="request('kategori')" placeholder="Semua kategori" />
                 <x-ui.select name="stok" label="Stok" hide-label :options="['aman' => 'Aman', 'menipis' => 'Menipis', 'habis' => 'Habis']" :selected="request('stok')" placeholder="Semua stok" />
                 <x-ui.select name="status" label="Status" hide-label :options="['aktif' => 'Aktif', 'nonaktif' => 'Nonaktif']" :selected="request('status')" placeholder="Semua status" />
+                <x-ui.select name="jenis" label="Jenis" hide-label :options="['jual' => 'Dijual di kasir', 'bahan_baku' => 'Bahan baku (tidak dijual)', 'olahan' => 'Tidak dibeli (olahan sendiri)']" :selected="request('jenis')" placeholder="Semua jenis" />
             </x-ui.filter-bar>
         </x-slot:toolbar>
 
@@ -69,6 +70,12 @@
                 </x-ui.table.td>
                 <x-ui.table.td>
                     <x-ui.badge :color="$p->is_active ? 'success' : 'neutral'" dot>{{ $p->is_active ? 'Aktif' : 'Nonaktif' }}</x-ui.badge>
+                    @unless ($p->isSellable())
+                        <x-ui.badge color="warning" class="mt-1">Bahan baku</x-ui.badge>
+                    @endunless
+                    @unless ($p->is_purchasable)
+                        <x-ui.badge color="info" class="mt-1">Olahan sendiri</x-ui.badge>
+                    @endunless
                 </x-ui.table.td>
                 <x-ui.table.td align="right">
                     <div class="flex items-center justify-end gap-1">

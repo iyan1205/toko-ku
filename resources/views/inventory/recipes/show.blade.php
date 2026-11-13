@@ -19,7 +19,7 @@
 
     <div class="mb-6 grid gap-4 sm:grid-cols-3">
         <x-ui.stat-card label="Harga jual per porsi" :value="Format::rupiah($hargaJual)" icon="tag" color="neutral" />
-        <x-ui.stat-card label="Biaya bahan per porsi" :value="Format::rupiah($totalBiaya)" icon="beaker" />
+        <x-ui.stat-card label="Biaya bahan per satuan" :value="Format::rupiah($totalBiaya)" icon="beaker" />
         <x-ui.stat-card label="Margin per porsi" :value="Format::rupiah($margin)" icon="banknotes" :color="$margin >= 0 ? 'success' : 'danger'"
                         :hint="$hargaJual > 0 ? Format::jumlah(round($margin / $hargaJual * 100, 1)).'% dari harga jual' : null" />
     </div>
@@ -58,7 +58,7 @@
         @endforelse
         <x-slot:footer>
             <div class="flex justify-between text-sm font-semibold text-slate-900">
-                <span>Total biaya bahan per porsi</span>
+                <span>Biaya bahan per satuan (total ÷ hasil {{ Format::jumlah($recipe->yield_quantity) }})</span>
                 <span class="tabular-nums">@rupiah($totalBiaya)</span>
             </div>
             <p class="mt-1 text-xs text-slate-500">Harga bahan mengikuti harga beli terbaru di menu Produk.</p>

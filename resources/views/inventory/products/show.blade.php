@@ -29,6 +29,9 @@
                     <div><dt class="text-slate-500">Barcode</dt><dd class="font-medium text-slate-900">{{ $produk->barcode ?: '—' }}</dd></div>
                     <div><dt class="text-slate-500">Satuan</dt><dd class="font-medium text-slate-900">{{ $produk->unit?->name }}</dd></div>
                     <div><dt class="text-slate-500">Status</dt><dd><x-ui.badge :color="$produk->is_active ? 'success' : 'neutral'" dot>{{ $produk->is_active ? 'Aktif' : 'Nonaktif' }}</x-ui.badge></dd></div>
+                    <div><dt class="text-slate-500">Penggunaan</dt><dd class="font-medium text-slate-900">
+                        {{ $produk->isSellable() ? 'Dijual di kasir' : 'Bahan baku (tidak dijual)' }} · {{ $produk->is_purchasable ? 'dibeli dari supplier' : 'olahan sendiri (tidak dibeli)' }}
+                    </dd></div>
                     <div><dt class="text-slate-500">Harga jual</dt><dd class="font-medium tabular-nums text-slate-900">@rupiah($produk->selling_price)</dd></div>
                     <div>
                         <dt class="text-slate-500">Diskon produk</dt>
@@ -83,7 +86,7 @@
             <x-slot:actions>
                 <div class="flex gap-2">
                     @can('inventory.adjustments.create')
-                        <x-ui.button variant="secondary" size="sm" :href="route('stock.adjust.create', ['produk' => $produk->id])">Sesuaikan stok</x-ui.button>
+                        <x-ui.button variant="secondary" size="sm" :href="route('stock.adjust.create', ['produk' => $produk->id])">{{ $produk->isProduced() ? 'Produksi / sesuaikan stok' : 'Sesuaikan stok' }}</x-ui.button>
                     @endcan
                     <x-ui.button variant="link" size="sm" :href="route('stock.movements', ['produk' => $produk->id])">Kartu stok lengkap</x-ui.button>
                 </div>
@@ -189,6 +192,20 @@
                     <li class="px-5 py-6 text-center text-sm text-warning-700">Komponen paket belum diatur. Paket tidak bisa dijual sebelum komponennya diisi di menu Resep/BOM.</li>
                 @endforelse
             </ul>
+        </x-ui.card>
+    @endif
+    @if ($produk->isProduced())
+        <x-ui.card title="Resep produksi" class="mt-6" :padding="false">
+            <x-slot:actions><span class="text-xs text-slate-500">Bahan untuk {{ Format::jumlah($produk->recipe->yield_quantity) }} {{ $produk->unit?->name }}</span></x-slot:actions>
+            <ul class="divide-y divide-slate-100">
+                @foreach ($produk->recipe->items as $b)
+                    <li class="flex items-center justify-between px-5 py-3 text-sm">
+                        <span class="text-slate-900">{{ $b->product?->name }}</span>
+                        <span class="tabular-nums text-slate-700">{{ Format::jumlah($b->quantity) }} {{ $b->product?->unit?->name }}</span>
+                    </li>
+                @endforeach
+            </ul>
+            <p class="border-t border-slate-100 px-5 py-3 text-xs text-slate-500">Menambah stok produk ini lewat Penyesuaian Stok (produksi) mengurangi bahan di atas sesuai jumlahnya.</p>
         </x-ui.card>
     @endif
 </x-app-layout>

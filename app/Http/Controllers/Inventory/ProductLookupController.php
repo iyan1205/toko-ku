@@ -24,6 +24,8 @@ class ProductLookupController extends Controller
 
         $ids = array_values(array_filter(array_map('intval', explode(',', (string) ($data['ids'] ?? '')))));
 
-        return response()->json($search->search($data['q'] ?? null, $data['gudang'] ?? null, $ids));
+        $beli = in_array($request->route()?->getName(), ['purchase-orders.products', 'purchases.products'], true);
+
+        return response()->json($search->search($data['q'] ?? null, $data['gudang'] ?? null, $ids, $beli));
     }
 }

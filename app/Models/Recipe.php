@@ -11,7 +11,18 @@ class Recipe extends Model
 {
     use RecordsActivity;
 
-    protected $fillable = ['product_id', 'name', 'notes'];
+    protected $fillable = ['product_id', 'name', 'notes', 'yield_quantity'];
+
+    protected function casts(): array
+    {
+        return ['yield_quantity' => 'decimal:4'];
+    }
+
+    /** Hasil per resep (minimal 0,0001): bahan di resep ini menghasilkan sekian satuan produk. */
+    public function yieldQuantity(): float
+    {
+        return max((float) ($this->yield_quantity ?? 1), 0.0001);
+    }
 
     public function product(): BelongsTo
     {
