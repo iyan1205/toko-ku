@@ -43,7 +43,8 @@ Menu yang belum jadi tetap tampil dengan label **Segera Hadir** (diatur di `conf
 - **Stok opname dari HP**: scan barcode (kamera/scanner), opsi bekukan stok gudang selama dihitung, penyesuaian lewat alur persetujuan "Stok opname".
 - **Cetak label** barcode Code 128 & harga (printer label atau stiker A4), **impor produk** lewat kerangka impor dengan satuan besar dan batch/seri.
 - **Aktif, dijual, dibeli dipisah**: bahan baku (misal Karkas) aktif dan dibeli tetapi tidak tampil di kasir; produk olahan (misal Ayam Original Dada) dijual tetapi tidak muncul di PO/pembelian.
-- **Produksi dari resep**: resep punya hasil (1 pack karkas → 9 potong). Menambah stok produk olahan lewat Penyesuaian Stok (pilihan "Ambil dari bahan resep", bawaan aktif) mengurangi bahannya; biaya produk = biaya bahan yang terpakai. Kartu stok jenis Produksi.
+- **Pecah bahan** (Inventori → Pecah Bahan): satu bahan menghasilkan beberapa produk sekaligus, misal 1 pack Karkas 1 = 3 Ayam Original Dada, 2 Paha Atas, 2 Paha Bawah, 2 Sayap. Memecah N pack mengurangi karkas N dan menambah semua potongan; biaya dibagi rata per potong (atau sebanding harga jual). Menambah stok salah satu potongan lewat Penyesuaian Stok (produksi) memecah pack utuh (jumlah harus kelipatan isi per pack).
+- **Produksi dari resep** (satu hasil): resep punya hasil per resep; menambah stok produk olahan lewat Penyesuaian Stok (pilihan "Ambil dari bahan resep") mengurangi bahannya; biaya produk = biaya bahan terpakai. Kartu stok jenis Produksi.
 - Belum: laporan nilai persediaan per tanggal, perputaran stok, slow/dead moving, kartu stok per batch (Fase 16 poin 9).
 
 ### Kasir (Fase 6)

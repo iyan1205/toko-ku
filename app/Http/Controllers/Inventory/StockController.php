@@ -11,9 +11,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StockAdjustmentRequest;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductBreakdown;
 use App\Models\StockLot;
 use App\Models\Warehouse;
 use App\Models\WarehouseStock;
+use App\Services\Inventory\BreakdownService;
 use App\Services\Inventory\ProductionService;
 use App\Services\StockService;
 use App\Support\Format;
@@ -141,7 +143,19 @@ class StockController extends Controller
                 'name' => $i->product->name, 'unit' => $i->product->unit?->name, 'per' => (float) $i->quantity / $p->recipe->yieldQuantity(),
             ])->values()]);
 
+        // Hasil pemecahan bahan (misal dada dari Karkas 1): menambah stoknya = memecah kemasan bahan utuh.
+        $pecah = [];
+        foreach (ProductBreakdown::query()->where('is_active', true)->with(['source.unit', 'outputs.product.unit'])->get() as $b) {
+            foreach ($b->outputs as $o) {
+                $pecah[$o->product_id] = [
+                    'per' => (float) $o->quantity, 'bahan' => $b->source?->name, 'satuanBahan' => $b->source?->unit?->name, 'jumlahBahan' => (float) $b->source_quantity,
+                    'hasil' => $b->outputs->map(fn ($x) => ['name' => $x->product?->name, 'qty' => (float) $x->quantity, 'unit' => $x->product?->unit?->name])->values(),
+                ];
+            }
+        }
+
         return view('inventory.stock.adjust', [
+            'pecah' => $pecah,
             'resep' => $resep,
             'lots' => $lots,
             'produk' => $produk,
@@ -158,8 +172,21 @@ class StockController extends Controller
         $produk = Product::findOrFail($request->integer('product_id'));
         $gudang = $request->filled('warehouse_id') ? Warehouse::findOrFail($request->integer('warehouse_id')) : null;
 
+        $tambah = $request->input('type') === StockMovementType::Adjustment->value && $request->input('direction') === 'in' && $request->boolean('produksi');
+
+        // Hasil pemecahan bahan: memecah kemasan bahan utuh, semua hasil lain ikut bertambah.
+        if ($tambah && $produk->breakdownSource() !== null) {
+            $hasil = app(BreakdownService::class)->runForOutput($produk, $request->input('quantity'), (string) $request->input('note'), $request->user(), $gudang);
+
+            return redirect()->route('stock.movements', ['produk' => $produk->id])->with('success', sprintf(
+                'Dipecah %s %s menjadi %s.',
+                Format::jumlah(abs((float) $hasil->first()->quantity)), $hasil->first()->product->name,
+                $hasil->slice(1)->map(fn ($m) => Format::jumlah($m->quantity).' '.$m->product->name)->join(', '),
+            ));
+        }
+
         // Tambah stok produk olahan dengan "ambil dari bahan resep": produksi, bahan berkurang sesuai resep.
-        if ($request->input('type') === StockMovementType::Adjustment->value && $request->input('direction') === 'in' && $request->boolean('produksi') && $produk->loadMissing('recipe.items')->isProduced()) {
+        if ($tambah && $produk->loadMissing('recipe.items')->isProduced()) {
             $hasil = app(ProductionService::class)->produce($produk, $request->input('quantity'), (string) $request->input('note'), $request->user(), $gudang);
             $masuk = $hasil->last();
 

@@ -9,6 +9,7 @@
 */
 
 use App\Http\Controllers\Inventory\CategoryController;
+use App\Http\Controllers\Inventory\ProductBreakdownController;
 use App\Http\Controllers\Inventory\ProductController;
 use App\Http\Controllers\Inventory\ProductLabelController;
 use App\Http\Controllers\Inventory\ProductLookupController;
@@ -108,6 +109,17 @@ Route::resource('gudang', WarehouseController::class)
     ->middlewareFor('destroy', 'permission:inventory.warehouses.delete');
 
 // ---- Bill of Materials (resep) ----
+// ---- Pecah bahan (1 bahan → beberapa hasil sekaligus, misal karkas → potongan ayam) ----
+Route::post('pecah-bahan/{breakdown}/pecah', [ProductBreakdownController::class, 'run'])->middleware('permission:inventory.adjustments.create')->name('breakdowns.run');
+Route::resource('pecah-bahan', ProductBreakdownController::class)
+    ->parameters(['pecah-bahan' => 'breakdown'])
+    ->names('breakdowns')
+    ->except('show')
+    ->middlewareFor('index', 'permission:inventory.recipes.view')
+    ->middlewareFor(['create', 'store'], 'permission:inventory.recipes.create')
+    ->middlewareFor(['edit', 'update'], 'permission:inventory.recipes.update')
+    ->middlewareFor('destroy', 'permission:inventory.recipes.delete');
+
 Route::get('recipe/ekspor', [RecipeController::class, 'export'])->middleware('permission:inventory.recipes.export')->name('recipes.export');
 Route::resource('recipe', RecipeController::class)->names('recipes')
     ->middlewareFor(['index', 'show'], 'permission:inventory.recipes.view')
