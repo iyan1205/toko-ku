@@ -73,8 +73,6 @@ class ProductController extends Controller
                 ->map(fn (Warehouse $w) => ['gudang' => $w, 'jumlah' => $product->stockIn($w)])
                 ->filter(fn (array $row) => ($row['gudang']->is_active && ! $row['gudang']->trashed()) || $row['jumlah'] != 0.0)
                 ->values(),
-            'pecahDari' => $product->breakdownSource(),
-            'pecahMenjadi' => $product->breakdown()->with('outputs.product.unit')->first(),
             // Batch yang masih bersisa (FEFO) dan nomor seri yang ada di stok.
             'lots' => $product->track_batches
                 ? $product->lots()->available()->with('warehouse:id,name')->consumeOrder()->get()

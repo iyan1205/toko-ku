@@ -156,20 +156,6 @@ class Product extends Model
         return ! $this->is_bundle && $this->recipe !== null && $this->recipe->items->isNotEmpty();
     }
 
-    /** Pemecahan bahan ini (misal Karkas 1 → potongan ayam). */
-    public function breakdown(): HasOne
-    {
-        return $this->hasOne(ProductBreakdown::class, 'source_product_id');
-    }
-
-    /** Pemecahan aktif yang menghasilkan produk ini (misal dada dari Karkas 1), atau null. */
-    public function breakdownSource(): ?ProductBreakdown
-    {
-        return ProductBreakdown::query()->where('is_active', true)
-            ->whereHas('outputs', fn (Builder $q) => $q->where('product_id', $this->getKey()))
-            ->with(['source.unit', 'outputs.product.unit'])->first();
-    }
-
     /** Bisa dibeli dari supplier (tampil di PO dan pembelian). */
     public function scopePurchasable(Builder $query): Builder
     {

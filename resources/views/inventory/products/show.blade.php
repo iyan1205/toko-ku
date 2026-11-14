@@ -86,7 +86,7 @@
             <x-slot:actions>
                 <div class="flex gap-2">
                     @can('inventory.adjustments.create')
-                        <x-ui.button variant="secondary" size="sm" :href="route('stock.adjust.create', ['produk' => $produk->id])">{{ $produk->isProduced() || $pecahDari ? 'Produksi / sesuaikan stok' : 'Sesuaikan stok' }}</x-ui.button>
+                        <x-ui.button variant="secondary" size="sm" :href="route('stock.adjust.create', ['produk' => $produk->id])">{{ $produk->isProduced() ? 'Produksi / sesuaikan stok' : 'Sesuaikan stok' }}</x-ui.button>
                     @endcan
                     <x-ui.button variant="link" size="sm" :href="route('stock.movements', ['produk' => $produk->id])">Kartu stok lengkap</x-ui.button>
                 </div>
@@ -194,26 +194,7 @@
             </ul>
         </x-ui.card>
     @endif
-    @if ($pecahMenjadi)
-        <x-ui.card title="Dipecah menjadi" class="mt-6">
-            <x-slot:actions><x-ui.button variant="link" size="sm" :href="route('breakdowns.index')">Pecah bahan</x-ui.button></x-slot:actions>
-            <p class="text-sm text-slate-700">{{ Format::jumlah($pecahMenjadi->source_quantity) }} {{ $produk->unit?->name }} → {{ $pecahMenjadi->summary() }}</p>
-        </x-ui.card>
-    @endif
-
-    @if ($pecahDari)
-        <x-ui.card title="Hasil pemecahan" class="mt-6">
-            <p class="text-sm text-slate-700">
-                1 kali pecah {{ Format::jumlah($pecahDari->source_quantity) }} {{ $pecahDari->source?->unit?->name }} {{ $pecahDari->source?->name }} menghasilkan {{ $pecahDari->summary() }}.
-                Menambah stok produk ini lewat Penyesuaian Stok (produksi) memecah bahan utuh, dan semua hasil lain ikut bertambah.
-            </p>
-            @if ($produk->isProduced())
-                <p class="mt-2 text-xs text-warning-700">Produk ini juga punya resep produksi; saat penyesuaian stok, pemecahan bahan yang dipakai. Hapus resepnya bila tidak diperlukan.</p>
-            @endif
-        </x-ui.card>
-    @endif
-
-    @if ($produk->isProduced() && ! $pecahDari)
+    @if ($produk->isProduced())
         <x-ui.card title="Resep produksi" class="mt-6" :padding="false">
             <x-slot:actions><span class="text-xs text-slate-500">Bahan untuk {{ Format::jumlah($produk->recipe->yield_quantity) }} {{ $produk->unit?->name }}</span></x-slot:actions>
             <ul class="divide-y divide-slate-100">

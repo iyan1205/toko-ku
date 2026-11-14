@@ -15,7 +15,6 @@
         'seri' => $produk->where('track_serials', true)->pluck('id')->map(fn ($id) => (string) $id)->values()->all(),
         'lots' => $lots,
         'resep' => $resep,
-        'pecah' => $pecah,
         'produksi' => (bool) old('produksi', true),
     ];
 @endphp
@@ -32,11 +31,7 @@
                     get berseri() { return this.seri.includes(this.produk) },
                     get pilihanLot() { return (this.lots[this.produk] || {})[this.gudang] || [] },
                     jumlah: '',
-                    get olahan() { return (this.resep[this.produk] || []).length > 0 || !! this.pecah[this.produk] },
-                    get infoPecah() { return this.pecah[this.produk] || null },
-                    get kaliPecah() { const p = this.infoPecah; return p ? (Number(this.jumlah) || 0) / p.per : 0 },
-                    get pecahUtuh() { return this.kaliPecah >= 1 && Math.abs(this.kaliPecah - Math.round(this.kaliPecah)) < 0.0001 },
-                    get hasilPecah() { const p = this.infoPecah; if (! p) return ''; const k = Math.round(this.kaliPecah); return p.hasil.map((h) => this.angka(h.qty * k) + ' ' + h.name).join(', ') },
+                    get olahan() { return (this.resep[this.produk] || []).length > 0 },
                     get bahanDipakai() { return (this.resep[this.produk] || []).map((b) => b.name + ' ' + this.angka(b.per * (Number(this.jumlah) || 0)) + ' ' + (b.unit || '')).join(', ') },
                     angka(v) { return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 3 }).format(v); } }">
         @csrf
@@ -87,19 +82,9 @@
                 <input type="hidden" name="produksi" value="0">
                 <label class="flex items-start gap-2 text-sm text-slate-800">
                     <input type="checkbox" name="produksi" value="1" x-model="produksi" class="mt-0.5 rounded border-slate-300 text-primary-600">
-                    <span x-show="! infoPecah">
+                    <span>
                         <strong>Ambil dari bahan resep (produksi)</strong>
                         <span class="block text-xs text-slate-600">Stok bahan berkurang: <span x-text="bahanDipakai"></span>. Hilangkan centang bila hanya koreksi hitungan.</span>
-                    </span>
-                    <span x-show="infoPecah" x-cloak>
-                        <strong>Pecah <span x-text="infoPecah?.bahan"></span> (produksi)</strong>
-                        <span class="block text-xs text-slate-600" x-show="pecahUtuh">
-                            <span x-text="angka(Math.round(kaliPecah) * (infoPecah?.jumlahBahan || 1)) + ' ' + (infoPecah?.satuanBahan || '') + ' ' + (infoPecah?.bahan || '')"></span>
-                            berkurang, hasil: <span x-text="hasilPecah"></span>. Hilangkan centang bila hanya koreksi hitungan.
-                        </span>
-                        <span class="block text-xs font-medium text-danger-600" x-show="! pecahUtuh">
-                            Jumlah harus kelipatan <span x-text="angka(infoPecah?.per || 0)"></span>: satu kali pecah menghasilkan <span x-text="angka(infoPecah?.per || 0)"></span> produk ini.
-                        </span>
                     </span>
                 </label>
             </div>

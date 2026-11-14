@@ -100,8 +100,6 @@ return [
                         'description' => 'Kelola gudang dan lokasi penyimpanan; stok dicatat per gudang.'],
                     ['key' => 'inventory-recipes', 'label' => 'Resep (BOM)', 'route' => 'recipes.index', 'active' => 'recipes.*', 'permission' => 'inventory.recipes.view',
                         'description' => 'Komposisi bahan baku per produk dan perhitungan biayanya.'],
-                    ['key' => 'inventory-breakdowns', 'label' => 'Pecah Bahan', 'route' => 'breakdowns.index', 'active' => 'breakdowns.*', 'permission' => 'inventory.recipes.view',
-                        'description' => 'Satu bahan dipecah menjadi beberapa produk sekaligus, misal 1 pack karkas menjadi potongan ayam.'],
                 ],
             ],
             [
