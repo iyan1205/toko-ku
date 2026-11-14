@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Product;
 use App\Models\ProductUnit;
+use App\Support\Format;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -125,6 +126,14 @@ class ProductRequest extends FormRequest
             }
             if ($this->boolean('is_bundle') && ($this->boolean('track_batches') || $this->boolean('track_serials'))) {
                 $validator->errors()->add('is_bundle', 'Paket tidak melacak batch/seri; komponennya yang melacak.');
+            }
+            // Paket tidak punya stok sendiri (stoknya dihitung dari komponen), jadi stok yang ada akan terabaikan.
+            if ($this->boolean('is_bundle') && $produk && ! $produk->is_bundle && (float) $produk->stock != 0) {
+                $validator->errors()->add('is_bundle', sprintf(
+                    'Produk ini masih punya stok %s %s. Paket tidak menyimpan stok sendiri (stoknya dihitung dari komponen), jadi stok itu akan terabaikan. '
+                    .'Kosongkan stoknya dulu, atau buat produk paket terpisah (misal Nasi Box) yang komponennya produk ini.',
+                    Format::jumlah($produk->stock), $produk->unit?->name ?? '',
+                ));
             }
         }];
     }

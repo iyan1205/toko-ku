@@ -159,4 +159,38 @@ class VarianPaketSatuanTest extends TestCase
         $this->assertSame('10.0000', $lain->units()->sole()->factor);
         $this->assertNotNull($mie);
     }
+
+    public function test_stok_paket_di_kasir_memakai_hasil_resep_sama_seperti_penjualan(): void
+    {
+        $ayam = Product::factory()->stok(10)->create(['name' => 'Ayam Potong', 'purchase_price' => 8000]);
+        $paket = Product::factory()->create(['name' => 'Paket Setengah', 'selling_price' => 15000, 'is_bundle' => true]);
+        // 1 ayam untuk 2 paket: tiap paket memakai 0,5 ayam.
+        $resep = Recipe::query()->create(['product_id' => $paket->id, 'name' => 'Paket Setengah', 'notes' => '', 'yield_quantity' => 2]);
+        $resep->items()->create(['product_id' => $ayam->id, 'unit_id' => $ayam->unit_id, 'quantity' => 1, 'notes' => '']);
+
+        $hasil = collect($this->actingAs($this->admin)->getJson(route('pos.products', ['q' => 'Paket Setengah']))->json())->firstWhere('id', $paket->id);
+        $this->assertEquals(20, $hasil['stock']);
+        $this->get(route('products.show', $paket))->assertOk()->assertSeeInOrder(['Isi paket', 'Ayam Potong', '0,5']);
+
+        $this->jual([['product_id' => $paket->id, 'quantity' => '4', 'discount' => '0']]);
+        $this->assertSame(8.0, (float) $ayam->fresh()->stock);
+    }
+
+    public function test_produk_yang_masih_berstok_tidak_bisa_dijadikan_paket(): void
+    {
+        $dada = Product::factory()->stok(21)->create(['name' => 'Ayam Dada', 'unit_id' => $this->pcs->id]);
+        $data = fn (array $ubah) => array_merge([
+            'sku' => $dada->sku, 'name' => $dada->name, 'category_id' => $dada->category_id, 'unit_id' => $this->pcs->id,
+            'purchase_price' => '1000', 'selling_price' => '2000', 'min_stock' => '0', 'discount_percent' => '0', 'is_active' => '1',
+        ], $ubah);
+
+        $this->actingAs($this->admin)->put(route('products.update', $dada), $data(['is_bundle' => '1']))
+            ->assertSessionHasErrors(['is_bundle' => 'Produk ini masih punya stok 21 PCS. Paket tidak menyimpan stok sendiri (stoknya dihitung dari komponen), jadi stok itu akan terabaikan. Kosongkan stoknya dulu, atau buat produk paket terpisah (misal Nasi Box) yang komponennya produk ini.']);
+        $this->assertFalse($dada->fresh()->is_bundle);
+
+        $kosong = Product::factory()->create(['name' => 'Nasi Box', 'unit_id' => $this->pcs->id]);
+        $this->put(route('products.update', $kosong), array_merge($data(['is_bundle' => '1']), ['sku' => $kosong->sku, 'name' => 'Nasi Box']))
+            ->assertSessionHasNoErrors();
+        $this->assertTrue($kosong->fresh()->is_bundle);
+    }
 }

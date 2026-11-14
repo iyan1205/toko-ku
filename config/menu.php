@@ -225,12 +225,12 @@ return [
             [
                 'key' => 'reports', 'label' => 'Laporan', 'icon' => 'chart-bar',
                 'children' => [
-                    ['key' => 'reports-sales', 'label' => 'Penjualan', 'route' => 'reports.index', 'active' => 'reports.*', 'permission' => 'reports.sales.view',
+                    ['key' => 'reports-sales', 'label' => 'Penjualan', 'route' => 'reports.index', 'active' => ['reports.index', 'reports.sales.*'], 'permission' => 'reports.sales.view',
                         'description' => 'Ringkasan, harian, per produk, per kasir, dan per metode pembayaran.'],
                     ['key' => 'reports-purchases', 'label' => 'Pembelian', 'status' => 'coming_soon', 'permission' => 'reports.purchases.view',
                         'description' => 'Pembelian per supplier, per produk, dan per periode.'],
-                    ['key' => 'reports-stock', 'label' => 'Stok', 'status' => 'coming_soon', 'permission' => 'reports.stock.view',
-                        'description' => 'Nilai persediaan dan stok per gudang.'],
+                    ['key' => 'reports-stock', 'label' => 'Stok', 'route' => 'reports.stock.valuation', 'active' => 'reports.stock.*', 'permission' => 'reports.stock.view',
+                        'description' => 'Nilai persediaan per tanggal, perputaran stok, barang lambat & mati, dan kartu stok per batch.'],
                     ['key' => 'reports-gross-profit', 'label' => 'Laba Kotor', 'status' => 'coming_soon', 'permission' => 'reports.gross-profit.view',
                         'description' => 'Laba kotor per produk, kategori, dan periode.'],
                     ['key' => 'reports-cashiers', 'label' => 'Kinerja Kasir', 'status' => 'coming_soon', 'permission' => 'reports.cashiers.view',

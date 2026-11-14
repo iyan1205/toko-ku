@@ -1,6 +1,6 @@
 # Roadmap Toko-ku
 
-Status per 16 Nov 2026, setelah Fase 16 poin 1–8 (inventori lanjutan; laporan inventori poin 9 belum). Rincian keputusan dan rencana tiap fase ada di [AUDIT.md](AUDIT.md); spesifikasi di [REDESIGN-TOKOKU.md](REDESIGN-TOKOKU.md), rencana Fase 8–19 di `ROADMAP-ENTERPRISE-TOKOKU.md`. Cara deploy, queue worker, dan scheduler: [DEPLOY.md](DEPLOY.md).
+Status per 14 Nov 2026, setelah Fase 16 selesai (inventori lanjutan dan laporan stok). Rincian keputusan dan rencana tiap fase ada di [AUDIT.md](AUDIT.md); spesifikasi di [REDESIGN-TOKOKU.md](REDESIGN-TOKOKU.md), rencana Fase 8–19 di `ROADMAP-ENTERPRISE-TOKOKU.md`. Cara deploy, queue worker, dan scheduler: [DEPLOY.md](DEPLOY.md).
 
 ## Ringkasan
 
@@ -36,15 +36,15 @@ Menu yang belum jadi tetap tampil dengan label **Segera Hadir** (diatur di `conf
 - Semua tabel daftar: cari, filter, urut, halaman, ekspor Excel/PDF (`ListExport`).
 - **Biaya persediaan** (Fase 16): metode HPP rata-rata tertimbang atau FIFO (Pengaturan → Inventori). Setiap stok masuk menjadi lot dengan biaya per unit; HPP penjualan, jurnal HPP, retur, opname, penyesuaian, dan transfer memakai biaya mutasi. Pembatalan/retur mengembalikan lot dan biaya aslinya. Nilai persediaan di halaman Stok dari nilai gudang yang sebenarnya.
 - **Batch & kedaluwarsa** (produk "lacak batch"): nomor batch wajib saat barang diterima, stok keluar kedaluwarsa terdekat dulu (FEFO), batch kedaluwarsa tidak dijual, halaman Mendekati Kedaluwarsa dan pengingat harian `stok:kedaluwarsa` (07:10). **Nomor seri** opsional per produk.
-- **Varian** (ukuran × warna, dst.): tiap kombinasi produk sendiri dengan SKU/barcode/stok/harga; induk tidak dijual. **Paket**: menjual paket mengurangi stok komponen (resep/BOM).
+- **Varian** (ukuran × warna, dst.): tiap kombinasi produk sendiri dengan SKU/barcode/stok/harga; induk tidak dijual. **Paket**: menjual paket mengurangi stok komponen (resep/BOM); stok paket di kasir = jumlah paket yang bisa dibuat dari stok komponen (jumlah resep ÷ hasil resep). Produk yang masih berstok tidak bisa dijadikan paket; buat produk paket terpisah (misal Nasi Box berisi Ayam Original Dada + Nasi).
 - **Multi-satuan**: satuan lain dengan isi, barcode, dan harga jual (misal DUS isi 40). Kasir: scan barcode dus, ganti satuan per baris; PO/pembelian bisa diisi per dus; stok tetap dalam satuan dasar.
 - **Transfer antar cabang** dua langkah: dikirim (dalam perjalanan) lalu diterima gudang tujuan; kekurangan menjadi selisih persediaan. Dalam satu cabang tetap langsung selesai.
 - **Stok min/maks per gudang** dan **Saran Pesan Ulang** yang langsung menjadi draft PO per supplier.
 - **Stok opname dari HP**: scan barcode (kamera/scanner), opsi bekukan stok gudang selama dihitung, penyesuaian lewat alur persetujuan "Stok opname".
 - **Cetak label** barcode Code 128 & harga (printer label atau stiker A4), **impor produk** lewat kerangka impor dengan satuan besar dan batch/seri.
 - **Aktif, dijual, dibeli dipisah**: bahan baku (misal Karkas) aktif dan dibeli tetapi tidak tampil di kasir; produk olahan (misal Ayam Original Dada) dijual tetapi tidak muncul di PO/pembelian.
-- **Produksi dari resep**: resep punya hasil (1 pack karkas → 9 potong). Menambah stok produk olahan lewat Penyesuaian Stok (pilihan "Ambil dari bahan resep", bawaan aktif) mengurangi bahannya; biaya produk = biaya bahan yang terpakai. Kartu stok jenis Produksi.
-- Belum: laporan nilai persediaan per tanggal, perputaran stok, slow/dead moving, kartu stok per batch (Fase 16 poin 9).
+- **Produksi dari resep**: resep punya hasil (1 pack karkas → 9 potong). Setiap potongan (dada, paha, sayap) punya resepnya sendiri; fitur Pecah Bahan dihapus (14 Nov 2026). Menambah stok produk olahan lewat Penyesuaian Stok (pilihan "Ambil dari bahan resep", bawaan aktif) mengurangi bahannya; biaya produk = biaya bahan yang terpakai. Kartu stok jenis Produksi.
+- **Laporan → Stok**: nilai persediaan per tanggal (stok gudang sekarang dikurangi mutasi sesudahnya; hari ini sama dengan halaman Stok), perputaran stok (HPP/pemakaian ÷ rata-rata persediaan awal & akhir, hari persediaan), barang lambat & mati (mati = tidak keluar N hari, lambat = stok lebih banyak dari yang keluar N hari, baru masuk dipisah), kartu stok per batch dengan saldo per batch. Keluar/pemakaian = penjualan bersih retur + bahan terpakai produksi. Semua bisa diekspor Excel (dengan baris total) dan PDF.
 
 ### Kasir (Fase 6)
 - Layar kasir dengan shortcut keyboard, scan barcode, grid kategori.

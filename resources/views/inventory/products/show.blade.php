@@ -181,17 +181,32 @@
     @endif
 
     @if ($produk->is_bundle)
+        @php($komponenPaket = $produk->bundleComponents())
         <x-ui.card title="Isi paket" class="mt-6" :padding="false">
+            <x-slot:actions><span class="text-xs text-slate-500">Per 1 {{ $produk->unit?->name ?? 'paket' }}</span></x-slot:actions>
             <ul class="divide-y divide-slate-100">
-                @forelse ($produk->recipe?->items ?? [] as $k)
+                @forelse ($komponenPaket as $k)
                     <li class="flex items-center justify-between px-5 py-3 text-sm">
-                        <span class="text-slate-900">{{ $k->product?->name }}</span>
-                        <span class="tabular-nums text-slate-700">{{ Format::jumlah($k->quantity) }} {{ $k->product?->unit?->name }}</span>
+                        <span class="text-slate-900">
+                            <a href="{{ route('products.show', $k['product']) }}" class="hover:underline">{{ $k['product']->name }}</a>
+                            @unless ($k['product']->isSellable())
+                                <x-ui.badge color="warning" class="ml-1">Bahan baku</x-ui.badge>
+                            @endunless
+                        </span>
+                        <span class="tabular-nums text-slate-700">{{ Format::jumlah($k['quantity']) }} {{ $k['product']->unit?->name }}</span>
                     </li>
                 @empty
                     <li class="px-5 py-6 text-center text-sm text-warning-700">Komponen paket belum diatur. Paket tidak bisa dijual sebelum komponennya diisi di menu Resep/BOM.</li>
                 @endforelse
             </ul>
+            @if ($komponenPaket->isNotEmpty())
+                <p class="border-t border-slate-100 px-5 py-3 text-xs text-slate-600">
+                    Stok paket di kasir = jumlah paket yang bisa dibuat dari stok komponen di gudang kasir. Menjual paket mengurangi stok komponen di atas.
+                    @if ($komponenPaket->contains(fn ($k) => ! $k['product']->isSellable()))
+                        <span class="mt-1 block text-warning-700">Komponen bahan baku langsung dikurangi saat paket terjual. Bila paket berisi produk olahan yang sudah diproduksi (misal Ayam Original Dada), pilih produk olahan itu sebagai komponen di Resep/BOM, bukan bahannya.</span>
+                    @endif
+                </p>
+            @endif
         </x-ui.card>
     @endif
     @if ($produk->isProduced())

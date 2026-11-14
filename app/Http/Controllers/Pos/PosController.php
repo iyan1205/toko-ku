@@ -83,9 +83,10 @@ class PosController extends Controller
         $komponen = $produk->where('is_bundle', true)->flatMap(fn (Product $p) => $p->recipe?->items->pluck('product_id') ?? [])->all();
         $stok = WarehouseStock::query()->where('warehouse_id', $gudang->getKey())
             ->whereIn('product_id', [...$produk->modelKeys(), ...$komponen])->pluck('quantity', 'product_id');
-        // Stok paket = berapa paket yang bisa dibuat dari stok komponennya.
+        // Stok paket = berapa paket yang bisa dibuat dari stok komponennya. Isi per paket = jumlah resep ÷ hasil resep,
+        // sama dengan yang dikurangi saat paket terjual (Product::bundleComponents()).
         $stokPaket = fn (Product $p) => $p->recipe?->items->filter(fn ($i) => (float) $i->quantity > 0)
-            ->map(fn ($i) => floor((float) ($stok[$i->product_id] ?? 0) / (float) $i->quantity))->min() ?? 0;
+            ->map(fn ($i) => floor(round((float) ($stok[$i->product_id] ?? 0) * $p->recipe->yieldQuantity() / (float) $i->quantity, 6)))->min() ?? 0;
         $unitBarcode = fn (Product $p) => $kata !== '' ? $p->units->firstWhere('barcode', $kata) : null;
 
         return response()->json($produk->map(fn (Product $p) => [
